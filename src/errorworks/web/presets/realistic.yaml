@@ -1,0 +1,56 @@
+# ChaosWeb Preset: realistic
+# Purpose: Mimics typical web scraping conditions against real websites.
+# Use when: Testing how pipelines behave in realistic production conditions.
+
+server:
+  host: "127.0.0.1"
+  port: 8200
+  workers: 4
+
+metrics:
+  database: "file:chaosweb-metrics?mode=memory&cache=shared"
+  timeseries_bucket_sec: 1
+
+content:
+  mode: random
+  random:
+    min_words: 100
+    max_words: 500
+    vocabulary: english
+
+latency:
+  base_ms: 300
+  jitter_ms: 150
+
+error_injection:
+  # Realistic anti-scraping responses
+  rate_limit_pct: 5.0
+  forbidden_pct: 3.0
+  not_found_pct: 2.0
+  service_unavailable_pct: 1.0
+  retry_after_sec: [5, 30]
+
+  # Occasional server errors
+  internal_error_pct: 0.5
+  bad_gateway_pct: 0.2
+  gateway_timeout_pct: 0.3
+
+  # Occasional connection issues
+  timeout_pct: 0.5
+  timeout_sec: [10, 30]
+  slow_response_pct: 5.0
+  slow_response_sec: [3, 10]
+  connection_reset_pct: 0.2
+
+  # Rare content issues (real websites occasionally serve broken pages)
+  wrong_content_type_pct: 1.0
+  encoding_mismatch_pct: 1.0
+  truncated_html_pct: 0.5
+
+  # Occasional anti-scraping bursts
+  burst:
+    enabled: true
+    interval_sec: 60
+    duration_sec: 8
+    rate_limit_pct: 40
+    forbidden_pct: 30

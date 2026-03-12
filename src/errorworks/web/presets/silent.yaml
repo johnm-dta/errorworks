@@ -1,0 +1,25 @@
+# ChaosWeb Preset: silent
+# Purpose: Zero errors, just latency. For baseline performance measurement.
+# Use when: Measuring scraping throughput without error injection overhead.
+
+server:
+  host: "127.0.0.1"
+  port: 8200
+  workers: 4
+
+metrics:
+  database: "file:chaosweb-metrics?mode=memory&cache=shared"
+  timeseries_bucket_sec: 1
+
+content:
+  mode: random
+  random:
+    min_words: 100
+    max_words: 500
+    vocabulary: english
+
+latency:
+  base_ms: 200
+  jitter_ms: 100
+
+# No error injection — all requests succeed

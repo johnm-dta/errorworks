@@ -1,0 +1,32 @@
+# ChaosWeb Preset: gentle
+# Purpose: Minimal failures for happy-path testing of web scraping pipelines.
+# Use when: Verifying basic scraping functionality works before adding stress.
+
+server:
+  host: "127.0.0.1"
+  port: 8200
+  workers: 4
+
+metrics:
+  database: "file:chaosweb-metrics?mode=memory&cache=shared"
+  timeseries_bucket_sec: 1
+
+content:
+  mode: random
+  random:
+    min_words: 50
+    max_words: 200
+    vocabulary: english
+
+latency:
+  base_ms: 100
+  jitter_ms: 50
+
+error_injection:
+  # Very low error rates — just enough to verify error paths exist
+  rate_limit_pct: 1.0
+  not_found_pct: 1.0
+  retry_after_sec: [1, 3]
+
+  # No connection-level or content malformation errors
+  # No burst patterns
