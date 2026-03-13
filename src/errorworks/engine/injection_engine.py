@@ -10,7 +10,7 @@ Usage:
         burst_config=BurstConfig(enabled=True, interval_sec=30, duration_sec=5),
     )
 
-    # Plugin builds its own spec list with burst-adjusted weights
+    # Plugin queries engine.is_in_burst() and adjusts weights before calling engine.select()
     specs = [ErrorSpec("rate_limit", 10.0), ErrorSpec("timeout", 5.0)]
     selected = engine.select(specs)
     if selected is not None:

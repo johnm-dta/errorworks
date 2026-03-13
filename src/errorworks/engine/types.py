@@ -151,6 +151,13 @@ class BurstConfig:
 _VALID_SQL_TYPES = frozenset({"TEXT", "INTEGER", "REAL", "BLOB", "NUMERIC"})
 _VALID_COLUMN_NAME = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
 
+# Safe DEFAULT expressions: NULL, numeric literals, quoted strings.
+# Prevents SQL injection in DDL generation where defaults are interpolated via f-string.
+_VALID_DEFAULT = re.compile(
+    r"^(?:NULL|'[^']*'|[+-]?\d+(?:\.\d+)?)$",
+    re.IGNORECASE,
+)
+
 # Hosts that bind to all interfaces — dangerous for a chaos testing server.
 # Shared by ChaosLLMConfig and ChaosWebConfig validators.
 DANGEROUS_BIND_HOSTS = frozenset({"0.0.0.0", "::", "0:0:0:0:0:0:0:0"})
@@ -185,6 +192,11 @@ class ColumnDef:
             raise ValueError(f"ColumnDef sql_type must be one of {sorted(_VALID_SQL_TYPES)}, got {self.sql_type!r}")
         if self.primary_key and self.nullable:
             raise ValueError(f"ColumnDef '{self.name}': primary_key columns cannot be nullable")
+        if self.default is not None and not _VALID_DEFAULT.match(self.default):
+            raise ValueError(
+                f"ColumnDef '{self.name}': default must be NULL, a numeric literal, or a single-quoted string, "
+                f"got {self.default!r}"
+            )
 
 
 @dataclass(frozen=True, slots=True)

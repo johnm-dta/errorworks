@@ -167,7 +167,6 @@ class ContentGenerator:
     - preset: Real HTML snapshots from JSONL
     - echo: Reflect request info as HTML (XSS-safe)
 
-    Also provides content corruption helpers for malformation injection.
     """
 
     def __init__(
@@ -180,6 +179,17 @@ class ContentGenerator:
         self._rng = rng if rng is not None else random_module.Random()
         self._preset_bank: PresetBank | None = None
         self._jinja_env = self._create_jinja_env()
+
+        # Pre-compile template at construction — fail fast on syntax errors.
+        # Matches ResponseGenerator's pattern (llm/response_generator.py).
+        self._compiled_template: jinja2.Template | None = None
+        if config.mode == "template":
+            template_str = config.template.body
+            if len(template_str) > config.max_template_length:
+                raise ValueError(
+                    f"Template body ({len(template_str)} chars) exceeds max_template_length ({config.max_template_length})"
+                )
+            self._compiled_template = self._jinja_env.from_string(template_str)
 
     @property
     def config(self) -> WebContentConfig:
@@ -311,16 +321,37 @@ class ContentGenerator:
     def _generate_template_html(self, path: str, headers: dict[str, str]) -> str:
         """Generate HTML from Jinja2 template.
 
-        Template rendering errors are caught and return a generic error page
-        to avoid leaking Python tracebacks in responses.
+        Config-sourced templates are pre-compiled at init time — a broken
+        template is a config bug that crashes at startup.  Runtime compilation
+        only happens for header-override templates (Tier 3 external data),
+        where errors return a generic error page instead of crashing.
         """
-        template_str = self._config.template.body
-        max_len = self._config.max_template_length
-        if len(template_str) > max_len:
-            return self._error_page("Template Error", "Template exceeds maximum length")
+        if self._compiled_template is not None:
+            template = self._compiled_template
+        else:
+            # Header-override path or mode changed via update_config
+            template_str = self._config.template.body
+            max_len = self._config.max_template_length
+            if len(template_str) > max_len:
+                logger.warning(
+                    "template_exceeds_max_length",
+                    template_length=len(template_str),
+                    max_length=max_len,
+                )
+                return self._error_page("Template Error", "Template exceeds maximum length")
+
+            try:
+                template = self._jinja_env.from_string(template_str)
+            except jinja2.TemplateError as exc:
+                logger.error(
+                    "template_compilation_failed",
+                    error=str(exc),
+                    error_type=type(exc).__name__,
+                    template_length=len(template_str),
+                )
+                return self._error_page("Template Error", "Failed to compile template")
 
         try:
-            template = self._jinja_env.from_string(template_str)
             rendered = template.render(
                 path=path,
                 headers=headers,
@@ -331,11 +362,11 @@ class ContentGenerator:
                 "template_rendering_failed",
                 error=str(exc),
                 error_type=type(exc).__name__,
-                template_length=len(template_str),
             )
             return self._error_page("Template Error", "Failed to render template")
 
         # Cap output length
+        max_len = self._config.max_template_length
         if len(rendered) > max_len * 2:
             rendered = rendered[: max_len * 2]
 
@@ -428,7 +459,8 @@ class ContentGenerator:
             # Config mode is Pydantic Literal-validated, so invalid config mode
             # is impossible. This branch is only reachable via mode_override from
             # the X-Fake-Content-Mode header (Tier 3 external data).
-            content = f"<html><body>[unknown_mode: {mode!r}]</body></html>"
+            logger.warning("unknown_content_mode_override", mode=mode)
+            content = f"<html><body>[unknown_mode: {html.escape(repr(mode))}]</body></html>"
 
         return WebResponse(
             content=content,
@@ -469,8 +501,10 @@ def inject_encoding_mismatch(content: str) -> bytes:
 def inject_charset_confusion(content: str) -> str:
     """Add conflicting charset declarations.
 
-    Injects a <meta charset="iso-8859-1"> into an HTML page that will be
-    served with Content-Type: text/html; charset=utf-8, creating the kind
+    Injects both ``<meta charset="iso-8859-1">`` and a
+    ``<meta http-equiv="Content-Type" content="text/html; charset=windows-1252">``
+    into an HTML page that will be served with
+    ``Content-Type: text/html; charset=windows-1252``, creating the kind
     of charset confusion found on poorly maintained websites.
     """
     # Insert conflicting meta tag after <head>

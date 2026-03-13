@@ -364,7 +364,6 @@ class ResponseGenerator:
         This is a rough estimate suitable for fake responses.
         """
         # OpenAI tokenization averages about 4 chars per token for English
-        # Add a small buffer for special tokens
         return max(1, len(text) // 4)
 
     def _extract_prompt_text(self, request: dict[str, Any]) -> str:
@@ -434,6 +433,7 @@ class ResponseGenerator:
             # Config mode is Pydantic Literal-validated, so invalid config mode
             # is impossible. This branch is only reachable via mode_override from
             # the X-Fake-Response-Mode header (Tier 3 external data).
+            logger.warning("unknown_response_mode_override", mode=mode)
             content = f"[unknown_mode: {mode!r}]"
 
         # Estimate token counts

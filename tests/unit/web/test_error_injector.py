@@ -149,6 +149,84 @@ class TestWebErrorDecision:
         assert WebErrorDecision.success().is_redirect is False
 
 
+class TestWebErrorDecisionValidation:
+    """Tests for WebErrorDecision __post_init__ invariant checks."""
+
+    def test_success_with_category_raises(self) -> None:
+        """Success decision must not have a category."""
+        with pytest.raises(ValueError, match="Success decision must not have a category"):
+            WebErrorDecision(error_type=None, category=WebErrorCategory.HTTP)
+
+    def test_error_without_category_raises(self) -> None:
+        """Error decision must have a category."""
+        with pytest.raises(ValueError, match="must have a category"):
+            WebErrorDecision(error_type="rate_limit")
+
+    def test_http_error_without_status_code_raises(self) -> None:
+        """HTTP error must have a status_code."""
+        with pytest.raises(ValueError, match="must have a status_code"):
+            WebErrorDecision(error_type="rate_limit", category=WebErrorCategory.HTTP, status_code=None)
+
+    def test_http_error_invalid_status_code_raises(self) -> None:
+        """HTTP error status_code must be 100-599."""
+        with pytest.raises(ValueError, match="must be 100-599"):
+            WebErrorDecision(error_type="rate_limit", category=WebErrorCategory.HTTP, status_code=999)
+
+    def test_http_error_with_malformed_type_raises(self) -> None:
+        """HTTP error must not have malformed_type."""
+        with pytest.raises(ValueError, match="must not have malformed_type"):
+            WebErrorDecision(
+                error_type="rate_limit", category=WebErrorCategory.HTTP, status_code=429, malformed_type="truncated_html"
+            )
+
+    def test_connection_error_with_retry_after_raises(self) -> None:
+        """Connection error must not have retry_after_sec."""
+        with pytest.raises(ValueError, match="must not have retry_after_sec"):
+            WebErrorDecision(error_type="timeout", category=WebErrorCategory.CONNECTION, retry_after_sec=5)
+
+    def test_connection_error_with_malformed_type_raises(self) -> None:
+        """Connection error must not have malformed_type."""
+        with pytest.raises(ValueError, match="must not have malformed_type"):
+            WebErrorDecision(error_type="timeout", category=WebErrorCategory.CONNECTION, malformed_type="truncated_html")
+
+    def test_malformed_without_malformed_type_raises(self) -> None:
+        """Malformed error must have malformed_type."""
+        with pytest.raises(ValueError, match="must have malformed_type"):
+            WebErrorDecision(error_type="malformed", category=WebErrorCategory.MALFORMED)
+
+    def test_malformed_with_wrong_status_code_raises(self) -> None:
+        """Malformed error must have status_code 200."""
+        with pytest.raises(ValueError, match="must have status_code 200"):
+            WebErrorDecision(
+                error_type="malformed", category=WebErrorCategory.MALFORMED, malformed_type="truncated_html", status_code=500
+            )
+
+    def test_redirect_without_target_or_hops_raises(self) -> None:
+        """Redirect error must have redirect_target or redirect_hops."""
+        with pytest.raises(ValueError, match="must have redirect_target or redirect_hops"):
+            WebErrorDecision(error_type="ssrf_redirect", category=WebErrorCategory.REDIRECT, status_code=301)
+
+    def test_negative_retry_after_raises(self) -> None:
+        """retry_after_sec must be non-negative."""
+        with pytest.raises(ValueError, match="retry_after_sec must be non-negative"):
+            WebErrorDecision(error_type="rate_limit", category=WebErrorCategory.HTTP, status_code=429, retry_after_sec=-1)
+
+    def test_negative_delay_sec_raises(self) -> None:
+        """delay_sec must be non-negative."""
+        with pytest.raises(ValueError, match="delay_sec must be non-negative"):
+            WebErrorDecision(error_type="timeout", category=WebErrorCategory.CONNECTION, delay_sec=-1.0)
+
+    def test_negative_start_delay_sec_raises(self) -> None:
+        """start_delay_sec must be non-negative."""
+        with pytest.raises(ValueError, match="start_delay_sec must be non-negative"):
+            WebErrorDecision(error_type="timeout", category=WebErrorCategory.CONNECTION, start_delay_sec=-1.0)
+
+    def test_negative_incomplete_bytes_raises(self) -> None:
+        """incomplete_bytes must be non-negative."""
+        with pytest.raises(ValueError, match="incomplete_bytes must be non-negative"):
+            WebErrorDecision(error_type="incomplete", category=WebErrorCategory.CONNECTION, incomplete_bytes=-1)
+
+
 class TestWebErrorInjectorBasic:
     """Basic tests for WebErrorInjector."""
 

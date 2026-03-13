@@ -32,9 +32,9 @@ from errorworks.engine.types import (
 )
 
 __all__ = [
-    "BurstConfig",
     "ChaosLLMConfig",
     "ErrorInjectionConfig",
+    "LLMBurstConfig",
     "LatencyConfig",
     "MetricsConfig",
     "PresetResponseConfig",
@@ -140,7 +140,7 @@ class ResponseConfig(BaseModel):
     )
 
 
-class BurstConfig(BaseModel):
+class LLMBurstConfig(BaseModel):
     """Burst pattern configuration for simulating provider stress."""
 
     model_config = {"frozen": True, "extra": "forbid"}
@@ -161,7 +161,7 @@ class BurstConfig(BaseModel):
     )
 
     @model_validator(mode="after")
-    def _validate_burst_timing(self) -> "BurstConfig":
+    def _validate_burst_timing(self) -> "LLMBurstConfig":
         if self.enabled and self.duration_sec >= self.interval_sec:
             raise ValueError(
                 f"duration_sec ({self.duration_sec}) must be less than interval_sec ({self.interval_sec}) when burst is enabled"
@@ -338,8 +338,8 @@ class ErrorInjectionConfig(BaseModel):
 
     # === Burst Configuration ===
 
-    burst: BurstConfig = Field(
-        default_factory=BurstConfig,
+    burst: LLMBurstConfig = Field(
+        default_factory=LLMBurstConfig,
         description="Burst pattern configuration",
     )
 

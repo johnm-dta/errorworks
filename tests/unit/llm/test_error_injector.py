@@ -8,7 +8,8 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from errorworks.llm.config import BurstConfig, ErrorInjectionConfig
+from errorworks.llm.config import ErrorInjectionConfig
+from errorworks.llm.config import LLMBurstConfig as BurstConfig
 from errorworks.llm.error_injector import (
     CONNECTION_ERRORS,
     HTTP_ERRORS,
@@ -138,6 +139,70 @@ class TestErrorDecision:
             decision = ErrorDecision.malformed_response(malformed_type)
             assert decision.is_connection_level is False
             assert decision.is_malformed is True
+
+
+class TestErrorDecisionValidation:
+    """Tests for ErrorDecision __post_init__ invariant checks."""
+
+    def test_success_with_category_raises(self) -> None:
+        """Success decision must not have a category."""
+        with pytest.raises(ValueError, match="Success decision must not have a category"):
+            ErrorDecision(error_type=None, category=ErrorCategory.HTTP)
+
+    def test_error_without_category_raises(self) -> None:
+        """Error decision must have a category."""
+        with pytest.raises(ValueError, match="must have a category"):
+            ErrorDecision(error_type="rate_limit")
+
+    def test_http_error_without_status_code_raises(self) -> None:
+        """HTTP error must have a status_code."""
+        with pytest.raises(ValueError, match="must have a status_code"):
+            ErrorDecision(error_type="rate_limit", category=ErrorCategory.HTTP, status_code=None)
+
+    def test_http_error_invalid_status_code_raises(self) -> None:
+        """HTTP error status_code must be 100-599."""
+        with pytest.raises(ValueError, match="must be 100-599"):
+            ErrorDecision(error_type="rate_limit", category=ErrorCategory.HTTP, status_code=999)
+
+    def test_http_error_with_malformed_type_raises(self) -> None:
+        """HTTP error must not have malformed_type."""
+        with pytest.raises(ValueError, match="must not have malformed_type"):
+            ErrorDecision(error_type="rate_limit", category=ErrorCategory.HTTP, status_code=429, malformed_type="invalid_json")
+
+    def test_connection_error_with_retry_after_raises(self) -> None:
+        """Connection error must not have retry_after_sec."""
+        with pytest.raises(ValueError, match="must not have retry_after_sec"):
+            ErrorDecision(error_type="timeout", category=ErrorCategory.CONNECTION, retry_after_sec=5)
+
+    def test_connection_error_with_malformed_type_raises(self) -> None:
+        """Connection error must not have malformed_type."""
+        with pytest.raises(ValueError, match="must not have malformed_type"):
+            ErrorDecision(error_type="timeout", category=ErrorCategory.CONNECTION, malformed_type="invalid_json")
+
+    def test_malformed_without_malformed_type_raises(self) -> None:
+        """Malformed error must have malformed_type."""
+        with pytest.raises(ValueError, match="must have malformed_type"):
+            ErrorDecision(error_type="malformed", category=ErrorCategory.MALFORMED)
+
+    def test_malformed_with_wrong_status_code_raises(self) -> None:
+        """Malformed error must have status_code 200."""
+        with pytest.raises(ValueError, match="must have status_code 200"):
+            ErrorDecision(error_type="malformed", category=ErrorCategory.MALFORMED, malformed_type="invalid_json", status_code=500)
+
+    def test_negative_retry_after_raises(self) -> None:
+        """retry_after_sec must be non-negative."""
+        with pytest.raises(ValueError, match="retry_after_sec must be non-negative"):
+            ErrorDecision(error_type="rate_limit", category=ErrorCategory.HTTP, status_code=429, retry_after_sec=-1)
+
+    def test_negative_delay_sec_raises(self) -> None:
+        """delay_sec must be non-negative."""
+        with pytest.raises(ValueError, match="delay_sec must be non-negative"):
+            ErrorDecision(error_type="timeout", category=ErrorCategory.CONNECTION, delay_sec=-1.0)
+
+    def test_negative_start_delay_sec_raises(self) -> None:
+        """start_delay_sec must be non-negative."""
+        with pytest.raises(ValueError, match="start_delay_sec must be non-negative"):
+            ErrorDecision(error_type="timeout", category=ErrorCategory.CONNECTION, start_delay_sec=-1.0)
 
 
 class TestErrorInjectorBasic:

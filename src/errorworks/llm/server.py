@@ -284,7 +284,7 @@ class ChaosLLMServer:
         # POST - update config
         try:
             body = await request.json()
-        except Exception:
+        except (json.JSONDecodeError, ValueError, UnicodeDecodeError):
             return JSONResponse(
                 {"error": {"type": "invalid_request_error", "message": "Request body must be valid JSON"}},
                 status_code=400,
@@ -347,7 +347,7 @@ class ChaosLLMServer:
         # Parse request body
         try:
             body = await request.json()
-        except Exception:
+        except (json.JSONDecodeError, ValueError, UnicodeDecodeError):
             return JSONResponse(
                 {"error": {"type": "invalid_request_error", "message": "Request body must be valid JSON"}},
                 status_code=400,
@@ -822,6 +822,14 @@ class ChaosLLMServer:
         except sqlite3.Error:
             logger.warning(
                 "metrics_recording_failed",
+                request_id=request_id,
+                endpoint=endpoint,
+                outcome=outcome,
+                exc_info=True,
+            )
+        except Exception:
+            logger.error(
+                "metrics_recording_unexpected_error",
                 request_id=request_id,
                 endpoint=endpoint,
                 outcome=outcome,

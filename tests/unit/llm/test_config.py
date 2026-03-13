@@ -9,7 +9,6 @@ import pytest
 from pydantic import ValidationError
 
 from errorworks.llm.config import (
-    BurstConfig,
     ChaosLLMConfig,
     ErrorInjectionConfig,
     RandomResponseConfig,
@@ -17,6 +16,9 @@ from errorworks.llm.config import (
     list_presets,
     load_config,
     load_preset,
+)
+from errorworks.llm.config import (
+    LLMBurstConfig as BurstConfig,
 )
 
 

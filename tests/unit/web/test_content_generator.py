@@ -128,18 +128,16 @@ class TestContentGeneratorTemplateMode:
         # Should have some words between body tags
         assert len(response.content) > len("<html><body></body></html>")
 
-    def test_template_too_long_returns_error_page(self) -> None:
-        """Template exceeding max_template_length returns an error page."""
+    def test_template_too_long_raises_at_init(self) -> None:
+        """Template exceeding max_template_length raises ValueError at construction."""
         long_template = "x" * 20_000
         config = WebContentConfig(
             mode="template",
             template={"body": long_template},
             max_template_length=100,
         )
-        generator = ContentGenerator(config)
-
-        response = generator.generate()
-        assert "Template Error" in response.content
+        with pytest.raises(ValueError, match="exceeds max_template_length"):
+            ContentGenerator(config)
 
 
 class TestPresetBank:

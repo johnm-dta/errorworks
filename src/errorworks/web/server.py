@@ -25,6 +25,7 @@ import time
 import uuid
 from datetime import UTC, datetime
 from typing import Any
+from urllib.parse import quote
 
 import structlog
 from starlette.applications import Starlette
@@ -239,7 +240,7 @@ class ChaosWebServer:
             return JSONResponse(self._get_current_config())
         try:
             body = await request.json()
-        except Exception:
+        except (json.JSONDecodeError, ValueError, UnicodeDecodeError):
             return JSONResponse(
                 {"error": {"type": "invalid_request_error", "message": "Request body must be valid JSON"}},
                 status_code=400,
@@ -284,8 +285,14 @@ class ChaosWebServer:
             max_hops = max(1, int(request.query_params.get("max", "10")))
         except (ValueError, OverflowError):
             return HTMLResponse("<html><body><p>Invalid redirect parameters.</p></body></html>", status_code=400)
+
+        # Snapshot components under lock (config snapshot pattern)
+        with self._config_lock:
+            error_injector = self._error_injector
+            latency_simulator = self._latency_simulator
+
         # Cap to the configured maximum to prevent resource exhaustion
-        config_max = self._error_injector.config.max_redirect_loop_hops
+        config_max = error_injector.config.max_redirect_loop_hops
         max_hops = min(max_hops, config_max)
         target = request.query_params.get("target", "/")
 
@@ -294,7 +301,7 @@ class ChaosWebServer:
         start_time = time.monotonic()
 
         # Simulate latency on each hop (same as initial redirect)
-        delay = self._latency_simulator.simulate()
+        delay = latency_simulator.simulate()
         if delay > 0:
             await asyncio.sleep(delay)
 
@@ -302,7 +309,7 @@ class ChaosWebServer:
 
         if hop < max_hops:
             # Continue the redirect chain
-            next_url = f"/redirect?hop={hop + 1}&max={max_hops}&target={target}"
+            next_url = f"/redirect?hop={hop + 1}&max={max_hops}&target={quote(target, safe='/')}"
             self._record_request(
                 request_id=request_id,
                 timestamp_utc=timestamp_utc,
@@ -355,6 +362,7 @@ class ChaosWebServer:
         with self._config_lock:
             error_injector = self._error_injector
             content_generator = self._content_generator
+            latency_simulator = self._latency_simulator
 
         # Extract header overrides if allowed
         mode_override: str | None = None
@@ -376,6 +384,7 @@ class ChaosWebServer:
                     timestamp_utc=timestamp_utc,
                     path=path,
                     start_time=start_time,
+                    latency_simulator=latency_simulator,
                 )
             if decision.category == WebErrorCategory.CONNECTION:
                 if decision.error_type == "slow_response":
@@ -387,6 +396,8 @@ class ChaosWebServer:
                         mode_override=mode_override,
                         headers=request_headers,
                         start_time=start_time,
+                        content_generator=content_generator,
+                        latency_simulator=latency_simulator,
                     )
                 return await self._handle_connection_error(
                     decision=decision,
@@ -396,6 +407,7 @@ class ChaosWebServer:
                     mode_override=mode_override,
                     headers=request_headers,
                     start_time=start_time,
+                    content_generator=content_generator,
                 )
             if decision.category == WebErrorCategory.MALFORMED:
                 return await self._handle_malformed_content(
@@ -406,6 +418,8 @@ class ChaosWebServer:
                     mode_override=mode_override,
                     headers=request_headers,
                     start_time=start_time,
+                    content_generator=content_generator,
+                    latency_simulator=latency_simulator,
                 )
             # HTTP-level error
             return await self._handle_http_error(
@@ -414,6 +428,7 @@ class ChaosWebServer:
                 timestamp_utc=timestamp_utc,
                 path=path,
                 start_time=start_time,
+                latency_simulator=latency_simulator,
             )
 
         # Success — generate HTML page
@@ -424,6 +439,8 @@ class ChaosWebServer:
             mode_override=mode_override,
             headers=request_headers,
             start_time=start_time,
+            content_generator=content_generator,
+            latency_simulator=latency_simulator,
         )
 
     # === Error Handlers ===
@@ -435,10 +452,11 @@ class ChaosWebServer:
         timestamp_utc: str,
         path: str,
         start_time: float,
+        latency_simulator: LatencySimulator,
     ) -> Response:
         """Handle redirect injection (loops and SSRF)."""
         # Add base latency before redirect
-        delay = self._latency_simulator.simulate()
+        delay = latency_simulator.simulate()
         if delay > 0:
             await asyncio.sleep(delay)
 
@@ -492,6 +510,7 @@ class ChaosWebServer:
         mode_override: str | None,
         headers: dict[str, str] | None,
         start_time: float,
+        content_generator: ContentGenerator,
     ) -> Response:
         """Handle connection-level errors (timeout, reset, stall, incomplete)."""
         error_type = decision.error_type
@@ -563,7 +582,7 @@ class ChaosWebServer:
             # Send headers + partial body, then close connection
             incomplete_bytes = decision.incomplete_bytes if decision.incomplete_bytes is not None else 500
             # Generate full HTML then truncate
-            web_response = self._content_generator.generate(
+            web_response = content_generator.generate(
                 path=path,
                 headers=headers,
                 mode_override=mode_override,
@@ -604,6 +623,7 @@ class ChaosWebServer:
         timestamp_utc: str,
         path: str,
         start_time: float,
+        latency_simulator: LatencySimulator,
     ) -> Response:
         """Handle HTTP-level errors (4xx, 5xx)."""
         status_code = decision.status_code
@@ -613,7 +633,7 @@ class ChaosWebServer:
             raise ValueError("HTTP error decision must have status_code and error_type")
 
         # Add latency
-        delay = self._latency_simulator.simulate()
+        delay = latency_simulator.simulate()
         if delay > 0:
             await asyncio.sleep(delay)
 
@@ -647,17 +667,19 @@ class ChaosWebServer:
         mode_override: str | None,
         headers: dict[str, str] | None,
         start_time: float,
+        content_generator: ContentGenerator,
+        latency_simulator: LatencySimulator,
     ) -> Response:
         """Handle malformed content responses (200 with corrupted content)."""
         malformed_type = decision.malformed_type
 
         # Add latency
-        delay = self._latency_simulator.simulate()
+        delay = latency_simulator.simulate()
         if delay > 0:
             await asyncio.sleep(delay)
 
         # Generate base HTML then corrupt it
-        web_response = self._content_generator.generate(
+        web_response = content_generator.generate(
             path=path,
             headers=headers,
             mode_override=mode_override,
@@ -672,7 +694,7 @@ class ChaosWebServer:
         elapsed_ms = (time.monotonic() - start_time) * 1000
 
         if malformed_type == "wrong_content_type":
-            wrong_ct = generate_wrong_content_type()
+            wrong_ct = generate_wrong_content_type(rng=content_generator._rng)
             self._record_request(
                 request_id=request_id,
                 timestamp_utc=timestamp_utc,
@@ -788,6 +810,8 @@ class ChaosWebServer:
         mode_override: str | None,
         headers: dict[str, str] | None,
         start_time: float,
+        content_generator: ContentGenerator,
+        latency_simulator: LatencySimulator,
     ) -> Response:
         """Handle a slow response that eventually succeeds."""
         delay = decision.delay_sec if decision.delay_sec is not None else 15.0
@@ -800,6 +824,8 @@ class ChaosWebServer:
             start_time=start_time,
             extra_delay_sec=delay,
             injection_type="slow_response",
+            content_generator=content_generator,
+            latency_simulator=latency_simulator,
         )
 
     async def _handle_success(
@@ -809,19 +835,21 @@ class ChaosWebServer:
         path: str,
         mode_override: str | None,
         start_time: float,
+        content_generator: ContentGenerator,
+        latency_simulator: LatencySimulator,
         headers: dict[str, str] | None = None,
         extra_delay_sec: float | None = None,
         injection_type: str | None = None,
     ) -> Response:
         """Handle a successful page response with latency simulation."""
         # Latency
-        delay = self._latency_simulator.simulate()
+        delay = latency_simulator.simulate()
         total_delay = delay + (extra_delay_sec if extra_delay_sec is not None else 0.0)
         if total_delay > 0:
             await asyncio.sleep(total_delay)
 
         # Generate HTML
-        web_response = self._content_generator.generate(
+        web_response = content_generator.generate(
             path=path,
             headers=headers,
             mode_override=mode_override,
@@ -895,6 +923,14 @@ class ChaosWebServer:
         except sqlite3.Error:
             logger.warning(
                 "metrics_recording_failed",
+                request_id=request_id,
+                path=path,
+                outcome=outcome,
+                exc_info=True,
+            )
+        except Exception:
+            logger.error(
+                "metrics_recording_unexpected_error",
                 request_id=request_id,
                 path=path,
                 outcome=outcome,

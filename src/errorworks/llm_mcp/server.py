@@ -14,6 +14,7 @@ Usage:
 
 import argparse
 import json
+import logging
 import re
 import sqlite3
 import sys
@@ -24,6 +25,8 @@ from typing import Any
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import TextContent, Tool
+
+logger = logging.getLogger(__name__)
 
 _SQLITE_OK = sqlite3.SQLITE_OK
 _SQLITE_DENY = sqlite3.SQLITE_DENY
@@ -754,8 +757,19 @@ class ChaosLLMAnalyzer:
         # Reject dangerous keywords (word-boundary match to avoid false positives
         # like created_at matching CREATE, updated_at matching UPDATE)
         dangerous = [
-            "INSERT", "UPDATE", "DELETE", "DROP", "CREATE", "ALTER", "TRUNCATE",
-            "ATTACH", "DETACH", "PRAGMA", "REINDEX", "VACUUM", "REPLACE",
+            "INSERT",
+            "UPDATE",
+            "DELETE",
+            "DROP",
+            "CREATE",
+            "ALTER",
+            "TRUNCATE",
+            "ATTACH",
+            "DETACH",
+            "PRAGMA",
+            "REINDEX",
+            "VACUUM",
+            "REPLACE",
         ]
         for keyword in dangerous:
             if re.search(rf"\b{keyword}\b", sql_normalized):
@@ -999,24 +1013,60 @@ def create_server(database_path: str) -> tuple[Server, ChaosLLMAnalyzer]:
             return [TextContent(type="text", text=json.dumps(result, indent=2))]
 
         except KeyError as e:
-            return [TextContent(type="text", text=json.dumps({
-                "error": f"Missing required argument: {e!s}",
-                "tool": name,
-                "provided_arguments": list(arguments.keys()),
-            }))]
+            return [
+                TextContent(
+                    type="text",
+                    text=json.dumps(
+                        {
+                            "error": f"Missing required argument: {e!s}",
+                            "tool": name,
+                            "provided_arguments": list(arguments.keys()),
+                        }
+                    ),
+                )
+            ]
         except ValueError as e:
-            return [TextContent(type="text", text=json.dumps({
-                "error": str(e),
-                "error_type": "validation_error",
-                "tool": name,
-            }))]
+            return [
+                TextContent(
+                    type="text",
+                    text=json.dumps(
+                        {
+                            "error": str(e),
+                            "error_type": "validation_error",
+                            "tool": name,
+                        }
+                    ),
+                )
+            ]
         except sqlite3.Error as e:
-            return [TextContent(type="text", text=json.dumps({
-                "error": str(e),
-                "error_type": "database_error",
-                "tool": name,
-                "hint": "Check that the database path is correct and contains a ChaosLLM metrics schema.",
-            }))]
+            return [
+                TextContent(
+                    type="text",
+                    text=json.dumps(
+                        {
+                            "error": str(e),
+                            "error_type": "database_error",
+                            "tool": name,
+                            "hint": "Check that the database path is correct and contains a ChaosLLM metrics schema.",
+                        }
+                    ),
+                )
+            ]
+        except Exception as e:
+            logger.error("mcp_tool_unexpected_error: tool=%s error=%s", name, e, exc_info=True)
+            return [
+                TextContent(
+                    type="text",
+                    text=json.dumps(
+                        {
+                            "error": str(e),
+                            "error_type": type(e).__name__,
+                            "tool": name,
+                            "hint": "Unexpected error. Check the database and arguments.",
+                        }
+                    ),
+                )
+            ]
 
     return server, analyzer
 

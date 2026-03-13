@@ -81,6 +81,10 @@ def _generate_ddl(schema: MetricsSchema) -> str:
 def _get_bucket_utc(timestamp_utc: str, bucket_sec: int) -> str:
     """Calculate the time bucket for a given timestamp.
 
+    Bucket boundaries are calculated from time-of-day (hours, minutes,
+    seconds) within the same date. Uses timedelta arithmetic to avoid
+    invalid hour/minute values with large bucket sizes.
+
     Args:
         timestamp_utc: ISO-formatted timestamp string.
         bucket_sec: Bucket size in seconds.
@@ -91,12 +95,8 @@ def _get_bucket_utc(timestamp_utc: str, bucket_sec: int) -> str:
     dt = datetime.fromisoformat(timestamp_utc.replace("Z", "+00:00")).astimezone(UTC)
     total_seconds = dt.hour * 3600 + dt.minute * 60 + dt.second
     bucket_seconds = (total_seconds // bucket_sec) * bucket_sec
-    bucket_dt = dt.replace(
-        hour=bucket_seconds // 3600,
-        minute=(bucket_seconds % 3600) // 60,
-        second=bucket_seconds % 60,
-        microsecond=0,
-    )
+    midnight = dt.replace(hour=0, minute=0, second=0, microsecond=0)
+    bucket_dt = midnight + timedelta(seconds=bucket_seconds)
     return bucket_dt.isoformat()
 
 
@@ -152,15 +152,9 @@ class MetricsStore:
         req_names = {c.name for c in schema.request_columns}
         missing_ts = {"bucket_utc", "requests_total"} - ts_names
         if missing_ts:
-            raise ValueError(
-                f"MetricsSchema timeseries_columns must include {sorted(missing_ts)} "
-                f"(required by update_timeseries)"
-            )
+            raise ValueError(f"MetricsSchema timeseries_columns must include {sorted(missing_ts)} (required by update_timeseries)")
         if "timestamp_utc" not in req_names:
-            raise ValueError(
-                "MetricsSchema request_columns must include 'timestamp_utc' "
-                "(required by rebuild_timeseries)"
-            )
+            raise ValueError("MetricsSchema request_columns must include 'timestamp_utc' (required by rebuild_timeseries)")
 
         # Generate and cache DDL
         self._ddl = _generate_ddl(schema)
@@ -185,13 +179,17 @@ class MetricsStore:
                 timeout=30.0,
                 uri=self._use_uri,
             )
-            if self._is_memory_db:
-                conn.execute("PRAGMA journal_mode=MEMORY")
-                conn.execute("PRAGMA synchronous=OFF")
-            else:
-                conn.execute("PRAGMA journal_mode=WAL")
-                conn.execute("PRAGMA synchronous=NORMAL")
-            conn.row_factory = sqlite3.Row
+            try:
+                if self._is_memory_db:
+                    conn.execute("PRAGMA journal_mode=MEMORY")
+                    conn.execute("PRAGMA synchronous=OFF")
+                else:
+                    conn.execute("PRAGMA journal_mode=WAL")
+                    conn.execute("PRAGMA synchronous=NORMAL")
+                conn.row_factory = sqlite3.Row
+            except sqlite3.Error:
+                conn.close()
+                raise
             self._local.connection = conn
             thread_id = threading.get_ident()
             with self._lock:
@@ -206,7 +204,7 @@ class MetricsStore:
             for tid in dead_ids:
                 try:
                     self._connections[tid].close()
-                except sqlite3.ProgrammingError:
+                except sqlite3.Error:
                     logger.warning("failed to close stale connection for thread %s", tid, exc_info=True)
                 del self._connections[tid]
 
@@ -600,6 +598,6 @@ class MetricsStore:
             for tid, conn in self._connections.items():
                 try:
                     conn.close()
-                except sqlite3.ProgrammingError:
+                except sqlite3.Error:
                     logger.warning("failed to close connection for thread %s", tid, exc_info=True)
             self._connections.clear()

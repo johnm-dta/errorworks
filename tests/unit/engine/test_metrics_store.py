@@ -7,6 +7,8 @@ time-series bucketing, stats computation, and lifecycle management.
 
 from __future__ import annotations
 
+import threading
+
 import pytest
 
 from errorworks.engine.metrics_store import MetricsStore, _generate_ddl, _get_bucket_utc
@@ -34,6 +36,65 @@ _TEST_SCHEMA = MetricsSchema(
         ("idx_req_outcome", "outcome"),
     ),
 )
+
+
+# =============================================================================
+# ColumnDef Validation
+# =============================================================================
+
+
+class TestColumnDefValidation:
+    """Tests for ColumnDef default value validation (SQL injection prevention)."""
+
+    def test_valid_numeric_default(self) -> None:
+        """Numeric defaults are accepted."""
+        col = ColumnDef("count", "INTEGER", default="0")
+        assert col.default == "0"
+
+    def test_valid_null_default(self) -> None:
+        """NULL default is accepted."""
+        col = ColumnDef("value", "TEXT", default="NULL")
+        assert col.default == "NULL"
+
+    def test_valid_quoted_string_default(self) -> None:
+        """Single-quoted string default is accepted."""
+        col = ColumnDef("status", "TEXT", default="'active'")
+        assert col.default == "'active'"
+
+    def test_valid_negative_numeric_default(self) -> None:
+        """Negative numeric default is accepted."""
+        col = ColumnDef("offset_val", "INTEGER", default="-1")
+        assert col.default == "-1"
+
+    def test_valid_float_default(self) -> None:
+        """Float default is accepted."""
+        col = ColumnDef("ratio", "REAL", default="0.5")
+        assert col.default == "0.5"
+
+    def test_no_default_is_fine(self) -> None:
+        """None default is accepted (no DEFAULT clause)."""
+        col = ColumnDef("name", "TEXT", default=None)
+        assert col.default is None
+
+    def test_sql_injection_in_default_raises(self) -> None:
+        """SQL injection attempt in default is rejected."""
+        with pytest.raises(ValueError, match="default must be"):
+            ColumnDef("x", "TEXT", default="0; DROP TABLE requests")
+
+    def test_subquery_in_default_raises(self) -> None:
+        """Subquery in default is rejected."""
+        with pytest.raises(ValueError, match="default must be"):
+            ColumnDef("x", "TEXT", default="(SELECT 1)")
+
+    def test_function_call_in_default_raises(self) -> None:
+        """Function call in default is rejected."""
+        with pytest.raises(ValueError, match="default must be"):
+            ColumnDef("x", "TEXT", default="CURRENT_TIMESTAMP")
+
+    def test_unquoted_string_in_default_raises(self) -> None:
+        """Unquoted string in default is rejected."""
+        with pytest.raises(ValueError, match="default must be"):
+            ColumnDef("x", "TEXT", default="active")
 
 
 # =============================================================================
@@ -516,3 +577,117 @@ class TestRebuildTimeseries:
         assert len(rows) == 1
         assert rows[0]["requests_total"] == 1
         assert rows[0]["avg_latency_ms"] is None
+
+
+# =============================================================================
+# Thread Safety
+# =============================================================================
+
+
+class TestThreadSafety:
+    """Tests for MetricsStore thread-safe operation."""
+
+    def test_concurrent_record_and_commit(self, tmp_path) -> None:
+        """Multiple threads can record and commit concurrently without data loss."""
+        # Use a file-backed DB (WAL mode) since :memory: is per-connection
+        config = MetricsConfig(database=str(tmp_path / "thread_test.db"))
+        store = MetricsStore(config, _TEST_SCHEMA, run_id="thread-test")
+
+        n_threads = 8
+        n_records_per_thread = 50
+        errors: list[Exception] = []
+        lock = threading.Lock()
+
+        def worker(thread_id: int) -> None:
+            try:
+                for i in range(n_records_per_thread):
+                    store.record(
+                        request_id=f"t{thread_id}-r{i}",
+                        timestamp_utc="2024-01-15T10:30:00+00:00",
+                        outcome="success",
+                        status_code=200,
+                        latency_ms=float(i),
+                    )
+                store.commit()
+            except Exception as exc:
+                with lock:
+                    errors.append(exc)
+
+        threads = [threading.Thread(target=worker, args=(tid,)) for tid in range(n_threads)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        assert errors == [], f"Thread errors: {errors}"
+
+        rows = store.get_requests(limit=n_threads * n_records_per_thread + 1)
+        assert len(rows) == n_threads * n_records_per_thread
+        store.close()
+
+    def test_concurrent_read_during_write(self, tmp_path) -> None:
+        """get_stats() can be called while other threads are writing."""
+        config = MetricsConfig(database=str(tmp_path / "rw_test.db"))
+        store = MetricsStore(config, _TEST_SCHEMA, run_id="rw-test")
+
+        errors: list[Exception] = []
+        lock = threading.Lock()
+
+        def writer() -> None:
+            try:
+                for i in range(100):
+                    store.record(
+                        request_id=f"w-{i}",
+                        timestamp_utc="2024-01-15T10:30:00+00:00",
+                        outcome="success",
+                    )
+                store.commit()
+            except Exception as exc:
+                with lock:
+                    errors.append(exc)
+
+        def reader() -> None:
+            try:
+                for _ in range(20):
+                    stats = store.get_stats()
+                    assert "total_requests" in stats
+            except Exception as exc:
+                with lock:
+                    errors.append(exc)
+
+        writer_thread = threading.Thread(target=writer)
+        reader_threads = [threading.Thread(target=reader) for _ in range(4)]
+
+        writer_thread.start()
+        for t in reader_threads:
+            t.start()
+
+        writer_thread.join()
+        for t in reader_threads:
+            t.join()
+
+        assert errors == [], f"Thread errors: {errors}"
+        store.close()
+
+    def test_close_during_idle(self, tmp_path) -> None:
+        """close() from main thread after worker threads finish."""
+        config = MetricsConfig(database=str(tmp_path / "close_test.db"))
+        store = MetricsStore(config, _TEST_SCHEMA, run_id="close-test")
+
+        def worker() -> None:
+            store.record(
+                request_id=f"t{threading.get_ident()}",
+                timestamp_utc="2024-01-15T10:30:00+00:00",
+                outcome="success",
+            )
+            store.commit()
+
+        threads = [threading.Thread(target=worker) for _ in range(4)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        # All worker threads are dead; close should clean up their connections
+        store.close()
+        assert len(store._connections) == 0
