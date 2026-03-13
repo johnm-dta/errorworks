@@ -365,3 +365,48 @@ class TestResponseConfig:
         """max_template_length must be > 0."""
         with pytest.raises(ValidationError):
             ResponseConfig(max_template_length=0)
+
+
+class TestErrorInjectionPercentageWarning:
+    """Tests for total percentage warning in weighted mode."""
+
+    def test_weighted_mode_warns_when_total_exceeds_100(self) -> None:
+        """Weighted mode warns when total error percentages exceed 100%."""
+        import warnings
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            ErrorInjectionConfig(
+                selection_mode="weighted",
+                rate_limit_pct=60.0,
+                timeout_pct=60.0,
+            )
+            assert len(w) == 1
+            assert "exceed 100%" in str(w[0].message)
+            assert "No successful responses" in str(w[0].message)
+
+    def test_weighted_mode_no_warning_under_100(self) -> None:
+        """Weighted mode does not warn when total is under 100%."""
+        import warnings
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            ErrorInjectionConfig(
+                selection_mode="weighted",
+                rate_limit_pct=30.0,
+                timeout_pct=20.0,
+            )
+            assert len(w) == 0
+
+    def test_priority_mode_no_warning_even_above_100(self) -> None:
+        """Priority mode never warns about total percentages."""
+        import warnings
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            ErrorInjectionConfig(
+                selection_mode="priority",
+                rate_limit_pct=60.0,
+                timeout_pct=60.0,
+            )
+            assert len(w) == 0

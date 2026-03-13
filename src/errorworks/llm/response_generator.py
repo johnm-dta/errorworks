@@ -12,7 +12,7 @@ import uuid
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import jinja2
 import jinja2.sandbox
@@ -53,13 +53,13 @@ class OpenAIResponse:
     """
 
     id: str
-    object: str
+    object: Literal["chat.completion"]
     created: int
     model: str
     content: str
     prompt_tokens: int
     completion_tokens: int
-    finish_reason: str
+    finish_reason: Literal["stop", "length", "content_filter"]
 
     def __post_init__(self) -> None:
         if self.prompt_tokens < 0:
@@ -303,7 +303,6 @@ class ResponseGenerator:
 
         words = [self._rng.choice(vocab) for _ in range(word_count)]
 
-        # Capitalize first word and add period at end for realism
         if words:
             words[0] = words[0].capitalize()
         return " ".join(words) + "."
@@ -446,7 +445,7 @@ class ResponseGenerator:
             id=f"fake-{self._uuid_func()}",
             object="chat.completion",
             created=int(self._time_func()),
-            model=request.get("model", "gpt-4"),
+            model=request.get("model", "gpt-4"),  # Default for response envelope; metrics records None to reflect actual request
             content=content,
             prompt_tokens=prompt_tokens,
             completion_tokens=completion_tokens,

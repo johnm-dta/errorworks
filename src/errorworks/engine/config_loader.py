@@ -140,6 +140,10 @@ def load_config[ConfigT: BaseModel](
                 stacklevel=2,
             )
             file_config = {}
+        elif not isinstance(file_config, dict):
+            raise ValueError(
+                f"Config file '{config_file}' must be a YAML mapping, got {type(file_config).__name__}"
+            )
         config_dict = deep_merge(config_dict, file_config)
 
     # Layer 3: CLI overrides (highest precedence)

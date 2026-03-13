@@ -769,3 +769,262 @@ class TestAdminTokenNotLeaked:
             assert "admin_token" not in row[0]
             assert TEST_ADMIN_TOKEN not in row[0]
         db.close()
+
+
+# =============================================================================
+# Connection-Level Error Injection
+# =============================================================================
+
+
+class TestConnectionErrors:
+    """Tests for connection-level error injection (timeout, reset, stall, failed)."""
+
+    def test_connection_reset_raises(self, tmp_metrics_db):
+        """100% connection_reset raises ConnectionResetError."""
+        config = ChaosLLMConfig(
+            server=ServerConfig(admin_token=TEST_ADMIN_TOKEN),
+            metrics=MetricsConfig(database=tmp_metrics_db),
+            latency=LatencyConfig(base_ms=0, jitter_ms=0),
+            error_injection=ErrorInjectionConfig(connection_reset_pct=100.0),
+        )
+        app = create_app(config)
+        client = TestClient(app, raise_server_exceptions=False)
+
+        response = client.post(
+            "/v1/chat/completions",
+            json={"model": "gpt-4", "messages": []},
+        )
+        assert response.status_code == 500
+
+    def test_connection_reset_records_metrics(self, tmp_metrics_db):
+        """Connection reset records metrics before raising."""
+        config = ChaosLLMConfig(
+            server=ServerConfig(admin_token=TEST_ADMIN_TOKEN),
+            metrics=MetricsConfig(database=tmp_metrics_db),
+            latency=LatencyConfig(base_ms=0, jitter_ms=0),
+            error_injection=ErrorInjectionConfig(connection_reset_pct=100.0),
+        )
+        server = ChaosLLMServer(config)
+        client = TestClient(server.app, raise_server_exceptions=False)
+        headers = {"Authorization": f"Bearer {TEST_ADMIN_TOKEN}"}
+
+        client.post(
+            "/v1/chat/completions",
+            json={"model": "gpt-4", "messages": []},
+        )
+
+        stats = client.get("/admin/stats", headers=headers).json()
+        assert stats["total_requests"] == 1
+        assert stats["requests_by_outcome"].get("error_injected", 0) == 1
+
+    def test_connection_failed_raises(self, tmp_metrics_db):
+        """100% connection_failed raises ConnectionResetError."""
+        config = ChaosLLMConfig(
+            server=ServerConfig(admin_token=TEST_ADMIN_TOKEN),
+            metrics=MetricsConfig(database=tmp_metrics_db),
+            latency=LatencyConfig(base_ms=0, jitter_ms=0),
+            error_injection=ErrorInjectionConfig(
+                connection_failed_pct=100.0,
+                connection_failed_lead_sec=(0, 0),
+            ),
+        )
+        app = create_app(config)
+        client = TestClient(app, raise_server_exceptions=False)
+
+        response = client.post(
+            "/v1/chat/completions",
+            json={"model": "gpt-4", "messages": []},
+        )
+        assert response.status_code == 500
+
+    def test_timeout_returns_504_or_raises(self, tmp_metrics_db):
+        """100% timeout with zero delay produces 504 or connection reset."""
+        config = ChaosLLMConfig(
+            server=ServerConfig(admin_token=TEST_ADMIN_TOKEN),
+            metrics=MetricsConfig(database=tmp_metrics_db),
+            latency=LatencyConfig(base_ms=0, jitter_ms=0),
+            error_injection=ErrorInjectionConfig(
+                timeout_pct=100.0,
+                timeout_sec=(0, 0),
+            ),
+        )
+        app = create_app(config)
+        client = TestClient(app, raise_server_exceptions=False)
+
+        response = client.post(
+            "/v1/chat/completions",
+            json={"model": "gpt-4", "messages": []},
+        )
+        # Timeout either returns 504 (50%) or drops connection (50% -> 500 in TestClient)
+        assert response.status_code in {500, 504}
+
+    def test_connection_stall_raises(self, tmp_metrics_db):
+        """100% connection_stall with zero delays raises ConnectionResetError."""
+        config = ChaosLLMConfig(
+            server=ServerConfig(admin_token=TEST_ADMIN_TOKEN),
+            metrics=MetricsConfig(database=tmp_metrics_db),
+            latency=LatencyConfig(base_ms=0, jitter_ms=0),
+            error_injection=ErrorInjectionConfig(
+                connection_stall_pct=100.0,
+                connection_stall_start_sec=(0, 0),
+                connection_stall_sec=(0, 0),
+            ),
+        )
+        app = create_app(config)
+        client = TestClient(app, raise_server_exceptions=False)
+
+        response = client.post(
+            "/v1/chat/completions",
+            json={"model": "gpt-4", "messages": []},
+        )
+        assert response.status_code == 500
+
+
+# =============================================================================
+# Malformed Request Handling
+# =============================================================================
+
+
+class TestMalformedRequestHandling:
+    """Tests for invalid request body handling."""
+
+    def test_non_json_body_returns_400(self, client):
+        """POST /v1/chat/completions with non-JSON body returns 400."""
+        response = client.post(
+            "/v1/chat/completions",
+            content=b"not json",
+            headers={"content-type": "application/json"},
+        )
+        assert response.status_code == 400
+        assert response.json()["error"]["type"] == "invalid_request_error"
+
+    def test_admin_config_post_invalid_values_returns_422(self, client, admin_headers):
+        """POST /admin/config with invalid config values returns 422."""
+        response = client.post(
+            "/admin/config",
+            json={"error_injection": {"rate_limit_pct": 200.0}},
+            headers=admin_headers,
+        )
+        assert response.status_code == 422
+        assert response.json()["error"]["type"] == "validation_error"
+
+    def test_admin_config_post_non_json_returns_400(self, client, admin_headers):
+        """POST /admin/config with non-JSON body returns 400."""
+        response = client.post(
+            "/admin/config",
+            content=b"not json",
+            headers={**admin_headers, "content-type": "application/json"},
+        )
+        assert response.status_code == 400
+        assert response.json()["error"]["type"] == "invalid_request_error"
+
+
+# =============================================================================
+# Best-Effort Metrics Recording
+# =============================================================================
+
+
+class TestBestEffortMetrics:
+    """Tests that metrics recording failures don't replace chaos responses."""
+
+    def test_metrics_failure_does_not_replace_success_response(self, tmp_metrics_db):
+        """A broken metrics store doesn't prevent successful chaos responses."""
+        config = ChaosLLMConfig(
+            server=ServerConfig(admin_token=TEST_ADMIN_TOKEN),
+            metrics=MetricsConfig(database=tmp_metrics_db),
+            latency=LatencyConfig(base_ms=0, jitter_ms=0),
+        )
+        server = ChaosLLMServer(config)
+        client = TestClient(server.app)
+
+        # Make a successful request first to confirm the server works
+        response = client.post(
+            "/v1/chat/completions",
+            json={"model": "gpt-4", "messages": [{"role": "user", "content": "hi"}]},
+        )
+        assert response.status_code == 200
+
+        # Now close the metrics store to simulate a database failure
+        server._metrics_recorder._store.close()
+
+        # The next request should still succeed (metrics failure is swallowed)
+        response = client.post(
+            "/v1/chat/completions",
+            json={"model": "gpt-4", "messages": [{"role": "user", "content": "hi"}]},
+        )
+        assert response.status_code == 200
+        assert "choices" in response.json()
+
+    def test_metrics_failure_does_not_replace_error_response(self, tmp_metrics_db):
+        """A broken metrics store doesn't prevent injected error responses."""
+        config = ChaosLLMConfig(
+            server=ServerConfig(admin_token=TEST_ADMIN_TOKEN),
+            metrics=MetricsConfig(database=tmp_metrics_db),
+            latency=LatencyConfig(base_ms=0, jitter_ms=0),
+            error_injection=ErrorInjectionConfig(rate_limit_pct=100.0),
+        )
+        server = ChaosLLMServer(config)
+        client = TestClient(server.app)
+
+        # Close metrics store to simulate failure
+        server._metrics_recorder._store.close()
+
+        # Error injection should still return the intended 429
+        response = client.post(
+            "/v1/chat/completions",
+            json={"model": "gpt-4", "messages": []},
+        )
+        assert response.status_code == 429
+
+
+# =============================================================================
+# Concurrent Config Updates
+# =============================================================================
+
+
+class TestConcurrentConfigUpdates:
+    """Tests that concurrent config updates don't corrupt request handling."""
+
+    def test_config_update_during_requests(self, tmp_metrics_db):
+        """Requests use a consistent config snapshot even during updates."""
+        import threading
+
+        config = ChaosLLMConfig(
+            server=ServerConfig(admin_token=TEST_ADMIN_TOKEN),
+            metrics=MetricsConfig(database=tmp_metrics_db),
+            latency=LatencyConfig(base_ms=0, jitter_ms=0),
+        )
+        server = ChaosLLMServer(config)
+        client = TestClient(server.app)
+        errors: list[str] = []
+
+        def make_requests() -> None:
+            for _ in range(20):
+                try:
+                    resp = client.post(
+                        "/v1/chat/completions",
+                        json={"model": "gpt-4", "messages": [{"role": "user", "content": "hi"}]},
+                    )
+                    if resp.status_code not in (200, 429):
+                        errors.append(f"Unexpected status: {resp.status_code}")
+                except Exception as e:
+                    errors.append(f"Request error: {e}")
+
+        def update_configs() -> None:
+            for i in range(20):
+                try:
+                    pct = float(i * 5)
+                    server.update_config({"error_injection": {"rate_limit_pct": pct}})
+                except Exception as e:
+                    errors.append(f"Config update error: {e}")
+
+        request_thread = threading.Thread(target=make_requests)
+        update_thread = threading.Thread(target=update_configs)
+
+        request_thread.start()
+        update_thread.start()
+
+        request_thread.join()
+        update_thread.join()
+
+        assert errors == [], f"Concurrent errors: {errors}"

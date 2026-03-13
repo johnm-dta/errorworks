@@ -8,7 +8,6 @@ Each chaos plugin composes a MetricsStore and adds typed wrappers
 for recording domain-specific request data.
 """
 
-import logging
 import sqlite3
 import threading
 import uuid
@@ -17,9 +16,11 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
+import structlog
+
 from errorworks.engine.types import MetricsConfig, MetricsSchema
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 def _generate_ddl(schema: MetricsSchema) -> str:
@@ -92,7 +93,10 @@ def _get_bucket_utc(timestamp_utc: str, bucket_sec: int) -> str:
     Returns:
         ISO-formatted bucket timestamp (truncated to bucket boundary).
     """
-    dt = datetime.fromisoformat(timestamp_utc.replace("Z", "+00:00")).astimezone(UTC)
+    try:
+        dt = datetime.fromisoformat(timestamp_utc.replace("Z", "+00:00")).astimezone(UTC)
+    except ValueError as e:
+        raise ValueError(f"Invalid timestamp for bucket calculation: {timestamp_utc!r}") from e
     total_seconds = dt.hour * 3600 + dt.minute * 60 + dt.second
     bucket_seconds = (total_seconds // bucket_sec) * bucket_sec
     midnight = dt.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -146,15 +150,6 @@ class MetricsStore:
             db_path = Path(config.database)
             if db_path.parent != Path("."):
                 db_path.parent.mkdir(parents=True, exist_ok=True)
-
-        # Validate structural columns required by update_timeseries / update_bucket_latency
-        ts_names = {c.name for c in schema.timeseries_columns}
-        req_names = {c.name for c in schema.request_columns}
-        missing_ts = {"bucket_utc", "requests_total"} - ts_names
-        if missing_ts:
-            raise ValueError(f"MetricsSchema timeseries_columns must include {sorted(missing_ts)} (required by update_timeseries)")
-        if "timestamp_utc" not in req_names:
-            raise ValueError("MetricsSchema request_columns must include 'timestamp_utc' (required by rebuild_timeseries)")
 
         # Generate and cache DDL
         self._ddl = _generate_ddl(schema)
@@ -283,9 +278,12 @@ class MetricsStore:
             **counters: Column name=increment pairs for timeseries columns.
                         Only integer counter columns should be passed.
         """
+        unknown = set(counters) - set(self._timeseries_col_names)
+        if unknown:
+            raise ValueError(f"Unknown columns for timeseries table: {sorted(unknown)}. Valid columns: {sorted(self._timeseries_col_names)}")
+
         conn = self._get_connection()
 
-        # Build the INSERT ... ON CONFLICT DO UPDATE dynamically
         # Always include bucket_utc and requests_total
         insert_cols = ["bucket_utc", "requests_total"]
         insert_vals: list[Any] = [bucket_utc, 1]
@@ -358,72 +356,76 @@ class MetricsStore:
         conn = self._get_connection()
         bucket_sec = self._config.timeseries_bucket_sec
 
-        conn.execute("DELETE FROM timeseries")
+        try:
+            conn.execute("DELETE FROM timeseries")
 
-        cursor = conn.execute(
-            "SELECT DISTINCT timestamp_utc FROM requests ORDER BY timestamp_utc",
-        )
-        timestamps = [row[0] for row in cursor.fetchall()]
-
-        seen_buckets: set[str] = set()
-        for ts in timestamps:
-            bucket = _get_bucket_utc(ts, bucket_sec)
-            if bucket in seen_buckets:
-                continue
-            seen_buckets.add(bucket)
-
-            bucket_end = (datetime.fromisoformat(bucket) + timedelta(seconds=bucket_sec)).isoformat()
-
-            rows = conn.execute(
-                """
-                SELECT * FROM requests
-                WHERE timestamp_utc >= ? AND timestamp_utc < ?
-                """,
-                (bucket, bucket_end),
-            ).fetchall()
-
-            if not rows:
-                continue
-
-            # Aggregate counters and latencies across all rows in this bucket
-            totals: dict[str, int] = {}
-            latencies: list[float] = []
-
-            for row in rows:
-                classified = classify(row)
-                latency = classified.pop("latency_ms", None)
-                for col, value in classified.items():
-                    if isinstance(value, int):
-                        totals[col] = totals.get(col, 0) + value
-                if latency is not None:
-                    latencies.append(float(latency))
-
-            # Build and execute the upsert (reuse update_timeseries column logic)
-            insert_cols = ["bucket_utc", "requests_total"]
-            insert_vals: list[Any] = [bucket, len(rows)]
-            for col, value in totals.items():
-                insert_cols.append(col)
-                insert_vals.append(value)
-
-            placeholders = ", ".join("?" for _ in insert_cols)
-            col_str = ", ".join(insert_cols)
-            conn.execute(
-                f"INSERT INTO timeseries ({col_str}) VALUES ({placeholders})",
-                insert_vals,
+            cursor = conn.execute(
+                "SELECT DISTINCT timestamp_utc FROM requests ORDER BY timestamp_utc",
             )
+            timestamps = [row[0] for row in cursor.fetchall()]
 
-            # Latency stats
-            if latencies:
-                avg_latency = sum(latencies) / len(latencies)
-                latencies.sort()
-                p99_index = min(int(len(latencies) * 0.99), len(latencies) - 1)
-                p99_latency = latencies[p99_index]
+            seen_buckets: set[str] = set()
+            for ts in timestamps:
+                bucket = _get_bucket_utc(ts, bucket_sec)
+                if bucket in seen_buckets:
+                    continue
+                seen_buckets.add(bucket)
+
+                bucket_end = (datetime.fromisoformat(bucket) + timedelta(seconds=bucket_sec)).isoformat()
+
+                rows = conn.execute(
+                    """
+                    SELECT * FROM requests
+                    WHERE timestamp_utc >= ? AND timestamp_utc < ?
+                    """,
+                    (bucket, bucket_end),
+                ).fetchall()
+
+                if not rows:
+                    continue
+
+                # Aggregate counters and latencies across all rows in this bucket
+                totals: dict[str, int] = {}
+                latencies: list[float] = []
+
+                for row in rows:
+                    classified = classify(row)
+                    latency = classified.pop("latency_ms", None)
+                    for col, value in classified.items():
+                        if isinstance(value, int):
+                            totals[col] = totals.get(col, 0) + value
+                    if latency is not None:
+                        latencies.append(float(latency))
+
+                # Build and execute the upsert (reuse update_timeseries column logic)
+                insert_cols = ["bucket_utc", "requests_total"]
+                insert_vals: list[Any] = [bucket, len(rows)]
+                for col, value in totals.items():
+                    insert_cols.append(col)
+                    insert_vals.append(value)
+
+                placeholders = ", ".join("?" for _ in insert_cols)
+                col_str = ", ".join(insert_cols)
                 conn.execute(
-                    "UPDATE timeseries SET avg_latency_ms = ?, p99_latency_ms = ? WHERE bucket_utc = ?",
-                    (avg_latency, p99_latency, bucket),
+                    f"INSERT INTO timeseries ({col_str}) VALUES ({placeholders})",
+                    insert_vals,
                 )
 
-        conn.commit()
+                # Latency stats
+                if latencies:
+                    avg_latency = sum(latencies) / len(latencies)
+                    latencies.sort()
+                    p99_index = min(int(len(latencies) * 0.99), len(latencies) - 1)
+                    p99_latency = latencies[p99_index]
+                    conn.execute(
+                        "UPDATE timeseries SET avg_latency_ms = ?, p99_latency_ms = ? WHERE bucket_utc = ?",
+                        (avg_latency, p99_latency, bucket),
+                    )
+
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
 
     def get_bucket_utc(self, timestamp_utc: str) -> str:
         """Calculate the time bucket for a timestamp.
@@ -601,3 +603,6 @@ class MetricsStore:
                 except sqlite3.Error:
                     logger.warning("failed to close connection for thread %s", tid, exc_info=True)
             self._connections.clear()
+            # Reset thread-local storage so _get_connection() won't return
+            # a closed connection if called again on the same thread.
+            self._local = threading.local()

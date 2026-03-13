@@ -724,3 +724,101 @@ class TestAdminTokenNotLeaked:
             assert "admin_token" not in row[0]
             assert TEST_ADMIN_TOKEN not in row[0]
         db.close()
+
+
+# =============================================================================
+# Best-Effort Metrics Recording
+# =============================================================================
+
+
+class TestBestEffortMetrics:
+    """Tests that metrics recording failures don't replace chaos responses."""
+
+    def test_metrics_failure_does_not_replace_success_response(self, tmp_metrics_db: str) -> None:
+        """A broken metrics store doesn't prevent successful chaos responses."""
+        config = ChaosWebConfig(
+            server=ServerConfig(admin_token=TEST_ADMIN_TOKEN),
+            metrics=MetricsConfig(database=tmp_metrics_db),
+            latency=LatencyConfig(base_ms=0, jitter_ms=0),
+        )
+        server = ChaosWebServer(config)
+        client = TestClient(server.app)
+
+        # Make a request first to confirm the server works
+        response = client.get("/test-page")
+        assert response.status_code == 200
+
+        # Close the metrics store to simulate a database failure
+        server._metrics_recorder._store.close()
+
+        # Next request should still succeed (metrics failure is swallowed)
+        response = client.get("/test-page")
+        assert response.status_code == 200
+
+    def test_metrics_failure_does_not_replace_error_response(self, tmp_metrics_db: str) -> None:
+        """A broken metrics store doesn't prevent injected error responses."""
+        config = ChaosWebConfig(
+            server=ServerConfig(admin_token=TEST_ADMIN_TOKEN),
+            metrics=MetricsConfig(database=tmp_metrics_db),
+            latency=LatencyConfig(base_ms=0, jitter_ms=0),
+            error_injection=WebErrorInjectionConfig(rate_limit_pct=100.0),
+        )
+        server = ChaosWebServer(config)
+        client = TestClient(server.app)
+
+        # Close metrics store to simulate failure
+        server._metrics_recorder._store.close()
+
+        # Error injection should still return the intended 429
+        response = client.get("/test-page")
+        assert response.status_code == 429
+
+
+# =============================================================================
+# Concurrent Config Updates
+# =============================================================================
+
+
+class TestConcurrentConfigUpdates:
+    """Tests that concurrent config updates don't corrupt request handling."""
+
+    def test_config_update_during_requests(self, tmp_metrics_db: str) -> None:
+        """Requests use a consistent config snapshot even during updates."""
+        import threading
+
+        config = ChaosWebConfig(
+            server=ServerConfig(admin_token=TEST_ADMIN_TOKEN),
+            metrics=MetricsConfig(database=tmp_metrics_db),
+            latency=LatencyConfig(base_ms=0, jitter_ms=0),
+        )
+        server = ChaosWebServer(config)
+        client = TestClient(server.app)
+        errors: list[str] = []
+
+        def make_requests() -> None:
+            for _ in range(20):
+                try:
+                    resp = client.get("/test-page")
+                    if resp.status_code not in (200, 429):
+                        errors.append(f"Unexpected status: {resp.status_code}")
+                except Exception as e:
+                    errors.append(f"Request error: {e}")
+
+        def update_configs() -> None:
+            for i in range(20):
+                try:
+                    pct = float(i * 5)
+                    server.update_config({"error_injection": {"rate_limit_pct": pct}})
+                except Exception as e:
+                    errors.append(f"Config update error: {e}")
+
+        request_thread = threading.Thread(target=make_requests)
+        update_thread = threading.Thread(target=update_configs)
+
+        request_thread.start()
+        update_thread.start()
+
+        request_thread.join()
+        update_thread.join()
+
+        assert errors == [], f"Concurrent errors: {errors}"

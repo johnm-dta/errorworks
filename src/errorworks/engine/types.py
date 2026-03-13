@@ -243,3 +243,11 @@ class MetricsSchema:
                     f"Index '{index_name}' references column '{col_name}' "
                     f"which does not exist in request_columns"
                 )
+
+        # Validate structural columns required by MetricsStore operations
+        ts_name_set = set(ts_names)
+        missing_ts = {"bucket_utc", "requests_total"} - ts_name_set
+        if missing_ts:
+            raise ValueError(f"MetricsSchema timeseries_columns must include {sorted(missing_ts)} (required by update_timeseries)")
+        if "timestamp_utc" not in req_name_set:
+            raise ValueError("MetricsSchema request_columns must include 'timestamp_utc' (required by rebuild_timeseries)")

@@ -404,10 +404,10 @@ class ChaosLLMAnalyzer:
         if not latencies:
             return {"summary": "No latency data recorded.", "status": "NO_DATA"}
 
-        # Percentiles
+        # Percentiles (nearest-rank method, clamped to valid index)
         n = len(latencies)
-        p50 = latencies[int(n * 0.50)] if n > 0 else 0
-        p95 = latencies[int(n * 0.95)] if n > 0 else 0
+        p50 = latencies[min(int(n * 0.50), n - 1)] if n > 0 else 0
+        p95 = latencies[min(int(n * 0.95), n - 1)] if n > 0 else 0
         p99 = latencies[min(int(n * 0.99), n - 1)] if n > 0 else 0
         avg = sum(latencies) / n if n > 0 else 0
         max_lat = max(latencies) if latencies else 0
@@ -795,7 +795,12 @@ class ChaosLLMAnalyzer:
         return [dict(zip(columns, row, strict=True)) for row in rows]
 
     def describe_schema(self) -> dict[str, Any]:
-        """Describe the metrics database schema."""
+        """Describe the metrics database schema.
+
+        NOTE: This description must be kept in sync with LLM_METRICS_SCHEMA
+        in errorworks/llm/metrics.py. Changes to the schema definition there
+        must be reflected here manually.
+        """
         return {
             "tables": {
                 "requests": {

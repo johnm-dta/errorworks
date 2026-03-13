@@ -25,6 +25,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
+import pydantic
 import structlog
 from starlette.applications import Starlette
 from starlette.requests import Request
@@ -291,7 +292,7 @@ class ChaosLLMServer:
             )
         try:
             self.update_config(body)
-        except (ValueError, TypeError) as e:
+        except (ValueError, TypeError, pydantic.ValidationError) as e:
             return JSONResponse(
                 {"error": {"type": "validation_error", "message": str(e)}},
                 status_code=422,
@@ -302,7 +303,13 @@ class ChaosLLMServer:
         """Handle GET /admin/stats."""
         if (denied := self._check_admin_auth(request)) is not None:
             return denied
-        return JSONResponse(self._metrics_recorder.get_stats())
+        try:
+            return JSONResponse(self._metrics_recorder.get_stats())
+        except sqlite3.Error as e:
+            return JSONResponse(
+                {"error": {"type": "database_error", "message": f"Failed to retrieve stats: {e}"}},
+                status_code=503,
+            )
 
     async def _admin_reset_endpoint(self, request: Request) -> JSONResponse:
         """Handle POST /admin/reset."""
@@ -315,7 +322,13 @@ class ChaosLLMServer:
         """Handle GET /admin/export."""
         if (denied := self._check_admin_auth(request)) is not None:
             return denied
-        return JSONResponse(self.export_metrics())
+        try:
+            return JSONResponse(self.export_metrics())
+        except sqlite3.Error as e:
+            return JSONResponse(
+                {"error": {"type": "database_error", "message": f"Failed to export metrics: {e}"}},
+                status_code=503,
+            )
 
     # === Request handling ===
 
@@ -328,7 +341,7 @@ class ChaosLLMServer:
         """Handle a chat completion request with error injection and metrics.
 
         Request flow:
-        1. Record request start
+        1. Capture request metadata (ID, timestamp)
         2. Check error injection
         3. If error: return error response
         4. If success: generate response, add latency, return
@@ -611,12 +624,9 @@ class ChaosLLMServer:
         start_time: float,
     ) -> JSONResponse:
         """Handle an HTTP-level error response."""
-        # HTTP errors always have status_code and error_type set
         status_code = decision.status_code
         error_type = decision.error_type
-
-        if status_code is None or error_type is None:
-            raise ValueError("HTTP error decision must have status_code and error_type")
+        assert status_code is not None and error_type is not None, "ErrorDecision invariant: HTTP errors have status_code and error_type"
 
         # Build headers
         headers: dict[str, str] = {}

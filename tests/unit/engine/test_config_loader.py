@@ -13,7 +13,7 @@ import yaml
 from hypothesis import given
 from hypothesis import strategies as st
 
-from errorworks.engine.config_loader import deep_merge, list_presets, load_preset
+from errorworks.engine.config_loader import deep_merge, list_presets, load_config, load_preset
 
 # =============================================================================
 # deep_merge
@@ -137,6 +137,60 @@ class TestLoadPreset:
         (tmp_path / "empty.yaml").write_text("")
         with pytest.raises(ValueError, match="must be a YAML mapping"):
             load_preset(tmp_path, "empty")
+
+    @pytest.mark.parametrize(
+        "name",
+        [
+            "../../etc/passwd",
+            "../secret",
+            "foo/bar",
+            ".hidden",
+            " leading_space",
+        ],
+    )
+    def test_path_traversal_names_rejected(self, tmp_path: Path, name: str) -> None:
+        """Preset names with path traversal characters are rejected."""
+        with pytest.raises(ValueError, match="Invalid preset name"):
+            load_preset(tmp_path, name)
+
+
+# =============================================================================
+# load_config — config file validation
+# =============================================================================
+
+
+class TestLoadConfigFileValidation:
+    """Tests for load_config config file type validation."""
+
+    def test_non_dict_config_file_raises(self, tmp_path: Path) -> None:
+        """Config file containing a YAML list raises ValueError."""
+        from errorworks.llm.config import ChaosLLMConfig
+
+        config_file = tmp_path / "bad_config.yaml"
+        config_file.write_text("- item1\n- item2\n")
+        presets_dir = tmp_path / "presets"
+        presets_dir.mkdir()
+        with pytest.raises(ValueError, match="must be a YAML mapping"):
+            load_config(
+                ChaosLLMConfig,
+                presets_dir,
+                config_file=config_file,
+            )
+
+    def test_scalar_config_file_raises(self, tmp_path: Path) -> None:
+        """Config file containing just a string raises ValueError."""
+        from errorworks.llm.config import ChaosLLMConfig
+
+        config_file = tmp_path / "scalar_config.yaml"
+        config_file.write_text('"just a string"')
+        presets_dir = tmp_path / "presets"
+        presets_dir.mkdir()
+        with pytest.raises(ValueError, match="must be a YAML mapping"):
+            load_config(
+                ChaosLLMConfig,
+                presets_dir,
+                config_file=config_file,
+            )
 
 
 # ---------------------------------------------------------------------------

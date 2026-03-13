@@ -10,7 +10,8 @@ Usage:
         burst_config=BurstConfig(enabled=True, interval_sec=30, duration_sec=5),
     )
 
-    # Plugin queries engine.is_in_burst() and adjusts weights before calling engine.select()
+    # Plugin builds specs with burst-aware weights (checking is_in_burst()
+    # internally in _build_specs()), then passes them to engine.select()
     specs = [ErrorSpec("rate_limit", 10.0), ErrorSpec("timeout", 5.0)]
     selected = engine.select(specs)
     if selected is not None:
@@ -135,7 +136,9 @@ class InjectionEngine:
         """
         if self._selection_mode == "weighted":
             return self._select_weighted(specs)
-        return self._select_priority(specs)
+        if self._selection_mode == "priority":
+            return self._select_priority(specs)
+        raise ValueError(f"Unknown selection mode: {self._selection_mode!r}")
 
     def _select_priority(self, specs: list[ErrorSpec]) -> ErrorSpec | None:
         """Priority-based selection: first triggered spec wins."""

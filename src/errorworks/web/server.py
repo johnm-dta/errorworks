@@ -27,6 +27,7 @@ from datetime import UTC, datetime
 from typing import Any
 from urllib.parse import quote
 
+import pydantic
 import structlog
 from starlette.applications import Starlette
 from starlette.requests import Request
@@ -247,7 +248,7 @@ class ChaosWebServer:
             )
         try:
             self.update_config(body)
-        except (ValueError, TypeError) as e:
+        except (ValueError, TypeError, pydantic.ValidationError) as e:
             return JSONResponse(
                 {"error": {"type": "validation_error", "message": str(e)}},
                 status_code=422,
@@ -258,7 +259,13 @@ class ChaosWebServer:
         """Handle GET /admin/stats."""
         if (denied := self._check_admin_auth(request)) is not None:
             return denied
-        return JSONResponse(self._metrics_recorder.get_stats())
+        try:
+            return JSONResponse(self._metrics_recorder.get_stats())
+        except sqlite3.Error as e:
+            return JSONResponse(
+                {"error": {"type": "database_error", "message": f"Failed to retrieve stats: {e}"}},
+                status_code=503,
+            )
 
     async def _admin_reset_endpoint(self, request: Request) -> JSONResponse:
         """Handle POST /admin/reset."""
@@ -271,7 +278,13 @@ class ChaosWebServer:
         """Handle GET /admin/export."""
         if (denied := self._check_admin_auth(request)) is not None:
             return denied
-        return JSONResponse(self.export_metrics())
+        try:
+            return JSONResponse(self.export_metrics())
+        except sqlite3.Error as e:
+            return JSONResponse(
+                {"error": {"type": "database_error", "message": f"Failed to export metrics: {e}"}},
+                status_code=503,
+            )
 
     async def _redirect_hop_endpoint(self, request: Request) -> Response:
         """Handle GET /redirect — enforce redirect loop hop limits.
@@ -343,14 +356,9 @@ class ChaosWebServer:
     async def _page_endpoint(self, request: Request) -> Response:
         """Handle GET /{path} — main content serving with error injection.
 
-        Request flow:
-        1. Extract per-request header overrides (if config allows)
-        2. Error injector decides outcome
-        3. Route to appropriate handler: redirect, connection error, HTTP error,
-           malformed content, or success
-        4. Apply latency simulation
-        5. Record metrics
-        6. Return response
+        This method captures metadata, snapshots components, and delegates
+        to the appropriate handler (redirect, connection, HTTP, malformed,
+        or success). Latency and metrics are handled within each handler.
         """
         request_id = str(uuid.uuid4())
         start_time = time.monotonic()
@@ -628,9 +636,7 @@ class ChaosWebServer:
         """Handle HTTP-level errors (4xx, 5xx)."""
         status_code = decision.status_code
         error_type = decision.error_type
-
-        if status_code is None or error_type is None:
-            raise ValueError("HTTP error decision must have status_code and error_type")
+        assert status_code is not None and error_type is not None, "WebErrorDecision invariant: HTTP errors have status_code and error_type"
 
         # Add latency
         delay = latency_simulator.simulate()
@@ -694,7 +700,7 @@ class ChaosWebServer:
         elapsed_ms = (time.monotonic() - start_time) * 1000
 
         if malformed_type == "wrong_content_type":
-            wrong_ct = generate_wrong_content_type(rng=content_generator._rng)
+            wrong_ct = generate_wrong_content_type(rng=content_generator.rng)
             self._record_request(
                 request_id=request_id,
                 timestamp_utc=timestamp_utc,
@@ -873,12 +879,12 @@ class ChaosWebServer:
         if isinstance(content, str):
             content = content.encode("utf-8")
 
-        headers = dict(web_response.headers) if web_response.headers else {}
+        response_headers = dict(web_response.headers) if web_response.headers else {}
         return Response(
             content=content,
             status_code=200,
             media_type=web_response.content_type,
-            headers=headers,
+            headers=response_headers,
         )
 
     def _record_request(

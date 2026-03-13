@@ -139,8 +139,14 @@ class TestDDLGeneration:
     def test_no_indexes_when_empty(self) -> None:
         """Schema with no indexes generates no CREATE INDEX."""
         schema = MetricsSchema(
-            request_columns=(ColumnDef("id", "TEXT", nullable=False, primary_key=True),),
-            timeseries_columns=(ColumnDef("bucket_utc", "TEXT", nullable=False, primary_key=True),),
+            request_columns=(
+                ColumnDef("id", "TEXT", nullable=False, primary_key=True),
+                ColumnDef("timestamp_utc", "TEXT", nullable=False),
+            ),
+            timeseries_columns=(
+                ColumnDef("bucket_utc", "TEXT", nullable=False, primary_key=True),
+                ColumnDef("requests_total", "INTEGER", nullable=False, default="0"),
+            ),
         )
         ddl = _generate_ddl(schema)
         assert "CREATE INDEX" not in ddl
@@ -180,6 +186,16 @@ class TestGetBucketUtc:
         bucket1 = _get_bucket_utc(ts, 60)
         bucket2 = _get_bucket_utc(bucket1, 60)
         assert bucket1 == bucket2
+
+    def test_invalid_timestamp_raises_with_context(self) -> None:
+        """Malformed timestamp raises ValueError with the offending value."""
+        with pytest.raises(ValueError, match="Invalid timestamp for bucket calculation"):
+            _get_bucket_utc("not-a-timestamp", 60)
+
+    def test_empty_timestamp_raises_with_context(self) -> None:
+        """Empty string raises ValueError with context."""
+        with pytest.raises(ValueError, match="Invalid timestamp for bucket calculation"):
+            _get_bucket_utc("", 60)
 
 
 # =============================================================================

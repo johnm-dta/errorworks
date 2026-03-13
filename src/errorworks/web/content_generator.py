@@ -196,6 +196,11 @@ class ContentGenerator:
         """Current content generation configuration (frozen/immutable)."""
         return self._config
 
+    @property
+    def rng(self) -> random_module.Random:
+        """Random instance used by this generator (for deterministic injection helpers)."""
+        return self._rng
+
     def _create_jinja_env(self) -> jinja2.sandbox.SandboxedEnvironment:
         """Create Jinja2 SandboxedEnvironment with template helpers.
 
@@ -474,7 +479,6 @@ class ContentGenerator:
 
 
 # === Content Corruption Helpers ===
-# Used by the server when the error injector decides to inject content malformations.
 
 
 def truncate_html(content: str, max_bytes: int = 500) -> bytes:

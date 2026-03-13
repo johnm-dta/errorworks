@@ -4,9 +4,10 @@ Uses Pydantic for validation with frozen (immutable) models.
 Configuration precedence: CLI > YAML file > preset > defaults.
 
 Shared config types (ServerConfig, MetricsConfig, LatencyConfig) are imported
-from chaosengine — the shared utility layer for all chaos plugins.
+from errorworks.engine — the shared utility layer for all chaos plugins.
 """
 
+import warnings
 from pathlib import Path
 from typing import Any, Literal
 
@@ -432,6 +433,44 @@ class WebErrorInjectionConfig(BaseModel):
         for name, (lo, hi) in ranges.items():
             if lo > hi:
                 raise ValueError(f"{name} min ({lo}) must be <= max ({hi})")
+        return self
+
+    @model_validator(mode="after")
+    def warn_total_percentage(self) -> "WebErrorInjectionConfig":
+        """Warn when total error percentages exceed 100% in weighted mode."""
+        if self.selection_mode != "weighted":
+            return self
+        total = (
+            self.rate_limit_pct
+            + self.forbidden_pct
+            + self.not_found_pct
+            + self.gone_pct
+            + self.payment_required_pct
+            + self.unavailable_for_legal_pct
+            + self.service_unavailable_pct
+            + self.bad_gateway_pct
+            + self.gateway_timeout_pct
+            + self.internal_error_pct
+            + self.timeout_pct
+            + self.connection_reset_pct
+            + self.connection_stall_pct
+            + self.slow_response_pct
+            + self.incomplete_response_pct
+            + self.wrong_content_type_pct
+            + self.encoding_mismatch_pct
+            + self.truncated_html_pct
+            + self.invalid_encoding_pct
+            + self.charset_confusion_pct
+            + self.malformed_meta_pct
+            + self.redirect_loop_pct
+            + self.ssrf_redirect_pct
+        )
+        if total > 100.0:
+            warnings.warn(
+                f"Total error percentages ({total:.1f}%) exceed 100% in weighted mode. "
+                f"No successful responses will be generated.",
+                stacklevel=2,
+            )
         return self
 
 
