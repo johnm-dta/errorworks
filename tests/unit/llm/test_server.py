@@ -1,4 +1,3 @@
-# tests/testing/chaosllm/test_server.py
 """Tests for ChaosLLM HTTP server."""
 
 import json

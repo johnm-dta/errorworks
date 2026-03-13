@@ -6,7 +6,7 @@ logic to it while retaining full ownership of its error types and decisions.
 
 Usage:
     engine = InjectionEngine(
-        selection_mode="priority",
+        selection_mode=SelectionMode.PRIORITY,
         burst_config=BurstConfig(enabled=True, interval_sec=30, duration_sec=5),
     )
 
@@ -23,9 +23,8 @@ import random as random_module
 import threading
 import time
 from collections.abc import Callable
-from typing import Literal
 
-from errorworks.engine.types import BurstConfig, ErrorSpec
+from errorworks.engine.types import BurstConfig, ErrorSpec, SelectionMode
 
 
 class InjectionEngine:
@@ -48,7 +47,7 @@ class InjectionEngine:
     def __init__(
         self,
         *,
-        selection_mode: Literal["priority", "weighted"] = "priority",
+        selection_mode: SelectionMode | str = SelectionMode.PRIORITY,
         burst_config: BurstConfig | None = None,
         time_func: Callable[[], float] | None = None,
         rng: random_module.Random | None = None,
@@ -61,7 +60,7 @@ class InjectionEngine:
             time_func: Time function for testing (default: time.monotonic).
             rng: Random instance for testing (default: creates new Random instance).
         """
-        self._selection_mode = selection_mode
+        self._selection_mode = SelectionMode(selection_mode)
         self._burst_config = burst_config if burst_config is not None else BurstConfig()
         self._time_func = time_func if time_func is not None else time.monotonic
         self._rng = rng if rng is not None else random_module.Random()
@@ -71,7 +70,7 @@ class InjectionEngine:
         self._start_time: float | None = None
 
     @property
-    def selection_mode(self) -> str:
+    def selection_mode(self) -> SelectionMode:
         """Current selection mode."""
         return self._selection_mode
 
@@ -134,11 +133,9 @@ class InjectionEngine:
         Returns:
             The selected ErrorSpec, or None if no error fires (success).
         """
-        if self._selection_mode == "weighted":
+        if self._selection_mode is SelectionMode.WEIGHTED:
             return self._select_weighted(specs)
-        if self._selection_mode == "priority":
-            return self._select_priority(specs)
-        raise ValueError(f"Unknown selection mode: {self._selection_mode!r}")
+        return self._select_priority(specs)
 
     def _select_priority(self, specs: list[ErrorSpec]) -> ErrorSpec | None:
         """Priority-based selection: first triggered spec wins."""

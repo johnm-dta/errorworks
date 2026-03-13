@@ -10,15 +10,16 @@ elevates error rates periodically to simulate anti-scraping escalation.
 import random as random_module
 from collections.abc import Callable
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 
 from errorworks.engine.injection_engine import InjectionEngine
 from errorworks.engine.types import BurstConfig as EngineBurstConfig
 from errorworks.engine.types import ErrorSpec
+from errorworks.engine.validators import validate_error_decision
 from errorworks.web.config import WebErrorInjectionConfig
 
 
-class WebErrorCategory(Enum):
+class WebErrorCategory(StrEnum):
     """Categories of errors the web injector can produce."""
 
     HTTP = "http"  # Returns an HTTP error status code
@@ -114,45 +115,30 @@ class WebErrorDecision:
 
     def __post_init__(self) -> None:
         """Validate invariants between fields."""
-        if self.error_type is None:
-            # Success case: no other fields should be set
-            if self.category is not None:
-                raise ValueError("Success decision must not have a category")
-            return
+        validate_error_decision(
+            error_type=self.error_type,
+            category=self.category,
+            status_code=self.status_code,
+            retry_after_sec=self.retry_after_sec,
+            delay_sec=self.delay_sec,
+            start_delay_sec=self.start_delay_sec,
+            malformed_type=self.malformed_type,
+            http_category=WebErrorCategory.HTTP,
+            connection_category=WebErrorCategory.CONNECTION,
+            malformed_category=WebErrorCategory.MALFORMED,
+            valid_error_types=WEB_HTTP_ERRORS.keys() | WEB_CONNECTION_ERRORS | {"malformed"} | WEB_REDIRECT_TYPES,
+            valid_malformed_types=WEB_MALFORMED_TYPES,
+        )
 
-        if self.category is None:
-            raise ValueError(f"Error decision '{self.error_type}' must have a category")
+        # Web-specific validation beyond the shared checks
+        if (
+            self.error_type is not None
+            and self.category == WebErrorCategory.REDIRECT
+            and self.redirect_target is None
+            and self.redirect_hops is None
+        ):
+            raise ValueError("Redirect error must have redirect_target or redirect_hops")
 
-        if self.category == WebErrorCategory.HTTP:
-            if self.status_code is None:
-                raise ValueError(f"HTTP error '{self.error_type}' must have a status_code")
-            if not (100 <= self.status_code <= 599):
-                raise ValueError(f"HTTP status_code must be 100-599, got {self.status_code}")
-            if self.malformed_type is not None:
-                raise ValueError("HTTP error must not have malformed_type")
-
-        elif self.category == WebErrorCategory.CONNECTION:
-            if self.retry_after_sec is not None:
-                raise ValueError("Connection error must not have retry_after_sec")
-            if self.malformed_type is not None:
-                raise ValueError("Connection error must not have malformed_type")
-
-        elif self.category == WebErrorCategory.MALFORMED:
-            if self.malformed_type is None:
-                raise ValueError("Malformed error must have malformed_type")
-            if self.status_code is not None and self.status_code != 200:
-                raise ValueError(f"Malformed error must have status_code 200, got {self.status_code}")
-
-        elif self.category == WebErrorCategory.REDIRECT:
-            if self.redirect_target is None and self.redirect_hops is None:
-                raise ValueError("Redirect error must have redirect_target or redirect_hops")
-
-        if self.retry_after_sec is not None and self.retry_after_sec < 0:
-            raise ValueError(f"retry_after_sec must be non-negative, got {self.retry_after_sec}")
-        if self.delay_sec is not None and self.delay_sec < 0:
-            raise ValueError(f"delay_sec must be non-negative, got {self.delay_sec}")
-        if self.start_delay_sec is not None and self.start_delay_sec < 0:
-            raise ValueError(f"start_delay_sec must be non-negative, got {self.start_delay_sec}")
         if self.incomplete_bytes is not None and self.incomplete_bytes < 0:
             raise ValueError(f"incomplete_bytes must be non-negative, got {self.incomplete_bytes}")
 
@@ -234,12 +220,12 @@ class WebErrorDecision:
 
     @property
     def is_connection_level(self) -> bool:
-        """Return True if error is a connection-level error."""
+        """Return True if error is a connection-level error (used by server request handler to route to connection-level error handling)."""
         return self.category == WebErrorCategory.CONNECTION
 
     @property
     def is_malformed(self) -> bool:
-        """Return True if error is a malformed content response."""
+        """Return True if error is a malformed content response (used by server request handler to route to malformed response handling)."""
         return self.category == WebErrorCategory.MALFORMED
 
     @property

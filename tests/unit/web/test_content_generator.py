@@ -344,6 +344,262 @@ class TestInjectMalformedMeta:
         assert 'http-equiv="refresh"' in result
 
 
+class TestContentGeneratorTemplateModeAdvanced:
+    """Tests for template mode with web-specific helpers and error handling."""
+
+    def test_template_random_choice_helper(self) -> None:
+        """Template random_choice helper picks from provided options."""
+        config = WebContentConfig(
+            mode="template",
+            template={"body": '<html><body>{{ random_choice("apple", "banana", "cherry") }}</body></html>'},
+        )
+        generator = ContentGenerator(config, rng=random.Random(42))
+
+        response = generator.generate()
+        assert isinstance(response.content, str)
+        assert any(fruit in response.content for fruit in ["apple", "banana", "cherry"])
+
+    def test_template_random_int_helper(self) -> None:
+        """Template random_int helper generates integer in range."""
+        config = WebContentConfig(
+            mode="template",
+            template={"body": "<html><body>{{ random_int(1, 100) }}</body></html>"},
+        )
+        generator = ContentGenerator(config, rng=random.Random(42))
+
+        response = generator.generate()
+        assert isinstance(response.content, str)
+        # Extract the number between body tags
+        import re
+
+        match = re.search(r"<body>(\d+)</body>", response.content)
+        assert match is not None
+        val = int(match.group(1))
+        assert 1 <= val <= 100
+
+    def test_template_timestamp_helper(self) -> None:
+        """Template timestamp helper generates a date string."""
+        config = WebContentConfig(
+            mode="template",
+            template={"body": "<html><body>{{ timestamp() }}</body></html>"},
+        )
+        generator = ContentGenerator(config, rng=random.Random(42))
+
+        response = generator.generate()
+        assert isinstance(response.content, str)
+        # Date format: YYYY-MM-DD
+        import re
+
+        match = re.search(r"\d{4}-\d{2}-\d{2}", response.content)
+        assert match is not None
+
+    def test_template_random_words_range(self) -> None:
+        """Template random_words(min, max) generates words in range."""
+        config = WebContentConfig(
+            mode="template",
+            template={"body": "<html><body>{{ random_words(10, 20) }}</body></html>"},
+        )
+        generator = ContentGenerator(config, rng=random.Random(42))
+
+        response = generator.generate()
+        # Extract text between body tags
+        import re
+
+        match = re.search(r"<body>(.*?)</body>", response.content)
+        assert match is not None
+        word_count = len(match.group(1).split())
+        assert 10 <= word_count <= 20
+
+    def test_template_random_choice_empty_returns_empty(self) -> None:
+        """Template random_choice with no args returns empty string."""
+        config = WebContentConfig(
+            mode="template",
+            template={"body": "<html><body>{{ random_choice() }}</body></html>"},
+        )
+        generator = ContentGenerator(config, rng=random.Random(42))
+
+        response = generator.generate()
+        assert "<body></body>" in response.content
+
+    def test_template_renders_headers_context(self) -> None:
+        """Template mode can access request headers in context."""
+        config = WebContentConfig(
+            mode="template",
+            template={"body": "<html><body>{{ headers.get('User-Agent', 'none') }}</body></html>"},
+        )
+        generator = ContentGenerator(config)
+
+        response = generator.generate(
+            path="/test",
+            headers={"User-Agent": "TestBot/1.0"},
+        )
+        assert "TestBot/1.0" in response.content
+
+    def test_template_malformed_syntax_returns_error_page(self) -> None:
+        """Malformed template at runtime (via mode override) returns error page, not crash."""
+        # Use random mode config, but pass template via mode_override
+        # The template won't be pre-compiled since mode != "template"
+        config = WebContentConfig(
+            mode="random",
+            template={"body": "<html><body>{{ undefined_var }}</body></html>"},
+        )
+        generator = ContentGenerator(config)
+
+        # When mode_override="template", it uses the config's template body
+        # which references undefined_var -- StrictUndefined will fail
+        response = generator.generate(path="/test", mode_override="template")
+        assert isinstance(response, WebResponse)
+        assert "Template Error" in response.content
+
+    def test_template_too_long_at_runtime_returns_error_page(self) -> None:
+        """Template exceeding max_template_length at runtime returns error page."""
+        long_body = "x" * 20_000
+        config = WebContentConfig(
+            mode="random",
+            template={"body": long_body},
+            max_template_length=100,
+        )
+        generator = ContentGenerator(config)
+
+        response = generator.generate(path="/test", mode_override="template")
+        assert isinstance(response, WebResponse)
+        assert "Template Error" in response.content
+
+    def test_template_output_capped_at_double_max_length(self) -> None:
+        """Template output exceeding 2x max_template_length is truncated."""
+        # Create a template that produces very long output
+        repeat_template = "<html><body>{{ random_words(5000) }}</body></html>"
+        config = WebContentConfig(
+            mode="template",
+            template={"body": repeat_template},
+            max_template_length=10_000,
+        )
+        generator = ContentGenerator(config, rng=random.Random(42))
+
+        response = generator.generate(path="/test")
+        # Output should be capped at 2 * max_template_length = 20000
+        assert len(response.content) <= 20_000
+
+
+class TestContentGeneratorPresetMode:
+    """Tests for preset mode content generation via ContentGenerator.generate()."""
+
+    def test_preset_mode_returns_preset_content(self, tmp_path: Path) -> None:
+        """Preset mode returns content from the JSONL bank."""
+        jsonl = tmp_path / "pages.jsonl"
+        pages = [
+            {"content": "<html><body>Preset Page Alpha</body></html>", "content_type": "text/html; charset=utf-8"},
+            {"content": "<html><body>Preset Page Beta</body></html>", "content_type": "text/html; charset=utf-8"},
+        ]
+        jsonl.write_text("\n".join(json.dumps(p) for p in pages))
+
+        config = WebContentConfig(
+            mode="preset",
+            preset={"file": str(jsonl), "selection": "sequential"},
+        )
+        generator = ContentGenerator(config)
+
+        r1 = generator.generate()
+        assert "Preset Page Alpha" in r1.content
+
+        r2 = generator.generate()
+        assert "Preset Page Beta" in r2.content
+
+    def test_preset_mode_uses_content_type_from_jsonl(self, tmp_path: Path) -> None:
+        """Preset mode uses the content_type from the JSONL entry."""
+        jsonl = tmp_path / "pages.jsonl"
+        pages = [
+            {"content": "<html><body>Custom CT</body></html>", "content_type": "text/html; charset=iso-8859-1"},
+        ]
+        jsonl.write_text(json.dumps(pages[0]))
+
+        config = WebContentConfig(
+            mode="preset",
+            preset={"file": str(jsonl), "selection": "sequential"},
+        )
+        generator = ContentGenerator(config)
+
+        response = generator.generate()
+        assert response.content_type == "text/html; charset=iso-8859-1"
+
+    def test_preset_mode_defaults_content_type(self, tmp_path: Path) -> None:
+        """Preset mode defaults content_type when not specified in JSONL."""
+        jsonl = tmp_path / "pages.jsonl"
+        pages = [{"content": "<html><body>No CT</body></html>"}]
+        jsonl.write_text(json.dumps(pages[0]))
+
+        config = WebContentConfig(
+            mode="preset",
+            preset={"file": str(jsonl), "selection": "sequential"},
+        )
+        generator = ContentGenerator(config)
+
+        response = generator.generate()
+        assert response.content_type == "text/html; charset=utf-8"
+
+    def test_preset_mode_random_selection(self, tmp_path: Path) -> None:
+        """Preset mode with random selection picks pages non-deterministically."""
+        jsonl = tmp_path / "pages.jsonl"
+        pages = [{"content": f"<html>Page {i}</html>"} for i in range(10)]
+        jsonl.write_text("\n".join(json.dumps(p) for p in pages))
+
+        config = WebContentConfig(
+            mode="preset",
+            preset={"file": str(jsonl), "selection": "random"},
+        )
+        generator = ContentGenerator(config, rng=random.Random(42))
+
+        seen = set()
+        for _ in range(30):
+            r = generator.generate()
+            seen.add(r.content)
+        assert len(seen) > 1
+
+    def test_preset_mode_lazy_loads_bank(self, tmp_path: Path) -> None:
+        """Preset bank is lazy-loaded on first generate(), not at construction."""
+        jsonl = tmp_path / "pages.jsonl"
+        pages = [{"content": "<html>Lazy</html>"}]
+        jsonl.write_text(json.dumps(pages[0]))
+
+        config = WebContentConfig(
+            mode="preset",
+            preset={"file": str(jsonl), "selection": "sequential"},
+        )
+        generator = ContentGenerator(config)
+        # Bank not loaded yet
+        assert generator._preset_bank is None
+
+        generator.generate()
+        # Now it should be loaded
+        assert generator._preset_bank is not None
+
+    def test_preset_mode_missing_file_raises(self, tmp_path: Path) -> None:
+        """Preset mode with missing JSONL file raises FileNotFoundError on generate()."""
+        config = WebContentConfig(
+            mode="preset",
+            preset={"file": str(tmp_path / "nonexistent.jsonl"), "selection": "sequential"},
+        )
+        generator = ContentGenerator(config)
+
+        with pytest.raises(FileNotFoundError):
+            generator.generate()
+
+    def test_preset_mode_via_mode_override(self, tmp_path: Path) -> None:
+        """Preset mode works via mode_override header."""
+        jsonl = tmp_path / "pages.jsonl"
+        pages = [{"content": "<html><body>Override Preset</body></html>"}]
+        jsonl.write_text(json.dumps(pages[0]))
+
+        config = WebContentConfig(
+            mode="random",
+            preset={"file": str(jsonl), "selection": "sequential"},
+        )
+        generator = ContentGenerator(config)
+
+        response = generator.generate(path="/test", mode_override="preset")
+        assert "Override Preset" in response.content
+
+
 class TestModeOverrideErrors:
     """Tests for graceful handling of invalid header overrides."""
 

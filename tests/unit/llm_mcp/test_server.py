@@ -1,14 +1,15 @@
-# tests/testing/chaosllm_mcp/test_server.py
 """Tests for ChaosLLM MCP server."""
 
+import json
 import sqlite3
 from collections.abc import Generator
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
-from errorworks.llm_mcp.server import ChaosLLMAnalyzer, create_server
+from errorworks.llm_mcp.server import ChaosLLMAnalyzer, _find_metrics_databases, create_server, main
 
 # === Fixtures ===
 
@@ -563,3 +564,324 @@ class TestMCPServerTools:
         result = analyzer.diagnose()
         assert "status" in result
         analyzer.close()
+
+
+# === call_tool Dispatcher Tests ===
+
+
+def _make_call_tool_request(name: str, arguments: dict | None = None):
+    """Helper to construct a CallToolRequest for testing the MCP handler."""
+    from mcp.types import CallToolRequest, CallToolRequestParams
+
+    return CallToolRequest(
+        method="tools/call",
+        params=CallToolRequestParams(name=name, arguments=arguments),
+    )
+
+
+def _extract_text(server_result) -> str:
+    """Extract the text content from a ServerResult or CallToolResult."""
+    # ServerResult wraps a CallToolResult in .root
+    call_result = server_result.root
+    return call_result.content[0].text
+
+
+def _extract_is_error(server_result) -> bool:
+    """Extract the isError flag from a ServerResult."""
+    return server_result.root.isError
+
+
+class TestCallToolDispatcher:
+    """Tests for the MCP call_tool handler dispatch logic."""
+
+    @pytest.fixture
+    def mcp_server_with_data(self, temp_db: Path):
+        """Create MCP server with a populated database and return server + analyzer."""
+        conn = sqlite3.connect(str(temp_db))
+        base_time = datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC)
+        conn.execute(
+            """
+            INSERT INTO requests (
+                request_id, timestamp_utc, endpoint, deployment, model,
+                outcome, status_code, error_type, injection_type, latency_ms, injected_delay_ms,
+                message_count, prompt_tokens_approx, response_tokens, response_mode
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                "req-1",
+                base_time.isoformat(),
+                "/chat/completions",
+                "gpt-4",
+                "gpt-4",
+                "error_injected",
+                429,
+                "rate_limit",
+                "rate_limit",
+                None,
+                None,
+                3,
+                100,
+                None,
+                None,
+            ),
+        )
+        conn.commit()
+        conn.close()
+
+        server, analyzer = create_server(str(temp_db))
+        yield server, analyzer
+        analyzer.close()
+
+    @pytest.fixture
+    def mcp_server_empty(self, temp_db: Path):
+        """Create MCP server with an empty database."""
+        server, analyzer = create_server(str(temp_db))
+        yield server, analyzer
+        analyzer.close()
+
+    @pytest.mark.asyncio
+    async def test_valid_tool_dispatches_correctly(self, mcp_server_with_data) -> None:
+        """A valid tool call dispatches to the correct analyzer method and returns results."""
+        from mcp.types import CallToolRequest
+
+        server, _analyzer = mcp_server_with_data
+        handler = server.request_handlers[CallToolRequest]
+
+        request = _make_call_tool_request("analyze_errors", {})
+        result = await handler(request)
+
+        text = _extract_text(result)
+        parsed = json.loads(text)
+        assert parsed["total_requests"] == 1
+        assert parsed["total_errors"] == 1
+        assert not _extract_is_error(result)
+
+    @pytest.mark.asyncio
+    async def test_diagnose_dispatches(self, mcp_server_empty) -> None:
+        """Diagnose tool dispatches and returns valid JSON."""
+        from mcp.types import CallToolRequest
+
+        server, _analyzer = mcp_server_empty
+        handler = server.request_handlers[CallToolRequest]
+
+        request = _make_call_tool_request("diagnose", {})
+        result = await handler(request)
+
+        text = _extract_text(result)
+        parsed = json.loads(text)
+        assert parsed["status"] == "NO_DATA"
+        assert not _extract_is_error(result)
+
+    @pytest.mark.asyncio
+    async def test_unknown_tool_returns_error(self, mcp_server_empty) -> None:
+        """An unknown tool name returns error content."""
+        from mcp.types import CallToolRequest
+
+        server, _analyzer = mcp_server_empty
+        handler = server.request_handlers[CallToolRequest]
+
+        request = _make_call_tool_request("nonexistent_tool", {})
+        result = await handler(request)
+
+        text = _extract_text(result)
+        assert "Unknown tool" in text
+        assert "nonexistent_tool" in text
+
+    @pytest.mark.asyncio
+    async def test_missing_required_argument_returns_error(self, mcp_server_empty) -> None:
+        """Missing required arguments are handled gracefully with error content."""
+        from mcp.types import CallToolRequest
+
+        server, _analyzer = mcp_server_empty
+        handler = server.request_handlers[CallToolRequest]
+
+        # get_error_samples requires "error_type" argument — the MCP framework
+        # validates inputSchema before calling our handler, so the error comes
+        # from jsonschema validation rather than our KeyError handler.
+        request = _make_call_tool_request("get_error_samples", {})
+        result = await handler(request)
+
+        text = _extract_text(result)
+        assert "error_type" in text
+        assert "required" in text.lower()
+        assert _extract_is_error(result)
+
+    @pytest.mark.asyncio
+    async def test_tool_with_arguments_dispatches(self, mcp_server_with_data) -> None:
+        """Tool calls with arguments dispatch correctly."""
+        from mcp.types import CallToolRequest
+
+        server, _analyzer = mcp_server_with_data
+        handler = server.request_handlers[CallToolRequest]
+
+        request = _make_call_tool_request("get_error_samples", {"error_type": "rate_limit", "limit": 2})
+        result = await handler(request)
+
+        text = _extract_text(result)
+        parsed = json.loads(text)
+        assert parsed["error_type"] == "rate_limit"
+        assert parsed["sample_count"] == 1
+        assert not _extract_is_error(result)
+
+    @pytest.mark.asyncio
+    async def test_query_tool_dispatches(self, mcp_server_with_data) -> None:
+        """Query tool dispatches and executes SQL."""
+        from mcp.types import CallToolRequest
+
+        server, _analyzer = mcp_server_with_data
+        handler = server.request_handlers[CallToolRequest]
+
+        request = _make_call_tool_request("query", {"sql": "SELECT COUNT(*) as cnt FROM requests"})
+        result = await handler(request)
+
+        text = _extract_text(result)
+        parsed = json.loads(text)
+        assert parsed[0]["cnt"] == 1
+        assert not _extract_is_error(result)
+
+    @pytest.mark.asyncio
+    async def test_query_validation_error_returns_error_content(self, mcp_server_empty) -> None:
+        """A ValueError from query validation returns error content (not an exception)."""
+        from mcp.types import CallToolRequest
+
+        server, _analyzer = mcp_server_empty
+        handler = server.request_handlers[CallToolRequest]
+
+        request = _make_call_tool_request("query", {"sql": "DROP TABLE requests"})
+        result = await handler(request)
+
+        text = _extract_text(result)
+        parsed = json.loads(text)
+        assert "error" in parsed
+        assert parsed["error_type"] == "validation_error"
+
+    @pytest.mark.asyncio
+    async def test_unexpected_exception_returns_is_error(self, mcp_server_empty) -> None:
+        """An unexpected exception in a tool sets isError=True on the result."""
+        from mcp.types import CallToolRequest
+
+        server, _analyzer = mcp_server_empty
+        handler = server.request_handlers[CallToolRequest]
+
+        # Patch the analyzer's diagnose method to raise an unexpected error
+        with patch.object(_analyzer, "diagnose", side_effect=RuntimeError("unexpected boom")):
+            request = _make_call_tool_request("diagnose", {})
+            result = await handler(request)
+
+            text = _extract_text(result)
+            parsed = json.loads(text)
+            assert parsed["error"] == "unexpected boom"
+            assert parsed["error_type"] == "RuntimeError"
+            assert _extract_is_error(result)
+
+    @pytest.mark.asyncio
+    async def test_describe_schema_dispatches(self, mcp_server_empty) -> None:
+        """describe_schema tool dispatches correctly."""
+        from mcp.types import CallToolRequest
+
+        server, _analyzer = mcp_server_empty
+        handler = server.request_handlers[CallToolRequest]
+
+        request = _make_call_tool_request("describe_schema", {})
+        result = await handler(request)
+
+        text = _extract_text(result)
+        parsed = json.loads(text)
+        assert "tables" in parsed
+        assert not _extract_is_error(result)
+
+
+# === _find_metrics_databases Tests ===
+
+
+class TestFindMetricsDatabases:
+    """Tests for _find_metrics_databases helper."""
+
+    def test_finds_db_files(self, tmp_path: Path) -> None:
+        """Finds .db files in a temp directory."""
+        db1 = tmp_path / "chaosllm-metrics.db"
+        db2 = tmp_path / "other.db"
+        db1.touch()
+        db2.touch()
+
+        result = _find_metrics_databases(str(tmp_path))
+        assert len(result) == 2
+        # chaosllm-metrics.db should be prioritized (priority 0)
+        assert result[0] == str(db1)
+
+    def test_returns_empty_when_no_databases(self, tmp_path: Path) -> None:
+        """Returns empty list when no .db files exist."""
+        result = _find_metrics_databases(str(tmp_path))
+        assert result == []
+
+    def test_handles_nonexistent_directory(self, tmp_path: Path) -> None:
+        """Handles directories that don't exist gracefully."""
+        nonexistent = tmp_path / "does_not_exist"
+        # Path.rglob on a nonexistent path should not crash
+        result = _find_metrics_databases(str(nonexistent))
+        assert result == []
+
+    def test_skips_hidden_directories(self, tmp_path: Path) -> None:
+        """Files inside hidden directories are skipped."""
+        hidden_dir = tmp_path / ".hidden"
+        hidden_dir.mkdir()
+        (hidden_dir / "metrics.db").touch()
+
+        result = _find_metrics_databases(str(tmp_path))
+        assert result == []
+
+    def test_respects_max_depth(self, tmp_path: Path) -> None:
+        """Files deeper than max_depth are excluded."""
+        deep = tmp_path / "a" / "b" / "c" / "d"
+        deep.mkdir(parents=True)
+        (deep / "metrics.db").touch()
+
+        # max_depth=3 means path parts relative to search_dir must be <= 3
+        result = _find_metrics_databases(str(tmp_path), max_depth=3)
+        assert result == []
+
+        # With higher depth it should be found
+        result = _find_metrics_databases(str(tmp_path), max_depth=5)
+        assert len(result) == 1
+
+    def test_priority_ordering(self, tmp_path: Path) -> None:
+        """Databases are prioritized: chaosllm+metrics > chaosllm > metrics > other."""
+        (tmp_path / "other.db").touch()
+        (tmp_path / "metrics.db").touch()
+        (tmp_path / "chaosllm.db").touch()
+        (tmp_path / "chaosllm-metrics.db").touch()
+
+        result = _find_metrics_databases(str(tmp_path))
+        assert len(result) == 4
+        # Priority 0: chaosllm + metrics
+        assert "chaosllm-metrics.db" in result[0]
+        # Priority 1: chaosllm
+        assert "chaosllm.db" in result[1]
+        # Priority 2: metrics
+        assert "metrics.db" in result[2]
+
+
+# === CLI main() Tests ===
+
+
+class TestCLIMain:
+    """Tests for CLI entry point."""
+
+    def test_help_flag_exits_cleanly(self) -> None:
+        """--help flag causes SystemExit(0) with no errors."""
+        with pytest.raises(SystemExit) as exc_info, patch("sys.argv", ["chaosllm-mcp", "--help"]):
+            main()
+        assert exc_info.value.code == 0
+
+    def test_missing_database_exits_with_error(self, tmp_path: Path) -> None:
+        """Exits with error when no databases are found and none specified."""
+        with pytest.raises(SystemExit) as exc_info, patch("sys.argv", ["chaosllm-mcp", "--search-dir", str(tmp_path)]):
+            main()
+        assert exc_info.value.code == 1
+
+    def test_nonexistent_database_path_exits_with_error(self, tmp_path: Path) -> None:
+        """Exits with error when specified database path doesn't exist."""
+        fake_db = tmp_path / "nonexistent.db"
+        with pytest.raises(SystemExit) as exc_info, patch("sys.argv", ["chaosllm-mcp", "--database", str(fake_db)]):
+            main()
+        assert exc_info.value.code == 1

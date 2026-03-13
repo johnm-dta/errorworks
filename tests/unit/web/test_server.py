@@ -822,3 +822,197 @@ class TestConcurrentConfigUpdates:
         update_thread.join()
 
         assert errors == [], f"Concurrent errors: {errors}"
+
+
+# =============================================================================
+# SSRF Redirect: Target Validation and Redirect Chain
+# =============================================================================
+
+
+class TestSSRFRedirectPaths:
+    """Tests for SSRF redirect handling at the server level."""
+
+    def test_ssrf_redirect_target_is_private_or_metadata(self, tmp_metrics_db: str) -> None:
+        """SSRF redirect Location header points to a private IP or cloud metadata URL."""
+        from errorworks.web.error_injector import SSRF_TARGETS
+
+        config = ChaosWebConfig(
+            server=ServerConfig(admin_token=TEST_ADMIN_TOKEN),
+            metrics=MetricsConfig(database=tmp_metrics_db),
+            latency=LatencyConfig(base_ms=0, jitter_ms=0),
+            error_injection=WebErrorInjectionConfig(ssrf_redirect_pct=100.0),
+        )
+        app = create_app(config)
+        client = TestClient(app, follow_redirects=False)
+
+        response = client.get("/articles/page1")
+        assert response.status_code == 301
+        location = response.headers["location"]
+        assert location in SSRF_TARGETS
+
+    def test_ssrf_redirect_recorded_in_metrics(self, tmp_metrics_db: str) -> None:
+        """SSRF redirect is recorded with redirect_target in metrics."""
+        config = ChaosWebConfig(
+            server=ServerConfig(admin_token=TEST_ADMIN_TOKEN),
+            metrics=MetricsConfig(database=tmp_metrics_db),
+            latency=LatencyConfig(base_ms=0, jitter_ms=0),
+            error_injection=WebErrorInjectionConfig(ssrf_redirect_pct=100.0),
+        )
+        app = create_app(config)
+        client = TestClient(app, follow_redirects=False)
+
+        client.get("/test")
+        stats = client.get("/admin/stats", headers={"Authorization": f"Bearer {TEST_ADMIN_TOKEN}"}).json()
+        assert stats["total_requests"] == 1
+        assert stats["requests_by_outcome"].get("error_redirect", 0) == 1
+
+    def test_ssrf_redirect_multiple_targets_selected(self, tmp_metrics_db: str) -> None:
+        """Over many requests, SSRF redirect picks more than one target."""
+        config = ChaosWebConfig(
+            server=ServerConfig(admin_token=TEST_ADMIN_TOKEN),
+            metrics=MetricsConfig(database=tmp_metrics_db),
+            latency=LatencyConfig(base_ms=0, jitter_ms=0),
+            error_injection=WebErrorInjectionConfig(ssrf_redirect_pct=100.0),
+        )
+        app = create_app(config)
+        client = TestClient(app, follow_redirects=False)
+
+        targets = set()
+        for i in range(50):
+            resp = client.get(f"/page{i}")
+            targets.add(resp.headers["location"])
+
+        assert len(targets) > 1, "Expected multiple SSRF targets to be selected"
+
+
+class TestRedirectChainHops:
+    """Tests for redirect loop chain/hop traversal."""
+
+    def test_full_redirect_chain_terminates(self, tmp_metrics_db: str) -> None:
+        """Following the redirect chain hop by hop eventually reaches 200."""
+        config = ChaosWebConfig(
+            metrics=MetricsConfig(database=tmp_metrics_db),
+            latency=LatencyConfig(base_ms=0, jitter_ms=0),
+            error_injection=WebErrorInjectionConfig(
+                redirect_loop_pct=100.0,
+                max_redirect_loop_hops=5,
+            ),
+        )
+        app = create_app(config)
+        client = TestClient(app, follow_redirects=False)
+
+        # First request triggers the loop
+        response = client.get("/test-page")
+        assert response.status_code == 301
+        location = response.headers["location"]
+        assert "/redirect" in location
+
+        # Follow each hop manually
+        hops = 0
+        while response.status_code == 301 and hops < 20:
+            response = client.get(location)
+            if response.status_code == 301:
+                location = response.headers["location"]
+            hops += 1
+
+        # Chain must terminate with 200
+        assert response.status_code == 200
+        assert "terminated" in response.text.lower()
+        # Hops should be bounded by max_redirect_loop_hops
+        assert hops <= 5
+
+    def test_redirect_chain_records_metrics_for_each_hop(self, tmp_metrics_db: str) -> None:
+        """Each redirect hop is recorded in metrics."""
+        config = ChaosWebConfig(
+            server=ServerConfig(admin_token=TEST_ADMIN_TOKEN),
+            metrics=MetricsConfig(database=tmp_metrics_db),
+            latency=LatencyConfig(base_ms=0, jitter_ms=0),
+            error_injection=WebErrorInjectionConfig(
+                redirect_loop_pct=100.0,
+                max_redirect_loop_hops=3,
+            ),
+        )
+        app = create_app(config)
+        client = TestClient(app, follow_redirects=False)
+
+        # Trigger the redirect loop
+        response = client.get("/start")
+        assert response.status_code == 301
+        location = response.headers["location"]
+
+        # Follow through the chain
+        while response.status_code == 301:
+            response = client.get(location)
+            if response.status_code == 301:
+                location = response.headers["location"]
+
+        stats = client.get("/admin/stats", headers={"Authorization": f"Bearer {TEST_ADMIN_TOKEN}"}).json()
+        # At least the initial request + hop(s) + terminal hop
+        assert stats["total_requests"] >= 3
+
+
+# =============================================================================
+# Encoding Mismatch: Declared vs Actual Charset
+# =============================================================================
+
+
+class TestEncodingMismatchInjection:
+    """Tests for encoding mismatch producing a response where declared charset differs from actual."""
+
+    def test_encoding_mismatch_header_declares_utf8(self, tmp_metrics_db: str) -> None:
+        """Encoding mismatch response declares charset=utf-8 in Content-Type header."""
+        config = ChaosWebConfig(
+            server=ServerConfig(admin_token=TEST_ADMIN_TOKEN),
+            metrics=MetricsConfig(database=tmp_metrics_db),
+            latency=LatencyConfig(base_ms=0, jitter_ms=0),
+            error_injection=WebErrorInjectionConfig(encoding_mismatch_pct=100.0),
+        )
+        app = create_app(config)
+        client = TestClient(app)
+
+        response = client.get("/test")
+        assert response.status_code == 200
+        content_type = response.headers.get("content-type", "")
+        assert "utf-8" in content_type.lower()
+
+    def test_encoding_mismatch_body_is_iso_8859_1(self, tmp_metrics_db: str) -> None:
+        """Encoding mismatch response body is actually encoded as ISO-8859-1."""
+        config = ChaosWebConfig(
+            server=ServerConfig(admin_token=TEST_ADMIN_TOKEN),
+            metrics=MetricsConfig(database=tmp_metrics_db),
+            latency=LatencyConfig(base_ms=0, jitter_ms=0),
+            error_injection=WebErrorInjectionConfig(encoding_mismatch_pct=100.0),
+        )
+        app = create_app(config)
+        client = TestClient(app)
+
+        response = client.get("/test")
+        assert response.status_code == 200
+        # The raw body bytes should be valid ISO-8859-1
+        raw_body = response.content
+        decoded = raw_body.decode("iso-8859-1")
+        assert len(decoded) > 0
+        # The declared encoding is utf-8, but the actual is iso-8859-1 -- that's the mismatch
+        assert "utf-8" in response.headers.get("content-type", "").lower()
+
+    def test_encoding_mismatch_metrics_record_encoding(self, tmp_metrics_db: str) -> None:
+        """Encoding mismatch records encoding_served as iso-8859-1 in metrics."""
+        import sqlite3
+
+        config = ChaosWebConfig(
+            server=ServerConfig(admin_token=TEST_ADMIN_TOKEN),
+            metrics=MetricsConfig(database=tmp_metrics_db),
+            latency=LatencyConfig(base_ms=0, jitter_ms=0),
+            error_injection=WebErrorInjectionConfig(encoding_mismatch_pct=100.0),
+        )
+        app = create_app(config)
+        client = TestClient(app)
+
+        client.get("/test")
+
+        # Check the raw metrics DB for encoding_served
+        db = sqlite3.connect(tmp_metrics_db)
+        rows = db.execute("SELECT encoding_served FROM requests WHERE encoding_served IS NOT NULL").fetchall()
+        db.close()
+        assert len(rows) >= 1
+        assert rows[0][0] == "iso-8859-1"

@@ -35,8 +35,8 @@ _BLOCK_ELEMENTS: tuple[tuple[str, str], ...] = (
     ("h3", "heading"),
     ("p", "paragraph"),
     ("p", "paragraph"),
-    ("p", "paragraph"),  # Weighted: paragraphs are most common
-    ("p", "paragraph"),
+    ("p", "paragraph"),  # Entries repeated to weight selection probability —
+    ("p", "paragraph"),  # paragraphs appear 4x to match realistic page structure.
     ("blockquote", "quote"),
     ("ul", "list"),
 )
@@ -370,7 +370,8 @@ class ContentGenerator:
             )
             return self._error_page("Template Error", "Failed to render template")
 
-        # Cap output length
+        # Cap output length — template input is capped at max_len; output cap
+        # is 2x to allow templates that expand (e.g., loops) while still bounding memory.
         max_len = self._config.max_template_length
         if len(rendered) > max_len * 2:
             rendered = rendered[: max_len * 2]

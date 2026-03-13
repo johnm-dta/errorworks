@@ -1,4 +1,3 @@
-# tests/fixtures/chaosweb.py
 """ChaosWeb TestClient fixture for testing web scraping pipeline resilience.
 
 Provides a pytest fixture that creates a ChaosWeb server in-process using

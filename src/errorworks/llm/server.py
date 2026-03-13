@@ -837,7 +837,7 @@ class ChaosLLMServer:
                 outcome=outcome,
                 exc_info=True,
             )
-        except Exception:
+        except (ValueError, TypeError, AttributeError):
             logger.error(
                 "metrics_recording_unexpected_error",
                 request_id=request_id,

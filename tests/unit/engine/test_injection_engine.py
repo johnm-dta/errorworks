@@ -1,4 +1,3 @@
-# tests/unit/testing/chaosengine/test_injection_engine.py
 """Unit tests for the InjectionEngine composable utility.
 
 Tests the burst state machine, priority/weighted selection, should_trigger,

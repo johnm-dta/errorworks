@@ -31,6 +31,12 @@ from errorworks.engine.types import (
 from errorworks.engine.types import (
     ServerConfig as ServerConfig,
 )
+from errorworks.engine.validators import (
+    parse_range as _parse_range,
+)
+from errorworks.engine.validators import (
+    validate_ranges as _validate_ranges,
+)
 
 __all__ = [
     "ChaosLLMConfig",
@@ -362,31 +368,20 @@ class ErrorInjectionConfig(BaseModel):
     )
     @classmethod
     def parse_range(cls, v: Any) -> tuple[int, int]:
-        """Parse [min, max] range from list or tuple.
-
-        Both values must be non-negative integers.
-        """
-        if isinstance(v, (list, tuple)) and len(v) == 2:
-            lo, hi = int(v[0]), int(v[1])
-            if lo < 0 or hi < 0:
-                raise ValueError(f"Range values must be non-negative, got [{lo}, {hi}]")
-            return (lo, hi)
-        raise ValueError(f"Expected [min, max] range, got {v!r}")
+        """Parse [min, max] range from list or tuple."""
+        return _parse_range(v)
 
     @model_validator(mode="after")
     def validate_ranges(self) -> "ErrorInjectionConfig":
         """Ensure min <= max for all range fields."""
-        ranges = {
+        _validate_ranges({
             "retry_after_sec": self.retry_after_sec,
             "timeout_sec": self.timeout_sec,
             "connection_failed_lead_sec": self.connection_failed_lead_sec,
             "connection_stall_start_sec": self.connection_stall_start_sec,
             "connection_stall_sec": self.connection_stall_sec,
             "slow_response_sec": self.slow_response_sec,
-        }
-        for name, (lo, hi) in ranges.items():
-            if lo > hi:
-                raise ValueError(f"{name} min ({lo}) must be <= max ({hi})")
+        })
         return self
 
     @model_validator(mode="after")
@@ -394,25 +389,10 @@ class ErrorInjectionConfig(BaseModel):
         """Warn when total error percentages exceed 100% in weighted mode."""
         if self.selection_mode != "weighted":
             return self
-        total = (
-            self.rate_limit_pct
-            + self.capacity_529_pct
-            + self.service_unavailable_pct
-            + self.bad_gateway_pct
-            + self.gateway_timeout_pct
-            + self.internal_error_pct
-            + self.forbidden_pct
-            + self.not_found_pct
-            + self.timeout_pct
-            + self.connection_failed_pct
-            + self.connection_stall_pct
-            + self.connection_reset_pct
-            + self.slow_response_pct
-            + self.invalid_json_pct
-            + self.truncated_pct
-            + self.empty_body_pct
-            + self.missing_fields_pct
-            + self.wrong_content_type_pct
+        total = sum(
+            getattr(self, name)
+            for name in type(self).model_fields
+            if name.endswith("_pct")
         )
         if total > 100.0:
             warnings.warn(

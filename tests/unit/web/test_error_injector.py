@@ -224,7 +224,7 @@ class TestWebErrorDecisionValidation:
     def test_negative_incomplete_bytes_raises(self) -> None:
         """incomplete_bytes must be non-negative."""
         with pytest.raises(ValueError, match="incomplete_bytes must be non-negative"):
-            WebErrorDecision(error_type="incomplete", category=WebErrorCategory.CONNECTION, incomplete_bytes=-1)
+            WebErrorDecision(error_type="incomplete_response", category=WebErrorCategory.CONNECTION, incomplete_bytes=-1)
 
 
 class TestWebErrorInjectorBasic:
@@ -444,6 +444,71 @@ class TestRedirectInjection:
         decision = injector.decide()
         assert decision.error_type == "ssrf_redirect"
         assert decision.category == WebErrorCategory.REDIRECT
+
+
+class TestSSRFTargetCoverage:
+    """Tests for SSRF redirect target selection coverage."""
+
+    def test_ssrf_targets_cover_all_private_ranges(self) -> None:
+        """SSRF_TARGETS includes representatives from all major private IP categories."""
+        # Cloud metadata
+        metadata_targets = [t for t in SSRF_TARGETS if "169.254.169.254" in t or "metadata.google.internal" in t]
+        assert len(metadata_targets) >= 2, "Should cover at least AWS and GCP metadata"
+
+        # RFC 1918 private ranges
+        rfc1918_targets = [t for t in SSRF_TARGETS if "192.168." in t or "10.0." in t or "172.16." in t]
+        assert len(rfc1918_targets) >= 3, "Should cover all three RFC 1918 ranges"
+
+        # Loopback
+        loopback_targets = [t for t in SSRF_TARGETS if "127.0.0.1" in t or "[::1]" in t]
+        assert len(loopback_targets) >= 2, "Should cover IPv4 and IPv6 loopback"
+
+    def test_ssrf_all_targets_reachable_by_injector(self) -> None:
+        """The injector can produce every SSRF target given enough draws."""
+        config = WebErrorInjectionConfig(ssrf_redirect_pct=100.0)
+        injector = WebErrorInjector(config)
+
+        seen_targets: set[str] = set()
+        for _ in range(500):
+            decision = injector.decide()
+            if decision.redirect_target is not None:
+                seen_targets.add(decision.redirect_target)
+
+        # Should have found the majority of targets
+        coverage = len(seen_targets) / len(SSRF_TARGETS)
+        assert coverage >= 0.5, f"Only covered {coverage:.0%} of SSRF targets"
+
+    def test_ssrf_decision_has_no_redirect_hops(self) -> None:
+        """SSRF redirect decisions have redirect_target but not redirect_hops."""
+        config = WebErrorInjectionConfig(ssrf_redirect_pct=100.0)
+        injector = WebErrorInjector(config)
+
+        decision = injector.decide()
+        assert decision.redirect_target is not None
+        assert decision.redirect_hops is None
+
+    def test_redirect_loop_decision_has_no_redirect_target(self) -> None:
+        """Redirect loop decisions have redirect_hops but not redirect_target."""
+        config = WebErrorInjectionConfig(redirect_loop_pct=100.0)
+        injector = WebErrorInjector(config)
+
+        decision = injector.decide()
+        assert decision.redirect_hops is not None
+        assert decision.redirect_target is None
+
+    def test_redirect_loop_hops_within_configured_max(self) -> None:
+        """Redirect loop hop count is between 3 and max_redirect_loop_hops."""
+        for max_hops in [3, 5, 15]:
+            config = WebErrorInjectionConfig(
+                redirect_loop_pct=100.0,
+                max_redirect_loop_hops=max_hops,
+            )
+            injector = WebErrorInjector(config)
+
+            for _ in range(20):
+                decision = injector.decide()
+                assert decision.redirect_hops is not None
+                assert 3 <= decision.redirect_hops <= max_hops
 
 
 class TestMalformedContentInjection:

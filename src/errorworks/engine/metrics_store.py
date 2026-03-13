@@ -196,12 +196,16 @@ class MetricsStore:
         live_thread_ids = {t.ident for t in threading.enumerate()}
         with self._lock:
             dead_ids = [tid for tid in self._connections if tid not in live_thread_ids]
+            failed_count = 0
             for tid in dead_ids:
                 try:
                     self._connections[tid].close()
                 except sqlite3.Error:
+                    failed_count += 1
                     logger.warning("failed to close stale connection for thread %s", tid, exc_info=True)
                 del self._connections[tid]
+            if failed_count:
+                logger.error("Failed to close %d stale connection(s) during cleanup", failed_count)
 
     def _init_schema(self) -> None:
         """Initialize database schema."""
@@ -597,11 +601,15 @@ class MetricsStore:
     def close(self) -> None:
         """Close all database connections across all threads."""
         with self._lock:
+            failed_count = 0
             for tid, conn in self._connections.items():
                 try:
                     conn.close()
                 except sqlite3.Error:
+                    failed_count += 1
                     logger.warning("failed to close connection for thread %s", tid, exc_info=True)
+            if failed_count:
+                logger.error("Failed to close %d connection(s) during shutdown", failed_count)
             self._connections.clear()
             # Reset thread-local storage so _get_connection() won't return
             # a closed connection if called again on the same thread.

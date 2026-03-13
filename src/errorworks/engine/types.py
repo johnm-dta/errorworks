@@ -11,8 +11,16 @@ import math
 import re
 import secrets
 from dataclasses import dataclass
+from enum import StrEnum
 
 from pydantic import BaseModel, Field
+
+
+class SelectionMode(StrEnum):
+    """Selection algorithm for the injection engine."""
+
+    PRIORITY = "priority"
+    WEIGHTED = "weighted"
 
 # =============================================================================
 # Shared Configuration Models
@@ -26,6 +34,7 @@ class ServerConfig(BaseModel):
 
     host: str = Field(
         default="127.0.0.1",
+        min_length=1,
         description="Host address to bind to",
     )
     port: int = Field(
@@ -244,6 +253,13 @@ class MetricsSchema:
                     f"which does not exist in request_columns"
                 )
 
+        # Validate index names against _VALID_COLUMN_NAME to prevent DDL injection
+        for index_name, _col_name in self.request_indexes:
+            if not _VALID_COLUMN_NAME.match(index_name):
+                raise ValueError(
+                    f"Index name must be a valid SQL identifier (letters, digits, underscores), got {index_name!r}"
+                )
+
         # Validate structural columns required by MetricsStore operations
         ts_name_set = set(ts_names)
         missing_ts = {"bucket_utc", "requests_total"} - ts_name_set
@@ -251,3 +267,11 @@ class MetricsSchema:
             raise ValueError(f"MetricsSchema timeseries_columns must include {sorted(missing_ts)} (required by update_timeseries)")
         if "timestamp_utc" not in req_name_set:
             raise ValueError("MetricsSchema request_columns must include 'timestamp_utc' (required by rebuild_timeseries)")
+
+        # Verify bucket_utc is a primary key (required by ON CONFLICT(bucket_utc) in update_timeseries)
+        bucket_utc_col = next(c for c in self.timeseries_columns if c.name == "bucket_utc")
+        if not bucket_utc_col.primary_key:
+            raise ValueError(
+                "MetricsSchema timeseries column 'bucket_utc' must have primary_key=True "
+                "(required by ON CONFLICT(bucket_utc) in update_timeseries)"
+            )

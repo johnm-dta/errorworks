@@ -1,4 +1,3 @@
-# tests/testing/chaosllm/test_latency_simulator.py
 """Tests for ChaosLLM latency simulator."""
 
 import random

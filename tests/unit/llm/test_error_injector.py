@@ -1,4 +1,3 @@
-# tests/testing/chaosllm/test_error_injector.py
 """Tests for ChaosLLM error injector."""
 
 import random

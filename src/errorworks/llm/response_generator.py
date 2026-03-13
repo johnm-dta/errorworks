@@ -415,9 +415,11 @@ class ResponseGenerator:
                         model=request.get("model"),
                     )
                 except jinja2.TemplateError as exc:
+                    logger.warning("template_override_error", error=str(exc), error_type=type(exc).__name__)
                     content = f"[template_override_error: {exc}]"
             else:
                 if self._compiled_template is None:
+                    logger.warning("template_mode_unavailable", detail="server not configured for template mode")
                     content = "[template_mode_unavailable: server not configured for template mode]"
                 else:
                     content = self._generate_template_response(request)
@@ -425,6 +427,7 @@ class ResponseGenerator:
             content = self._generate_echo_response(request)
         elif mode == "preset":
             if mode_override is not None and self._config.mode != "preset":
+                logger.warning("preset_mode_unavailable", detail="server not configured for preset mode")
                 content = "[preset_mode_unavailable: server not configured for preset mode]"
             else:
                 content = self._generate_preset_response()

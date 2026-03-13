@@ -24,13 +24,13 @@ from typing import Any
 
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
-from mcp.types import TextContent, Tool
+from mcp.types import CallToolResult, TextContent, Tool
 
 logger = logging.getLogger(__name__)
 
 _SQLITE_OK = sqlite3.SQLITE_OK
 _SQLITE_DENY = sqlite3.SQLITE_DENY
-# Action codes used by set_authorizer — only SELECT and READ are permitted.
+# Action codes used by set_authorizer — only SELECT, READ, and FUNCTION are permitted.
 _SQLITE_SELECT = 21
 _SQLITE_READ = 20
 _SQLITE_FUNCTION = 31
@@ -982,7 +982,7 @@ def create_server(database_path: str) -> tuple[Server, ChaosLLMAnalyzer]:
         ]
 
     @server.call_tool()  # type: ignore[untyped-decorator]
-    async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
+    async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent] | CallToolResult:
         """Handle tool calls."""
         try:
             result: Any
@@ -1059,19 +1059,22 @@ def create_server(database_path: str) -> tuple[Server, ChaosLLMAnalyzer]:
             ]
         except Exception as e:
             logger.error("mcp_tool_unexpected_error: tool=%s error=%s", name, e, exc_info=True)
-            return [
-                TextContent(
-                    type="text",
-                    text=json.dumps(
-                        {
-                            "error": str(e),
-                            "error_type": type(e).__name__,
-                            "tool": name,
-                            "hint": "Unexpected error. Check the database and arguments.",
-                        }
-                    ),
-                )
-            ]
+            return CallToolResult(
+                content=[
+                    TextContent(
+                        type="text",
+                        text=json.dumps(
+                            {
+                                "error": str(e),
+                                "error_type": type(e).__name__,
+                                "tool": name,
+                                "hint": "Unexpected error. Check the database and arguments.",
+                            }
+                        ),
+                    )
+                ],
+                isError=True,
+            )
 
     return server, analyzer
 
@@ -1121,7 +1124,8 @@ def _find_metrics_databases(search_dir: str, max_depth: int = 3) -> list[str]:
         try:
             mtime = db_file.stat().st_mtime
         except OSError:
-            mtime = 0
+            logger.debug("Skipping unreadable database file: %s", db_file)
+            continue
 
         found.append((priority, -mtime, str(db_file)))
 

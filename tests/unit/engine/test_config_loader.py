@@ -1,4 +1,3 @@
-# tests/unit/testing/chaosengine/test_config_loader.py
 """Unit tests for the config_loader shared utilities.
 
 Tests deep_merge, list_presets, and load_preset behavior.

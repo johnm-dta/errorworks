@@ -1,4 +1,3 @@
-# tests/unit/testing/chaosengine/test_metrics_store.py
 """Unit tests for the MetricsStore composable utility.
 
 Tests schema-driven DDL generation, record/query operations,

@@ -1,4 +1,3 @@
-# tests/testing/chaosllm/test_metrics.py
 """Tests for ChaosLLM metrics recorder."""
 
 import json

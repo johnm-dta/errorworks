@@ -1,4 +1,3 @@
-# tests/testing/chaosllm/test_response_generator.py
 """Tests for ChaosLLM response generator."""
 
 import json

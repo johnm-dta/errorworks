@@ -1,4 +1,3 @@
-# tests/testing/chaosllm/test_fixture.py
 """Tests for the ChaosLLM pytest fixture."""
 
 import pytest

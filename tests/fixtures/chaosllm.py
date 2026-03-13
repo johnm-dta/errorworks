@@ -1,8 +1,4 @@
-# tests/fixtures/chaosllm.py
-"""ChaosLLM TestClient fixture for testing LLM error injection.
-
-Migrated from tests/fixtures/chaosllm.py — standalone, no v1 imports.
-"""
+"""ChaosLLM TestClient fixture for in-process testing of LLM error injection."""
 
 from __future__ import annotations
 

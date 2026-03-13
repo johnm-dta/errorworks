@@ -28,6 +28,7 @@ from errorworks.engine.types import (
     LatencyConfig,
     MetricsConfig,
     MetricsSchema,
+    SelectionMode,
     ServerConfig,
 )
 from errorworks.engine.vocabulary import ENGLISH_VOCABULARY, LOREM_VOCABULARY
@@ -44,6 +45,7 @@ __all__ = [
     "MetricsConfig",
     "MetricsSchema",
     "MetricsStore",
+    "SelectionMode",
     "ServerConfig",
     "deep_merge",
     "list_presets",
