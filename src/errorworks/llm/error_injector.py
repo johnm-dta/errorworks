@@ -34,7 +34,7 @@ class ErrorDecision:
     Attributes:
         error_type: The type of error to inject, or None for a successful response
         status_code: HTTP status code (HTTP errors or timeout responses)
-        retry_after_sec: Value for Retry-After header (429/529 only)
+        retry_after_sec: Value for Retry-After header (typically set for 429/529 responses)
         delay_sec: Delay before responding or disconnecting (timeout/slow_response/stall)
         start_delay_sec: Lead time before a connection failure or stall
         category: The category of error (HTTP, CONNECTION, or MALFORMED)

@@ -96,8 +96,8 @@ SSRF_TARGETS: list[str] = [
 class WebErrorDecision:
     """Result of a web error injection decision.
 
-    Extends ChaosLLM's ErrorDecision with web-specific fields for redirect
-    injection, encoding mismatches, and incomplete responses.
+    Parallel to ChaosLLM's ErrorDecision with additional web-specific fields
+    for redirect injection, encoding mismatches, and incomplete responses.
     """
 
     error_type: str | None

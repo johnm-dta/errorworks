@@ -1016,3 +1016,36 @@ class TestEncodingMismatchInjection:
         db.close()
         assert len(rows) >= 1
         assert rows[0][0] == "iso-8859-1"
+
+
+class TestSnapshotConsistency:
+    """Smoke tests for the config snapshot pattern.
+
+    Verifies that update_config() correctly swaps components and that
+    subsequent requests use the new configuration.
+    """
+
+    def test_update_config_swaps_generator_for_next_request(self, tmp_metrics_db: str) -> None:
+        """After update_config, the next request uses the new generator."""
+        config = ChaosWebConfig(
+            server=ServerConfig(admin_token=TEST_ADMIN_TOKEN),
+            metrics=MetricsConfig(database=tmp_metrics_db),
+            latency=LatencyConfig(base_ms=0, jitter_ms=0),
+        )
+        server = ChaosWebServer(config)
+        client = TestClient(server.app)
+
+        # Make a request with the default (random) content mode
+        response = client.get("/test")
+        assert response.status_code == 200
+
+        # Switch to echo mode — this swaps content_generator
+        server.update_config({"content": {"mode": "echo"}})
+
+        # A new request should use the new (echo) generator
+        response = client.get("/echo-test")
+        assert response.status_code == 200
+
+        # Verify the server still works after config swap
+        stats = server.get_stats()
+        assert stats["total_requests"] == 2

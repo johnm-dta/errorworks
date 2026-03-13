@@ -68,16 +68,31 @@ class ChaosLLMAnalyzer:
         self._conn: sqlite3.Connection | None = None
 
     def _get_connection(self) -> sqlite3.Connection:
-        """Get or create database connection."""
-        if self._conn is None:
-            conn = sqlite3.connect(self._db_path, timeout=30.0)
+        """Get or create database connection.
+
+        Verifies the cached connection is still usable and reconnects
+        if the database has become inaccessible (e.g., file moved or
+        disk unmounted).
+        """
+        if self._conn is not None:
             try:
-                conn.row_factory = sqlite3.Row
-                conn.execute("PRAGMA journal_mode=WAL")
-            except sqlite3.Error:
-                conn.close()
-                raise
-            self._conn = conn
+                self._conn.execute("SELECT 1")
+                return self._conn
+            except (sqlite3.OperationalError, sqlite3.DatabaseError):
+                logger.warning("mcp_database_connection_lost: reconnecting to %s", self._db_path)
+                try:
+                    self._conn.close()
+                except sqlite3.Error:
+                    logger.debug("mcp_database_close_error_during_reconnect", exc_info=True)
+                self._conn = None
+        conn = sqlite3.connect(self._db_path, timeout=30.0)
+        try:
+            conn.row_factory = sqlite3.Row
+            conn.execute("PRAGMA journal_mode=WAL")
+        except sqlite3.Error:
+            conn.close()
+            raise
+        self._conn = conn
         return self._conn
 
     def close(self) -> None:

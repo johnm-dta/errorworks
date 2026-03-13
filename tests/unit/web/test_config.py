@@ -256,6 +256,21 @@ class TestWebBurstConfig:
         with pytest.raises(ValidationError):
             WebBurstConfig(forbidden_pct=101.0)
 
+    def test_valid_burst_timing(self) -> None:
+        """Valid burst timing is accepted."""
+        config = WebBurstConfig(enabled=True, interval_sec=30, duration_sec=5)
+        assert config.duration_sec < config.interval_sec
+
+    def test_burst_duration_must_be_less_than_interval(self) -> None:
+        """duration_sec >= interval_sec raises ValidationError when enabled."""
+        with pytest.raises(ValidationError, match="duration_sec"):
+            WebBurstConfig(enabled=True, interval_sec=10, duration_sec=10)
+
+    def test_burst_invalid_timing_allowed_when_disabled(self) -> None:
+        """Invalid timing is allowed when burst is disabled."""
+        config = WebBurstConfig(enabled=False, interval_sec=5, duration_sec=10)
+        assert config.duration_sec > config.interval_sec
+
     def test_frozen(self) -> None:
         """WebBurstConfig is frozen."""
         config = WebBurstConfig()

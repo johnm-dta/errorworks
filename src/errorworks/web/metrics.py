@@ -80,6 +80,7 @@ def _classify_web_outcome(
             "timeout",
             "connection_reset",
             "connection_stall",
+            "slow_response",
             "incomplete_response",
         ),
         malformed=outcome == "error_malformed",

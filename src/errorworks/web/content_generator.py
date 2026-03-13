@@ -22,7 +22,7 @@ import jinja2
 import jinja2.sandbox
 import structlog
 
-from errorworks.engine.vocabulary import ENGLISH_VOCABULARY, LOREM_VOCABULARY
+from errorworks.engine.vocabulary import get_vocabulary
 from errorworks.web.config import WebContentConfig
 
 logger = structlog.get_logger(__name__)
@@ -250,9 +250,7 @@ class ContentGenerator:
 
     def _get_vocabulary(self) -> tuple[str, ...]:
         """Get vocabulary based on config."""
-        if self._config.random.vocabulary == "lorem":
-            return LOREM_VOCABULARY
-        return ENGLISH_VOCABULARY
+        return get_vocabulary(self._config.random.vocabulary)
 
     def _random_words(self, count: int) -> str:
         """Generate N random words from configured vocabulary."""
@@ -331,10 +329,13 @@ class ContentGenerator:
         only happens for header-override templates (Tier 3 external data),
         where errors return a generic error page instead of crashing.
         """
+        is_header_override = self._config.mode != "template"
+
         if self._compiled_template is not None:
             template = self._compiled_template
-        else:
-            # Header-override path or mode changed via update_config
+        elif is_header_override:
+            # Header override requested template mode but server isn't
+            # configured for it — compile on the fly with error fallback.
             template_str = self._config.template.body
             max_len = self._config.max_template_length
             if len(template_str) > max_len:
@@ -355,6 +356,14 @@ class ContentGenerator:
                     template_length=len(template_str),
                 )
                 return self._error_page("Template Error", "Failed to compile template")
+        else:
+            # Config mode is "template" but _compiled_template is None —
+            # invariant violation. The template must be pre-compiled at init.
+            raise RuntimeError(
+                "ContentGenerator invariant violated: config.mode is 'template' "
+                "but _compiled_template is None. The template should have been "
+                "pre-compiled during __init__."
+            )
 
         try:
             rendered = template.render(
@@ -363,12 +372,16 @@ class ContentGenerator:
                 query_params={},
             )
         except jinja2.TemplateError as exc:
-            logger.error(
-                "template_rendering_failed",
-                error=str(exc),
-                error_type=type(exc).__name__,
-            )
-            return self._error_page("Template Error", "Failed to render template")
+            if is_header_override:
+                logger.error(
+                    "template_rendering_failed",
+                    error=str(exc),
+                    error_type=type(exc).__name__,
+                )
+                return self._error_page("Template Error", "Failed to render template")
+            # Config-sourced template failed at render time — propagate so
+            # the broken config is visible rather than silently serving error pages.
+            raise
 
         # Cap output length — template input is capped at max_len; output cap
         # is 2x to allow templates that expand (e.g., loops) while still bounding memory.

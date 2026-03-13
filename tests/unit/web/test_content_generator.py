@@ -139,6 +139,32 @@ class TestContentGeneratorTemplateMode:
         with pytest.raises(ValueError, match="exceeds max_template_length"):
             ContentGenerator(config)
 
+    def test_template_syntax_error_raises_at_init(self) -> None:
+        """Template with Jinja2 syntax error crashes at construction, not at serve time."""
+        import jinja2
+
+        config = WebContentConfig(
+            mode="template",
+            template={"body": "<html>{% if unclosed %}"},
+        )
+        with pytest.raises(jinja2.TemplateSyntaxError):
+            ContentGenerator(config)
+
+    def test_config_template_render_error_propagates(self) -> None:
+        """Config-sourced template render errors propagate instead of returning error page."""
+        import jinja2
+
+        config = WebContentConfig(
+            mode="template",
+            template={"body": "<html>{{ undefined_var }}</html>"},
+        )
+        generator = ContentGenerator(config)
+        # StrictUndefined should raise on undefined_var, and since this
+        # is a config-sourced template (not a header override), the error
+        # must propagate rather than being swallowed into an error page.
+        with pytest.raises(jinja2.UndefinedError):
+            generator.generate(path="/test")
+
 
 class TestPresetBank:
     """Tests for PresetBank JSONL loading and selection."""

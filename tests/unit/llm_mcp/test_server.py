@@ -885,3 +885,45 @@ class TestCLIMain:
         with pytest.raises(SystemExit) as exc_info, patch("sys.argv", ["chaosllm-mcp", "--database", str(fake_db)]):
             main()
         assert exc_info.value.code == 1
+
+
+# =============================================================================
+# Connection Resilience
+# =============================================================================
+
+
+class TestConnectionResilience:
+    """Tests for _get_connection health-check and reconnection logic."""
+
+    def test_reconnects_after_closed_connection(self, temp_db: Path) -> None:
+        """Analyzer reconnects transparently when the cached connection is closed."""
+        analyzer = ChaosLLMAnalyzer(str(temp_db))
+        # Prime the connection
+        conn1 = analyzer._get_connection()
+        assert conn1.execute("SELECT 1").fetchone() is not None
+
+        # Force-close the underlying connection to simulate staleness
+        conn1.close()
+
+        # Next call should reconnect
+        conn2 = analyzer._get_connection()
+        assert conn2 is not conn1
+        assert conn2.execute("SELECT 1").fetchone() is not None
+        analyzer.close()
+
+    def test_reconnected_connection_has_row_factory(self, temp_db: Path) -> None:
+        """After reconnection, row_factory is sqlite3.Row (queries return Row objects)."""
+        analyzer = ChaosLLMAnalyzer(str(temp_db))
+        analyzer._get_connection().close()  # force staleness
+
+        conn = analyzer._get_connection()
+        assert conn.row_factory is sqlite3.Row
+        analyzer.close()
+
+    def test_healthy_connection_reused(self, temp_db: Path) -> None:
+        """A healthy cached connection is reused without reconnection."""
+        analyzer = ChaosLLMAnalyzer(str(temp_db))
+        conn1 = analyzer._get_connection()
+        conn2 = analyzer._get_connection()
+        assert conn1 is conn2
+        analyzer.close()

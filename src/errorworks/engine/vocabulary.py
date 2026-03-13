@@ -203,3 +203,17 @@ _LOREM_SET = {
     "vitae",
 }
 LOREM_VOCABULARY: tuple[str, ...] = tuple(sorted(_LOREM_SET))
+
+
+_VOCABULARIES: dict[str, tuple[str, ...]] = {
+    "english": ENGLISH_VOCABULARY,
+    "lorem": LOREM_VOCABULARY,
+}
+
+
+def get_vocabulary(name: str) -> tuple[str, ...]:
+    """Return the vocabulary tuple for the given name ("lorem" or "english")."""
+    try:
+        return _VOCABULARIES[name]
+    except KeyError:
+        raise ValueError(f"Unknown vocabulary {name!r}: expected one of {sorted(_VOCABULARIES)}") from None

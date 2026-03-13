@@ -57,7 +57,7 @@ src/errorworks/
 
 ### Key engine components
 
-- **InjectionEngine** (`engine/injection_engine.py`): Burst state machine + weighted/priority error selection. Thread-safe, stateless per-call. Accepts injectable `time_func` and `rng` for deterministic testing.
+- **InjectionEngine** (`engine/injection_engine.py`): Burst state machine + weighted/priority error selection. Thread-safe; selection is deterministic per-call (no cross-request coupling beyond burst timing). Accepts injectable `time_func` and `rng` for deterministic testing.
 - **MetricsStore** (`engine/metrics_store.py`): Thread-safe SQLite with thread-local connections, WAL mode for file DBs, schema-driven DDL from `MetricsSchema` dataclass. Timeseries aggregation via UPSERT.
 - **ConfigLoader** (`engine/config_loader.py`): YAML preset loading with deep merge. Precedence: CLI flags > config file > preset > defaults.
 - **LatencySimulator** (`engine/latency.py`): Artificial delays — `(base_ms ± jitter_ms) / 1000` seconds, clamped to 0.

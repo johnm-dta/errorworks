@@ -24,6 +24,7 @@ from errorworks.engine.vocabulary import (
 from errorworks.engine.vocabulary import (
     LOREM_VOCABULARY as LOREM_VOCABULARY,
 )
+from errorworks.engine.vocabulary import get_vocabulary
 from errorworks.llm.config import ResponseConfig
 
 __all__ = [
@@ -49,7 +50,7 @@ class OpenAIResponse:
         content: Generated response content
         prompt_tokens: Estimated prompt token count
         completion_tokens: Estimated completion token count
-        finish_reason: Completion finish reason ("stop")
+        finish_reason: Completion finish reason ("stop", "length", or "content_filter")
     """
 
     id: str
@@ -289,9 +290,7 @@ class ResponseGenerator:
 
     def _get_vocabulary(self) -> tuple[str, ...]:
         """Get vocabulary based on config."""
-        if self._config.random.vocabulary == "lorem":
-            return LOREM_VOCABULARY
-        return ENGLISH_VOCABULARY
+        return get_vocabulary(self._config.random.vocabulary)
 
     def _generate_random_text(self) -> str:
         """Generate random text using configured vocabulary."""

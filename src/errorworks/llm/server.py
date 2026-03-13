@@ -16,7 +16,6 @@ Usage:
 """
 
 import asyncio
-import hmac
 import json
 import sqlite3
 import threading
@@ -25,13 +24,13 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-import pydantic
 import structlog
 from starlette.applications import Starlette
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 from starlette.routing import Route
 
+from errorworks.engine import admin
 from errorworks.engine.config_loader import deep_merge
 from errorworks.engine.latency import LatencySimulator
 from errorworks.engine.types import LatencyConfig
@@ -160,7 +159,7 @@ class ChaosLLMServer:
         data["config"] = {
             "server": self._config.server.model_dump(exclude={"admin_token"}),
             "metrics": self._config.metrics.model_dump(),
-            **self._get_current_config(),
+            **self.get_current_config(),
         }
         return data
 
@@ -206,7 +205,7 @@ class ChaosLLMServer:
             if new_latency is not None:
                 self._latency_simulator = new_latency
 
-    def _get_current_config(self) -> dict[str, Any]:
+    def get_current_config(self) -> dict[str, Any]:
         """Get current configuration as dict."""
         with self._config_lock:
             return {
@@ -221,7 +220,7 @@ class ChaosLLMServer:
             {
                 "server": self._config.server.model_dump(exclude={"admin_token"}),
                 "metrics": self._config.metrics.model_dump(),
-                **self._get_current_config(),
+                **self.get_current_config(),
             },
             sort_keys=True,
         )
@@ -256,79 +255,25 @@ class ChaosLLMServer:
             deployment=deployment,
         )
 
-    def _check_admin_auth(self, request: Request) -> JSONResponse | None:
-        """Check admin authentication.
-
-        Returns None if auth passes, or a 401/403 JSONResponse if it fails.
-        """
-        token = self._config.server.admin_token
-        auth_header = request.headers.get("Authorization", "")
-        if not auth_header.startswith("Bearer "):
-            return JSONResponse(
-                {"error": {"type": "authentication_error", "message": "Missing Authorization: Bearer <token> header"}},
-                status_code=401,
-            )
-        if not hmac.compare_digest(auth_header[7:], token):
-            return JSONResponse(
-                {"error": {"type": "authorization_error", "message": "Invalid admin token"}},
-                status_code=403,
-            )
-        return None
+    def get_admin_token(self) -> str:
+        """Return the admin token for authentication."""
+        return self._config.server.admin_token
 
     async def _admin_config_endpoint(self, request: Request) -> JSONResponse:
         """Handle GET/POST /admin/config."""
-        if (denied := self._check_admin_auth(request)) is not None:
-            return denied
-        if request.method == "GET":
-            return JSONResponse(self._get_current_config())
-
-        # POST - update config
-        try:
-            body = await request.json()
-        except (json.JSONDecodeError, ValueError, UnicodeDecodeError):
-            return JSONResponse(
-                {"error": {"type": "invalid_request_error", "message": "Request body must be valid JSON"}},
-                status_code=400,
-            )
-        try:
-            self.update_config(body)
-        except (ValueError, TypeError, pydantic.ValidationError) as e:
-            return JSONResponse(
-                {"error": {"type": "validation_error", "message": str(e)}},
-                status_code=422,
-            )
-        return JSONResponse({"status": "updated", "config": self._get_current_config()})
+        return await admin.handle_admin_config(request, self)
 
     async def _admin_stats_endpoint(self, request: Request) -> JSONResponse:
         """Handle GET /admin/stats."""
-        if (denied := self._check_admin_auth(request)) is not None:
-            return denied
-        try:
-            return JSONResponse(self._metrics_recorder.get_stats())
-        except sqlite3.Error as e:
-            return JSONResponse(
-                {"error": {"type": "database_error", "message": f"Failed to retrieve stats: {e}"}},
-                status_code=503,
-            )
+        return await admin.handle_admin_stats(request, self)
 
     async def _admin_reset_endpoint(self, request: Request) -> JSONResponse:
         """Handle POST /admin/reset."""
-        if (denied := self._check_admin_auth(request)) is not None:
-            return denied
-        new_run_id = self.reset()
-        return JSONResponse({"status": "reset", "new_run_id": new_run_id})
+        return await admin.handle_admin_reset(request, self)
 
     async def _admin_export_endpoint(self, request: Request) -> JSONResponse:
         """Handle GET /admin/export."""
-        if (denied := self._check_admin_auth(request)) is not None:
-            return denied
-        try:
-            return JSONResponse(self.export_metrics())
-        except sqlite3.Error as e:
-            return JSONResponse(
-                {"error": {"type": "database_error", "message": f"Failed to export metrics: {e}"}},
-                status_code=503,
-            )
+        return await admin.handle_admin_export(request, self)
 
     # === Request handling ===
 
@@ -837,7 +782,7 @@ class ChaosLLMServer:
                 outcome=outcome,
                 exc_info=True,
             )
-        except (ValueError, TypeError, AttributeError):
+        except (ValueError, TypeError):
             logger.error(
                 "metrics_recording_unexpected_error",
                 request_id=request_id,
@@ -861,6 +806,6 @@ def create_app(config: ChaosLLMConfig) -> Starlette:
         Starlette ASGI application
     """
     server = ChaosLLMServer(config)
-    # Attach server to app.state for admin endpoints to access
+    # Attach server to app.state for external consumers (e.g., test fixtures)
     server.app.state.server = server
     return server.app

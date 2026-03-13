@@ -107,6 +107,16 @@ class TestClassifyWebOutcome:
         result = _classify_web_outcome("error_injected", None, "connection_stall")
         assert result.connection_error is True
 
+    def test_connection_error_slow_response(self) -> None:
+        """Slow response error is classified as connection error."""
+        result = _classify_web_outcome("error_injected", None, "slow_response")
+        assert result.connection_error is True
+
+    def test_connection_error_incomplete_response(self) -> None:
+        """Incomplete response error is classified as connection error."""
+        result = _classify_web_outcome("error_injected", None, "incomplete_response")
+        assert result.connection_error is True
+
     def test_malformed_outcome(self) -> None:
         """error_malformed outcome is classified correctly."""
         result = _classify_web_outcome("error_malformed", 200, None)

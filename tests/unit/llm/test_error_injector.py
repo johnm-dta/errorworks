@@ -883,3 +883,14 @@ def test_error_rate_accuracy_property(rate: float) -> None:
     injected = sum(1 for _ in range(n) if injector.decide().should_inject)
     observed_pct = (injected / n) * 100
     assert abs(observed_pct - rate) < 5.0, f"Configured {rate}%, observed {observed_pct}%"
+
+
+class TestBuildDecisionUnknownTag:
+    """Tests for _build_decision error handling on unknown tags."""
+
+    def test_unknown_tag_raises_value_error(self) -> None:
+        """_build_decision raises ValueError for an unrecognized tag."""
+        config = ErrorInjectionConfig(rate_limit_pct=100.0)
+        injector = ErrorInjector(config)
+        with pytest.raises(ValueError, match="Unknown error tag"):
+            injector._build_decision("completely_bogus_tag")

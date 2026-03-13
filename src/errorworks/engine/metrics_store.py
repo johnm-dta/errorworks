@@ -18,9 +18,27 @@ from typing import Any
 
 import structlog
 
-from errorworks.engine.types import MetricsConfig, MetricsSchema
+from errorworks.engine.types import ColumnDef, MetricsConfig, MetricsSchema
 
 logger = structlog.get_logger(__name__)
+
+
+def _column_ddl(col: ColumnDef) -> str:
+    """Generate a single column DDL fragment from a ColumnDef."""
+    col_def = f"    {col.name} {col.sql_type}"
+    if col.primary_key:
+        col_def += " PRIMARY KEY"
+    if not col.nullable and not col.primary_key:
+        col_def += " NOT NULL"
+    if col.default is not None:
+        col_def += f" DEFAULT {col.default}"
+    return col_def
+
+
+def _create_table_ddl(table_name: str, columns: tuple[ColumnDef, ...]) -> str:
+    """Generate a CREATE TABLE IF NOT EXISTS statement."""
+    col_defs = ",\n".join(_column_ddl(col) for col in columns)
+    return f"CREATE TABLE IF NOT EXISTS {table_name} (\n{col_defs}\n);"
 
 
 def _generate_ddl(schema: MetricsSchema) -> str:
@@ -34,33 +52,8 @@ def _generate_ddl(schema: MetricsSchema) -> str:
     """
     parts: list[str] = []
 
-    # --- requests table ---
-    req_cols: list[str] = []
-    for col in schema.request_columns:
-        col_def = f"    {col.name} {col.sql_type}"
-        if col.primary_key:
-            col_def += " PRIMARY KEY"
-        if not col.nullable and not col.primary_key:
-            col_def += " NOT NULL"
-        if col.default is not None:
-            col_def += f" DEFAULT {col.default}"
-        req_cols.append(col_def)
-
-    parts.append("CREATE TABLE IF NOT EXISTS requests (\n" + ",\n".join(req_cols) + "\n);")
-
-    # --- timeseries table ---
-    ts_cols: list[str] = []
-    for col in schema.timeseries_columns:
-        col_def = f"    {col.name} {col.sql_type}"
-        if col.primary_key:
-            col_def += " PRIMARY KEY"
-        if not col.nullable and not col.primary_key:
-            col_def += " NOT NULL"
-        if col.default is not None:
-            col_def += f" DEFAULT {col.default}"
-        ts_cols.append(col_def)
-
-    parts.append("CREATE TABLE IF NOT EXISTS timeseries (\n" + ",\n".join(ts_cols) + "\n);")
+    parts.append(_create_table_ddl("requests", schema.request_columns))
+    parts.append(_create_table_ddl("timeseries", schema.timeseries_columns))
 
     # --- run_info table (always present) ---
     parts.append(
@@ -210,8 +203,13 @@ class MetricsStore:
     def _init_schema(self) -> None:
         """Initialize database schema."""
         conn = self._get_connection()
-        conn.executescript(self._ddl)
-        conn.commit()
+        try:
+            conn.executescript(self._ddl)
+            conn.commit()
+        except sqlite3.Error as e:
+            raise type(e)(
+                f"Failed to initialize metrics schema for database '{self._config.database}': {e}"
+            ) from e
 
     @property
     def run_id(self) -> str:
