@@ -175,9 +175,7 @@ class TestWebErrorDecisionValidation:
     def test_http_error_with_malformed_type_raises(self) -> None:
         """HTTP error must not have malformed_type."""
         with pytest.raises(ValueError, match="must not have malformed_type"):
-            WebErrorDecision(
-                error_type="rate_limit", category=WebErrorCategory.HTTP, status_code=429, malformed_type="truncated_html"
-            )
+            WebErrorDecision(error_type="rate_limit", category=WebErrorCategory.HTTP, status_code=429, malformed_type="truncated_html")
 
     def test_connection_error_with_retry_after_raises(self) -> None:
         """Connection error must not have retry_after_sec."""
@@ -197,9 +195,7 @@ class TestWebErrorDecisionValidation:
     def test_malformed_with_wrong_status_code_raises(self) -> None:
         """Malformed error must have status_code 200."""
         with pytest.raises(ValueError, match="must have status_code 200"):
-            WebErrorDecision(
-                error_type="malformed", category=WebErrorCategory.MALFORMED, malformed_type="truncated_html", status_code=500
-            )
+            WebErrorDecision(error_type="malformed", category=WebErrorCategory.MALFORMED, malformed_type="truncated_html", status_code=500)
 
     def test_redirect_without_target_or_hops_raises(self) -> None:
         """Redirect error must have redirect_target or redirect_hops."""
@@ -889,6 +885,7 @@ class TestConstants:
 # ---------------------------------------------------------------------------
 # Property-based tests for error rate accuracy
 # ---------------------------------------------------------------------------
+
 
 @settings(max_examples=200)
 @given(rate=st.floats(min_value=5.0, max_value=95.0))

@@ -207,9 +207,7 @@ class MetricsStore:
             conn.executescript(self._ddl)
             conn.commit()
         except sqlite3.Error as e:
-            raise type(e)(
-                f"Failed to initialize metrics schema for database '{self._config.database}': {e}"
-            ) from e
+            raise type(e)(f"Failed to initialize metrics schema for database '{self._config.database}': {e}") from e
 
     @property
     def run_id(self) -> str:
@@ -282,7 +280,9 @@ class MetricsStore:
         """
         unknown = set(counters) - set(self._timeseries_col_names)
         if unknown:
-            raise ValueError(f"Unknown columns for timeseries table: {sorted(unknown)}. Valid columns: {sorted(self._timeseries_col_names)}")
+            raise ValueError(
+                f"Unknown columns for timeseries table: {sorted(unknown)}. Valid columns: {sorted(self._timeseries_col_names)}"
+            )
 
         conn = self._get_connection()
 

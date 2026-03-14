@@ -59,28 +59,34 @@ def test_serve_preset_plus_overrides(mock_run):
 @patch(_UVICORN_RUN)
 def test_serve_all_error_flags(mock_run):
     """All 7 error flags are accepted without error."""
-    result = runner.invoke(app, [
-        "serve",
-        "--rate-limit-pct=5",
-        "--forbidden-pct=3",
-        "--not-found-pct=2",
-        "--service-unavailable-pct=4",
-        "--internal-error-pct=1",
-        "--timeout-pct=2",
-        "--ssrf-redirect-pct=1",
-    ])
+    result = runner.invoke(
+        app,
+        [
+            "serve",
+            "--rate-limit-pct=5",
+            "--forbidden-pct=3",
+            "--not-found-pct=2",
+            "--service-unavailable-pct=4",
+            "--internal-error-pct=1",
+            "--timeout-pct=2",
+            "--ssrf-redirect-pct=1",
+        ],
+    )
     assert result.exit_code == 0, result.output
 
 
 @patch(_UVICORN_RUN)
 def test_serve_burst_flags(mock_run):
     """Burst flags are accepted."""
-    result = runner.invoke(app, [
-        "serve",
-        "--burst-enabled",
-        "--burst-interval-sec=10",
-        "--burst-duration-sec=2",
-    ])
+    result = runner.invoke(
+        app,
+        [
+            "serve",
+            "--burst-enabled",
+            "--burst-interval-sec=10",
+            "--burst-duration-sec=2",
+        ],
+    )
     assert result.exit_code == 0, result.output
 
 

@@ -22,6 +22,7 @@ class SelectionMode(StrEnum):
     PRIORITY = "priority"
     WEIGHTED = "weighted"
 
+
 # =============================================================================
 # Shared Configuration Models
 # =============================================================================
@@ -194,17 +195,14 @@ class ColumnDef:
         if not self.name:
             raise ValueError("ColumnDef name must not be empty")
         if not _VALID_COLUMN_NAME.match(self.name):
-            raise ValueError(
-                f"ColumnDef name must be a valid SQL identifier (letters, digits, underscores), got {self.name!r}"
-            )
+            raise ValueError(f"ColumnDef name must be a valid SQL identifier (letters, digits, underscores), got {self.name!r}")
         if self.sql_type not in _VALID_SQL_TYPES:
             raise ValueError(f"ColumnDef sql_type must be one of {sorted(_VALID_SQL_TYPES)}, got {self.sql_type!r}")
         if self.primary_key and self.nullable:
             raise ValueError(f"ColumnDef '{self.name}': primary_key columns cannot be nullable")
         if self.default is not None and not _VALID_DEFAULT.match(self.default):
             raise ValueError(
-                f"ColumnDef '{self.name}': default must be NULL, a numeric literal, or a single-quoted string, "
-                f"got {self.default!r}"
+                f"ColumnDef '{self.name}': default must be NULL, a numeric literal, or a single-quoted string, got {self.default!r}"
             )
 
 
@@ -248,17 +246,12 @@ class MetricsSchema:
         req_name_set = set(req_names)
         for index_name, col_name in self.request_indexes:
             if col_name not in req_name_set:
-                raise ValueError(
-                    f"Index '{index_name}' references column '{col_name}' "
-                    f"which does not exist in request_columns"
-                )
+                raise ValueError(f"Index '{index_name}' references column '{col_name}' which does not exist in request_columns")
 
         # Validate index names against _VALID_COLUMN_NAME to prevent DDL injection
         for index_name, _col_name in self.request_indexes:
             if not _VALID_COLUMN_NAME.match(index_name):
-                raise ValueError(
-                    f"Index name must be a valid SQL identifier (letters, digits, underscores), got {index_name!r}"
-                )
+                raise ValueError(f"Index name must be a valid SQL identifier (letters, digits, underscores), got {index_name!r}")
 
         # Validate structural columns required by MetricsStore operations
         ts_name_set = set(ts_names)

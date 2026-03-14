@@ -69,9 +69,7 @@ def load_preset(presets_dir: Path, preset_name: str) -> dict[str, Any]:
         ValueError: If preset is not a YAML mapping.
     """
     if not _VALID_PRESET_NAME.match(preset_name):
-        raise ValueError(
-            f"Invalid preset name '{preset_name}': must contain only alphanumeric characters, hyphens, and underscores"
-        )
+        raise ValueError(f"Invalid preset name '{preset_name}': must contain only alphanumeric characters, hyphens, and underscores")
 
     preset_path = presets_dir / f"{preset_name}.yaml"
 
@@ -141,9 +139,7 @@ def load_config[ConfigT: BaseModel](
             )
             file_config = {}
         elif not isinstance(file_config, dict):
-            raise ValueError(
-                f"Config file '{config_file}' must be a YAML mapping, got {type(file_config).__name__}"
-            )
+            raise ValueError(f"Config file '{config_file}' must be a YAML mapping, got {type(file_config).__name__}")
         config_dict = deep_merge(config_dict, file_config)
 
     # Layer 3: CLI overrides (highest precedence)

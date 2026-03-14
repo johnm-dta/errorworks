@@ -148,11 +148,11 @@ class TestColumnDefValidation:
     @pytest.mark.parametrize(
         "name",
         [
-            "1bad",        # starts with digit
-            "has space",   # contains space
+            "1bad",  # starts with digit
+            "has space",  # contains space
             "drop;table",  # contains semicolon
-            "col-name",    # contains hyphen
-            "col.name",    # contains dot
+            "col-name",  # contains hyphen
+            "col.name",  # contains dot
         ],
     )
     def test_invalid_column_name_raises(self, name: str) -> None:
@@ -186,10 +186,10 @@ class TestColumnDefValidation:
     @pytest.mark.parametrize(
         "default",
         [
-            "DROP TABLE",        # SQL injection attempt
-            "1; DROP TABLE",     # embedded semicolon
-            "random()",          # function call
-            "''||evil''",        # concatenation attempt
+            "DROP TABLE",  # SQL injection attempt
+            "1; DROP TABLE",  # embedded semicolon
+            "random()",  # function call
+            "''||evil''",  # concatenation attempt
         ],
     )
     def test_invalid_default_raises(self, default: str) -> None:
@@ -289,18 +289,14 @@ class TestMetricsSchemaValidation:
         with pytest.raises(ValueError, match=r"timeseries_columns must include.*bucket_utc"):
             MetricsSchema(
                 request_columns=_minimal_request_columns(),
-                timeseries_columns=(
-                    ColumnDef(name="requests_total", sql_type="INTEGER", default="0"),
-                ),
+                timeseries_columns=(ColumnDef(name="requests_total", sql_type="INTEGER", default="0"),),
             )
 
     def test_missing_requests_total_in_timeseries_raises(self) -> None:
         with pytest.raises(ValueError, match=r"timeseries_columns must include.*requests_total"):
             MetricsSchema(
                 request_columns=_minimal_request_columns(),
-                timeseries_columns=(
-                    ColumnDef(name="bucket_utc", sql_type="TEXT", nullable=False, primary_key=True),
-                ),
+                timeseries_columns=(ColumnDef(name="bucket_utc", sql_type="TEXT", nullable=False, primary_key=True),),
             )
 
     def test_missing_timestamp_utc_in_request_columns_raises(self) -> None:

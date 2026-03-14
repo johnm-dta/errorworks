@@ -86,9 +86,7 @@ class TestChaosServerProtocol:
         """ChaosServer protocol defines the expected method set."""
         import inspect
 
-        protocol_methods = {
-            name for name, _ in inspect.getmembers(ChaosServer, predicate=inspect.isfunction) if not name.startswith("__")
-        }
+        protocol_methods = {name for name, _ in inspect.getmembers(ChaosServer, predicate=inspect.isfunction) if not name.startswith("__")}
         expected = {"get_admin_token", "get_current_config", "update_config", "reset", "export_metrics", "get_stats"}
         assert protocol_methods == expected
 

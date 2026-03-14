@@ -177,6 +177,7 @@ class WebBurstConfig(BaseModel):
                 f"duration_sec ({self.duration_sec}) must be less than interval_sec ({self.interval_sec}) when burst is enabled"
             )
         return self
+
     rate_limit_pct: float = Field(
         default=80.0,
         ge=0.0,
@@ -420,14 +421,16 @@ class WebErrorInjectionConfig(BaseModel):
     @model_validator(mode="after")
     def validate_ranges(self) -> "WebErrorInjectionConfig":
         """Ensure min <= max for all range fields."""
-        _validate_ranges({
-            "retry_after_sec": self.retry_after_sec,
-            "timeout_sec": self.timeout_sec,
-            "connection_stall_start_sec": self.connection_stall_start_sec,
-            "connection_stall_sec": self.connection_stall_sec,
-            "slow_response_sec": self.slow_response_sec,
-            "incomplete_response_bytes": self.incomplete_response_bytes,
-        })
+        _validate_ranges(
+            {
+                "retry_after_sec": self.retry_after_sec,
+                "timeout_sec": self.timeout_sec,
+                "connection_stall_start_sec": self.connection_stall_start_sec,
+                "connection_stall_sec": self.connection_stall_sec,
+                "slow_response_sec": self.slow_response_sec,
+                "incomplete_response_bytes": self.incomplete_response_bytes,
+            }
+        )
         return self
 
     @model_validator(mode="after")
@@ -435,15 +438,10 @@ class WebErrorInjectionConfig(BaseModel):
         """Warn when total error percentages exceed 100% in weighted mode."""
         if self.selection_mode != "weighted":
             return self
-        total = sum(
-            getattr(self, name)
-            for name in type(self).model_fields
-            if name.endswith("_pct")
-        )
+        total = sum(getattr(self, name) for name in type(self).model_fields if name.endswith("_pct"))
         if total > 100.0:
             warnings.warn(
-                f"Total error percentages ({total:.1f}%) exceed 100% in weighted mode. "
-                f"No successful responses will be generated.",
+                f"Total error percentages ({total:.1f}%) exceed 100% in weighted mode. No successful responses will be generated.",
                 stacklevel=2,
             )
         return self

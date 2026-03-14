@@ -873,6 +873,7 @@ class TestConstants:
 # Property-based tests for error rate accuracy
 # ---------------------------------------------------------------------------
 
+
 @settings(max_examples=200)
 @given(rate=st.floats(min_value=5.0, max_value=95.0))
 def test_error_rate_accuracy_property(rate: float) -> None:

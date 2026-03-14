@@ -88,9 +88,7 @@ def validate_error_decision(
         raise ValueError(f"Error decision '{error_type}' must have a category")
 
     if error_type not in valid_error_types:
-        raise ValueError(
-            f"Unknown error_type '{error_type}'; must be one of {sorted(valid_error_types)}"
-        )
+        raise ValueError(f"Unknown error_type '{error_type}'; must be one of {sorted(valid_error_types)}")
 
     if category == http_category:
         if status_code is None:
@@ -110,9 +108,7 @@ def validate_error_decision(
         if malformed_type is None:
             raise ValueError("Malformed error must have malformed_type")
         if malformed_type not in valid_malformed_types:
-            raise ValueError(
-                f"Unknown malformed_type '{malformed_type}'; must be one of {sorted(valid_malformed_types)}"
-            )
+            raise ValueError(f"Unknown malformed_type '{malformed_type}'; must be one of {sorted(valid_malformed_types)}")
         if status_code is not None and status_code != 200:
             raise ValueError(f"Malformed error must have status_code 200, got {status_code}")
 

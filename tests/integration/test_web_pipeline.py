@@ -71,10 +71,7 @@ def test_stress_scraping_anti_bot() -> None:
 def test_preset_plus_config_file_merge(tmp_path: Path) -> None:
     """Config file overlay on silent preset can override error injection."""
     overlay = tmp_path / "overlay.yaml"
-    overlay.write_text(
-        "error_injection:\n"
-        "  rate_limit_pct: 100.0\n"
-    )
+    overlay.write_text("error_injection:\n  rate_limit_pct: 100.0\n")
 
     config = load_config(preset="silent", config_file=overlay)
     app = create_app(config)

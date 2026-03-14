@@ -186,9 +186,7 @@ class ContentGenerator:
         if config.mode == "template":
             template_str = config.template.body
             if len(template_str) > config.max_template_length:
-                raise ValueError(
-                    f"Template body ({len(template_str)} chars) exceeds max_template_length ({config.max_template_length})"
-                )
+                raise ValueError(f"Template body ({len(template_str)} chars) exceeds max_template_length ({config.max_template_length})")
             self._compiled_template = self._jinja_env.from_string(template_str)
 
     @property

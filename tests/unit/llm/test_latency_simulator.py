@@ -344,6 +344,7 @@ class TestConfigIntegration:
 # Property-based tests for latency bounds
 # ---------------------------------------------------------------------------
 
+
 @given(
     base_ms=st.integers(min_value=0, max_value=500),
     jitter_ms=st.integers(min_value=0, max_value=500),

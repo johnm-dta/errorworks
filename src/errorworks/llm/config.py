@@ -374,14 +374,16 @@ class ErrorInjectionConfig(BaseModel):
     @model_validator(mode="after")
     def validate_ranges(self) -> "ErrorInjectionConfig":
         """Ensure min <= max for all range fields."""
-        _validate_ranges({
-            "retry_after_sec": self.retry_after_sec,
-            "timeout_sec": self.timeout_sec,
-            "connection_failed_lead_sec": self.connection_failed_lead_sec,
-            "connection_stall_start_sec": self.connection_stall_start_sec,
-            "connection_stall_sec": self.connection_stall_sec,
-            "slow_response_sec": self.slow_response_sec,
-        })
+        _validate_ranges(
+            {
+                "retry_after_sec": self.retry_after_sec,
+                "timeout_sec": self.timeout_sec,
+                "connection_failed_lead_sec": self.connection_failed_lead_sec,
+                "connection_stall_start_sec": self.connection_stall_start_sec,
+                "connection_stall_sec": self.connection_stall_sec,
+                "slow_response_sec": self.slow_response_sec,
+            }
+        )
         return self
 
     @model_validator(mode="after")
@@ -389,15 +391,10 @@ class ErrorInjectionConfig(BaseModel):
         """Warn when total error percentages exceed 100% in weighted mode."""
         if self.selection_mode != "weighted":
             return self
-        total = sum(
-            getattr(self, name)
-            for name in type(self).model_fields
-            if name.endswith("_pct")
-        )
+        total = sum(getattr(self, name) for name in type(self).model_fields if name.endswith("_pct"))
         if total > 100.0:
             warnings.warn(
-                f"Total error percentages ({total:.1f}%) exceed 100% in weighted mode. "
-                f"No successful responses will be generated.",
+                f"Total error percentages ({total:.1f}%) exceed 100% in weighted mode. No successful responses will be generated.",
                 stacklevel=2,
             )
         return self

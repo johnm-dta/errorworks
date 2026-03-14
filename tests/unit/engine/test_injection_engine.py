@@ -275,6 +275,7 @@ class TestReset:
 # Property-based tests for burst timing
 # ---------------------------------------------------------------------------
 
+
 @given(
     interval=st.integers(min_value=2, max_value=30),
     duration=st.integers(min_value=1, max_value=15),
