@@ -51,6 +51,7 @@ class ServerConfig(BaseModel):
     )
     admin_token: str = Field(
         default_factory=lambda: secrets.token_urlsafe(32),
+        min_length=1,
         description=(
             "Bearer token required for /admin/* endpoints. "
             "Requests must include 'Authorization: Bearer <token>'. "

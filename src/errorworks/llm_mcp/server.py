@@ -1028,50 +1028,62 @@ def create_server(database_path: str) -> tuple[Server, ChaosLLMAnalyzer]:
             elif name == "describe_schema":
                 result = analyzer.describe_schema()
             else:
-                return [TextContent(type="text", text=f"Unknown tool: {name}")]
+                return CallToolResult(
+                    content=[TextContent(type="text", text=f"Unknown tool: {name}")],
+                    isError=True,
+                )
 
             return [TextContent(type="text", text=json.dumps(result, indent=2))]
 
         except KeyError as e:
-            return [
-                TextContent(
-                    type="text",
-                    text=json.dumps(
-                        {
-                            "error": f"Missing required argument: {e!s}",
-                            "tool": name,
-                            "provided_arguments": list(arguments.keys()),
-                        }
-                    ),
-                )
-            ]
+            return CallToolResult(
+                content=[
+                    TextContent(
+                        type="text",
+                        text=json.dumps(
+                            {
+                                "error": f"Missing required argument: {e!s}",
+                                "tool": name,
+                                "provided_arguments": list(arguments.keys()),
+                            }
+                        ),
+                    )
+                ],
+                isError=True,
+            )
         except ValueError as e:
-            return [
-                TextContent(
-                    type="text",
-                    text=json.dumps(
-                        {
-                            "error": str(e),
-                            "error_type": "validation_error",
-                            "tool": name,
-                        }
-                    ),
-                )
-            ]
+            return CallToolResult(
+                content=[
+                    TextContent(
+                        type="text",
+                        text=json.dumps(
+                            {
+                                "error": str(e),
+                                "error_type": "validation_error",
+                                "tool": name,
+                            }
+                        ),
+                    )
+                ],
+                isError=True,
+            )
         except sqlite3.Error as e:
-            return [
-                TextContent(
-                    type="text",
-                    text=json.dumps(
-                        {
-                            "error": str(e),
-                            "error_type": "database_error",
-                            "tool": name,
-                            "hint": "Check that the database path is correct and contains a ChaosLLM metrics schema.",
-                        }
-                    ),
-                )
-            ]
+            return CallToolResult(
+                content=[
+                    TextContent(
+                        type="text",
+                        text=json.dumps(
+                            {
+                                "error": str(e),
+                                "error_type": "database_error",
+                                "tool": name,
+                                "hint": "Check that the database path is correct and contains a ChaosLLM metrics schema.",
+                            }
+                        ),
+                    )
+                ],
+                isError=True,
+            )
         except Exception as e:
             logger.error("mcp_tool_unexpected_error: tool=%s error=%s", name, e, exc_info=True)
             return CallToolResult(

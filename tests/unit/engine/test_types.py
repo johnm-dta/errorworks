@@ -367,6 +367,16 @@ class TestServerConfigValidation:
         config = ServerConfig(port=1)
         assert config.port == 1
 
+    def test_empty_admin_token_raises(self) -> None:
+        """Empty admin_token would disable auth — must be rejected."""
+        with pytest.raises(ValidationError):
+            ServerConfig(admin_token="")
+
+    def test_admin_token_default_is_nonempty(self) -> None:
+        """Auto-generated admin_token must be non-empty."""
+        config = ServerConfig()
+        assert len(config.admin_token) > 0
+
     @pytest.mark.parametrize("workers", [0, -1, -10])
     def test_workers_zero_or_negative_raises(self, workers: int) -> None:
         with pytest.raises(ValidationError):

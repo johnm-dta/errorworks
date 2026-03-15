@@ -578,7 +578,7 @@ class MetricsStore:
         conn = self._get_connection()
 
         if config_json is None:
-            cursor = conn.execute("SELECT config_json, preset_name FROM run_info LIMIT 1")
+            cursor = conn.execute("SELECT config_json, preset_name FROM run_info ORDER BY started_utc DESC LIMIT 1")
             row = cursor.fetchone()
             if row is not None:
                 config_json = row["config_json"]

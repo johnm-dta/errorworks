@@ -686,6 +686,7 @@ class TestCallToolDispatcher:
         text = _extract_text(result)
         assert "Unknown tool" in text
         assert "nonexistent_tool" in text
+        assert _extract_is_error(result)
 
     @pytest.mark.asyncio
     async def test_missing_required_argument_returns_error(self, mcp_server_empty) -> None:
@@ -754,6 +755,7 @@ class TestCallToolDispatcher:
         parsed = json.loads(text)
         assert "error" in parsed
         assert parsed["error_type"] == "validation_error"
+        assert _extract_is_error(result)
 
     @pytest.mark.asyncio
     async def test_unexpected_exception_returns_is_error(self, mcp_server_empty) -> None:

@@ -391,6 +391,34 @@ class TestReset:
         assert row is not None
         assert row["config_json"] == '{"test": true}'
 
+    def test_reset_uses_most_recent_run_info(self) -> None:
+        """Reset picks the most recent run_info row when multiple exist.
+
+        Regression test: LIMIT 1 without ORDER BY returns a non-deterministic
+        row. The fix adds ORDER BY started_utc DESC to ensure the latest config
+        is preserved across resets.
+        """
+        config = MetricsConfig(database=":memory:")
+        store = MetricsStore(config, _TEST_SCHEMA, run_id="run-old")
+        store.save_run_info('{"version": "old"}', preset_name="old_preset")
+
+        # Simulate a second run by inserting directly
+        conn = store._get_connection()
+        conn.execute(
+            "INSERT INTO run_info (run_id, started_utc, config_json, preset_name) VALUES (?, ?, ?, ?)",
+            ("run-new", "2099-01-01T00:00:00+00:00", '{"version": "new"}', "new_preset"),
+        )
+        conn.commit()
+
+        store.reset()
+
+        # Verify the newest config was preserved
+        cursor = conn.execute("SELECT config_json, preset_name FROM run_info")
+        row = cursor.fetchone()
+        assert row is not None
+        assert row["config_json"] == '{"version": "new"}'
+        assert row["preset_name"] == "new_preset"
+
 
 # =============================================================================
 # Run Info
