@@ -1,7 +1,7 @@
 # Professionalize Errorworks Package
 
 **Date:** 2026-03-16
-**Status:** Draft
+**Status:** Approved
 **Author:** Claude (with John Morrissey)
 
 ## Context
@@ -76,9 +76,9 @@ docs/
 ├── reference/
 │   ├── cli.md               # chaosengine / chaosllm / chaosweb CLI reference
 │   ├── api.md               # HTTP API endpoints
-│   └── configuration.md     # Full config model reference (all fields, defaults, types)
+│   └── config-schema.md     # Full config model reference (all fields, defaults, types)
 ├── architecture.md           # Composition pattern, engine components, config snapshot
-└── changelog.md              # Include or symlink of CHANGELOG.md
+└── changelog.md              # Copy of CHANGELOG.md (pre-build copy step in docs workflow)
 ```
 
 **Design decisions:**
@@ -102,8 +102,10 @@ docs/
 
 New `.github/workflows/docs.yml`:
 - Triggers on push to `main` (paths: `docs/**`, `mkdocs.yml`)
+- Pre-build step: copy `CHANGELOG.md` to `docs/changelog.md`
 - Builds MkDocs site
 - Deploys to `gh-pages` branch using `peaceiris/actions-gh-pages` or equivalent
+- Requires `permissions: contents: write` for gh-pages push
 - Requires `mkdocs-material` as build dependency
 
 ### 5. Community Files
@@ -147,20 +149,22 @@ New `.github/workflows/docs.yml`:
 ```yaml
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.9.10  # pin to current version used in CI
+    rev: <pin to version matching pyproject.toml>
     hooks:
       - id: ruff
         args: [--fix]
       - id: ruff-format
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.15.0  # pin to current version
+  - repo: local
     hooks:
       - id: mypy
-        additional_dependencies: [pydantic]
-        args: [src]
+        name: mypy
+        entry: uv run mypy src
+        language: system
+        types: [python]
+        pass_filenames: false
 ```
 
-Matches CI enforcement exactly.
+Uses a local hook for mypy so it runs against the project's full venv (all dependencies available), matching CI exactly. Ruff version should be pinned to whatever version is currently in use (check `uv run ruff --version`).
 
 ### 8. DTA Branding Hooks
 
@@ -181,9 +185,15 @@ Matches CI enforcement exactly.
 
 ## Dependencies
 
-- `mkdocs-material` added as a dev/docs dependency
+- `mkdocs-material` added as a new `docs` optional-dependency group in pyproject.toml: `[project.optional-dependencies] docs = ["mkdocs-material>=9,<10"]`. The existing `dev` group remains for test/lint tooling. `uv sync --all-extras` continues to install everything.
 - GitHub Pages enabled on the repository (Settings > Pages > Source: gh-pages branch)
 - No other external service accounts needed
+
+## Build Notes
+
+- The `docs/superpowers/` and `docs/plans/` directories (internal specs) should be excluded from MkDocs nav via `mkdocs.yml` `not_in_nav` or by only listing explicit nav entries (no auto-discovery).
+- `docs/` source files are included in the sdist by default. Add `docs/` to the sdist exclusion list in pyproject.toml since documentation source is not needed in the distributed package.
+- The existing `CHANGELOG.md` is used as-is — it already follows Keep a Changelog format.
 
 ## Success Criteria
 
