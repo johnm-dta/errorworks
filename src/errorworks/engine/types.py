@@ -138,6 +138,11 @@ class BurstConfig:
         enabled: Whether burst mode is active.
         interval_sec: Time between burst starts in seconds.
         duration_sec: How long each burst lasts in seconds.
+
+    Note:
+        When ``enabled=False``, ``duration_sec >= interval_sec`` is permitted.
+        This lets users pre-configure burst timing without triggering validation
+        errors until burst mode is actually activated.
     """
 
     enabled: bool = False
