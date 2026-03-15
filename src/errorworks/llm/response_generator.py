@@ -130,13 +130,13 @@ class PresetBank:
 
     def next(self) -> str:
         """Get the next preset response (thread-safe)."""
-        if self._selection == "random":
-            return self._rng.choice(self._responses)
-        else:  # sequential
-            with self._lock:
+        with self._lock:
+            if self._selection == "random":
+                return self._rng.choice(self._responses)
+            else:  # sequential
                 response = self._responses[self._index]
                 self._index = (self._index + 1) % len(self._responses)
-            return response
+                return response
 
     def reset(self) -> None:
         """Reset sequential index to beginning."""

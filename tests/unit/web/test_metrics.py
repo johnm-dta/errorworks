@@ -117,6 +117,11 @@ class TestClassifyWebOutcome:
         result = _classify_web_outcome("error_injected", None, "incomplete_response")
         assert result.connection_error is True
 
+    def test_connection_error_false_when_status_code_present(self) -> None:
+        """Error type in connection list but with a status code should NOT be connection_error."""
+        result = _classify_web_outcome("success", 200, "timeout")
+        assert result.connection_error is False
+
     def test_malformed_outcome(self) -> None:
         """error_malformed outcome is classified correctly."""
         result = _classify_web_outcome("error_malformed", 200, None)

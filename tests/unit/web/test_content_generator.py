@@ -663,3 +663,36 @@ class TestGenerateWrongContentType:
         for _ in range(50):
             ct = generate_wrong_content_type()
             assert ct in known
+
+
+class TestPresetBankRandomThreadSafety:
+    """Verify PresetBank.next() in random mode is thread-safe."""
+
+    def test_concurrent_random_next_no_crash(self) -> None:
+        """Spawn many threads calling next() in random mode concurrently."""
+        import threading
+
+        pages = [{"body": f"<p>page-{i}</p>", "content_type": "text/html"} for i in range(10)]
+        bank = PresetBank(pages=pages, selection="random")
+        errors: list[Exception] = []
+        results: list[dict[str, str]] = []
+        barrier = threading.Barrier(20)
+
+        def worker() -> None:
+            barrier.wait()
+            try:
+                for _ in range(200):
+                    result = bank.next()
+                    results.append(result)
+            except Exception as exc:
+                errors.append(exc)
+
+        threads = [threading.Thread(target=worker) for _ in range(20)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        assert not errors, f"Thread errors: {errors}"
+        assert len(results) == 20 * 200
+        assert all(r in pages for r in results)

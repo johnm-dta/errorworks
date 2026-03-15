@@ -566,6 +566,8 @@ class MetricsStore:
         """Get request records from the database."""
         conn = self._get_connection()
         if outcome is not None:
+            if "outcome" not in self._request_col_names:
+                raise ValueError("Cannot filter by 'outcome': column not present in schema")
             cursor = conn.execute(
                 "SELECT * FROM requests WHERE outcome = ? ORDER BY timestamp_utc DESC LIMIT ? OFFSET ?",
                 (outcome, limit, offset),

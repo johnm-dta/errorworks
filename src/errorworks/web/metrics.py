@@ -75,7 +75,8 @@ def _classify_web_outcome(
         forbidden=status_code == 403,
         not_found=status_code == 404,
         server_error=status_code is not None and 500 <= status_code < 600,
-        connection_error=error_type
+        connection_error=status_code is None
+        and error_type
         in (
             "timeout",
             "connection_reset",

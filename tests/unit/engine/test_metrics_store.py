@@ -571,6 +571,24 @@ class TestPagination:
         assert len(rows) == 1
         assert rows[0]["outcome"] == "success"
 
+    def test_get_requests_outcome_filter_without_outcome_column(self) -> None:
+        """get_requests raises ValueError when filtering by outcome on a schema without that column."""
+        schema_no_outcome = MetricsSchema(
+            request_columns=(
+                ColumnDef("request_id", "TEXT", nullable=False, primary_key=True),
+                ColumnDef("timestamp_utc", "TEXT", nullable=False),
+            ),
+            timeseries_columns=(
+                ColumnDef("bucket_utc", "TEXT", nullable=False, primary_key=True),
+                ColumnDef("requests_total", "INTEGER", nullable=False, default="0"),
+            ),
+        )
+        config = MetricsConfig(database=":memory:")
+        store = MetricsStore(config, schema_no_outcome)
+        with pytest.raises(ValueError, match="outcome"):
+            store.get_requests(outcome="success")
+        store.close()
+
     def test_get_timeseries_limit(self, store: MetricsStore) -> None:
         """get_timeseries respects limit parameter."""
         for i in range(5):

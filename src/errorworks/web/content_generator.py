@@ -95,13 +95,13 @@ class PresetBank:
 
     def next(self) -> dict[str, str]:
         """Get the next preset page (thread-safe)."""
-        if self._selection == "random":
-            return self._rng.choice(self._pages)
-        else:  # sequential
-            with self._lock:
+        with self._lock:
+            if self._selection == "random":
+                return self._rng.choice(self._pages)
+            else:  # sequential
                 page = self._pages[self._index]
                 self._index = (self._index + 1) % len(self._pages)
-            return page
+                return page
 
     def reset(self) -> None:
         """Reset sequential index to beginning."""
