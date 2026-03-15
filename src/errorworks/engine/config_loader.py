@@ -7,6 +7,7 @@ utilities from its own `load_config()` function.
 
 from __future__ import annotations
 
+import copy
 import re
 import warnings
 from pathlib import Path
@@ -30,7 +31,7 @@ def deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]
     Returns:
         Merged configuration dict (new dict, does not mutate inputs).
     """
-    result = dict(base)
+    result = copy.deepcopy(base)
     for key, value in override.items():
         if key in result and isinstance(result[key], dict) and isinstance(value, dict):
             result[key] = deep_merge(result[key], value)

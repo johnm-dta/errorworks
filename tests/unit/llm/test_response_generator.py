@@ -2,6 +2,7 @@
 
 import json
 import random
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -948,3 +949,39 @@ class TestVocabularyConstants:
         """Lorem vocabulary words are lowercase."""
         for word in LOREM_VOCABULARY:
             assert word == word.lower(), f"'{word}' should be lowercase"
+
+
+class TestPresetBankThreadSafety:
+    """Tests for thread-safe lazy initialization of PresetBank."""
+
+    def test_get_preset_bank_concurrent_returns_same_instance(self, tmp_path: Path) -> None:
+        """Multiple threads calling _get_preset_bank() all get the same PresetBank instance."""
+        jsonl_file = tmp_path / "responses.jsonl"
+        jsonl_file.write_text('{"content": "A"}\n{"content": "B"}\n{"content": "C"}\n')
+
+        config = ResponseConfig(
+            mode="preset",
+            preset=PresetResponseConfig(
+                file=str(jsonl_file),
+                selection="sequential",
+            ),
+        )
+        generator = ResponseGenerator(config)
+
+        results: list[PresetBank] = []
+        barrier = threading.Barrier(10)
+
+        def get_bank() -> None:
+            barrier.wait()  # maximize contention
+            bank = generator._get_preset_bank()
+            results.append(bank)
+
+        threads = [threading.Thread(target=get_bank) for _ in range(10)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        assert len(results) == 10
+        # All threads must receive the exact same PresetBank instance
+        assert all(b is results[0] for b in results)

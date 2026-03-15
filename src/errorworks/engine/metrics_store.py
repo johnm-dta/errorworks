@@ -8,6 +8,7 @@ Each chaos plugin composes a MetricsStore and adds typed wrappers
 for recording domain-specific request data.
 """
 
+import math
 import sqlite3
 import threading
 import uuid
@@ -345,7 +346,7 @@ class MetricsStore:
         count = row[1]
 
         # Compute p99 via LIMIT/OFFSET (SQLite handles the sort internally)
-        p99_offset = min(int(count * 0.99), count - 1)
+        p99_offset = max(0, min(math.ceil(count * 0.99) - 1, count - 1))
         cursor = conn.execute(
             """
             SELECT latency_ms FROM requests
@@ -443,7 +444,7 @@ class MetricsStore:
                 if latencies:
                     avg_latency = sum(latencies) / len(latencies)
                     latencies.sort()
-                    p99_index = min(int(len(latencies) * 0.99), len(latencies) - 1)
+                    p99_index = max(0, min(math.ceil(len(latencies) * 0.99) - 1, len(latencies) - 1))
                     p99_latency = latencies[p99_index]
                     conn.execute(
                         "UPDATE timeseries SET avg_latency_ms = ?, p99_latency_ms = ? WHERE bucket_utc = ?",
@@ -516,9 +517,9 @@ class MetricsStore:
             p99_latency = None
 
             if latencies:
-                p50_latency = latencies[min(int(len(latencies) * 0.50), len(latencies) - 1)]
-                p95_latency = latencies[min(int(len(latencies) * 0.95), len(latencies) - 1)]
-                p99_latency = latencies[min(int(len(latencies) * 0.99), len(latencies) - 1)]
+                p50_latency = latencies[max(0, min(math.ceil(len(latencies) * 0.50) - 1, len(latencies) - 1))]
+                p95_latency = latencies[max(0, min(math.ceil(len(latencies) * 0.95) - 1, len(latencies) - 1))]
+                p99_latency = latencies[max(0, min(math.ceil(len(latencies) * 0.99) - 1, len(latencies) - 1))]
 
             stats["latency_stats"] = {
                 "avg_ms": row[0],

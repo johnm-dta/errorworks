@@ -285,6 +285,14 @@ class TestEdgeCases:
         delay = simulator.simulate()
         assert delay == 5.0  # 5000ms = 5 seconds
 
+    def test_inverted_min_max_slow_response_raises(self) -> None:
+        """When min_sec > max_sec, raises ValueError."""
+        config = LatencyConfig()
+        simulator = LatencySimulator(config)
+
+        with pytest.raises(ValueError, match="min_sec.*must be <= max_sec"):
+            simulator.simulate_slow_response(30, 10)
+
     def test_equal_min_max_slow_response(self) -> None:
         """When min_sec equals max_sec, returns that exact value."""
         config = LatencyConfig()

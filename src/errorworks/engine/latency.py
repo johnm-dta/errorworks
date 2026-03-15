@@ -75,4 +75,6 @@ class LatencySimulator:
         Returns:
             Delay in seconds (float).
         """
+        if min_sec > max_sec:
+            raise ValueError(f"min_sec ({min_sec}) must be <= max_sec ({max_sec})")
         return self._rng.uniform(min_sec, max_sec)

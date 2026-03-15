@@ -71,6 +71,14 @@ class TestDeepMerge:
         assert base == base_copy
         assert override == override_copy
 
+    def test_result_does_not_alias_base_nested_dicts(self) -> None:
+        """Nested dicts in result must not be shared references to base."""
+        base = {"a": {"nested": 1}}
+        override = {"b": 2}
+        result = deep_merge(base, override)
+        result["a"]["nested"] = 99
+        assert base["a"]["nested"] == 1, "Mutating result must not affect base"
+
 
 # =============================================================================
 # list_presets

@@ -75,6 +75,22 @@ def test_serve_all_error_flags(mock_run):
 
 
 @_patch_uvicorn_run
+def test_serve_error_summary_shows_all_pct_fields(mock_run):
+    """Startup summary includes all non-zero _pct fields, not just a hardcoded subset."""
+    result = runner.invoke(
+        app,
+        [
+            "serve",
+            "--rate-limit-pct=10",
+            "--timeout-pct=50",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert "rate_limit:10.0%" in result.output
+    assert "timeout:50.0%" in result.output
+
+
+@_patch_uvicorn_run
 def test_serve_burst_flags(mock_run):
     """serve with burst flags exits 0."""
     result = runner.invoke(

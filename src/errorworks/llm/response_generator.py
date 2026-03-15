@@ -234,6 +234,7 @@ class ResponseGenerator:
 
         # Lazy-load preset bank
         self._preset_bank: PresetBank | None = None
+        self._preset_lock = threading.Lock()
 
         # Setup Jinja2 environment with custom helpers
         self._jinja_env = self._create_jinja_env()
@@ -341,13 +342,15 @@ class ResponseGenerator:
         return f"Echo: {last_content}"
 
     def _get_preset_bank(self) -> PresetBank:
-        """Get or create preset bank (lazy loading)."""
+        """Get or create preset bank (lazy loading, thread-safe)."""
         if self._preset_bank is None:
-            self._preset_bank = PresetBank.from_jsonl(
-                self._config.preset.file,
-                self._config.preset.selection,
-                rng=self._rng,
-            )
+            with self._preset_lock:
+                if self._preset_bank is None:  # double-check under lock
+                    self._preset_bank = PresetBank.from_jsonl(
+                        self._config.preset.file,
+                        self._config.preset.selection,
+                        rng=self._rng,
+                    )
         return self._preset_bank
 
     def _generate_preset_response(self) -> str:

@@ -471,6 +471,63 @@ class TestRunInfo:
 # =============================================================================
 
 
+class TestPercentileAccuracy:
+    """Tests for percentile calculation accuracy with small sample sizes."""
+
+    def test_p50_nearest_rank_small_sample(self, store: MetricsStore) -> None:
+        """p50 uses nearest-rank formula: ceil(N*0.50)-1, not int(N*0.50).
+
+        With 10 sorted values [1..10], p50 should be index 4 = 5.0.
+        The old int(10*0.50)=5 gives index 5 = 6.0 (wrong).
+        """
+        for i in range(10):
+            store.record(
+                request_id=f"p-{i}",
+                timestamp_utc=f"2024-01-15T10:30:{i:02d}+00:00",
+                outcome="success",
+                status_code=200,
+                latency_ms=float(i + 1),  # 1.0, 2.0, ..., 10.0
+            )
+        store.commit()
+
+        stats = store.get_stats()
+        latency = stats["latency_stats"]
+        assert latency["p50_ms"] == 5.0, f"p50 should be 5.0 (index 4), got {latency['p50_ms']}"
+        assert latency["p95_ms"] == 10.0, f"p95 should be 10.0 (index 9), got {latency['p95_ms']}"
+        assert latency["p99_ms"] == 10.0, f"p99 should be 10.0 (index 9), got {latency['p99_ms']}"
+
+    def test_p50_single_value(self, store: MetricsStore) -> None:
+        """Single value: all percentiles should return that value."""
+        store.record(
+            request_id="solo",
+            timestamp_utc="2024-01-15T10:30:00+00:00",
+            outcome="success",
+            latency_ms=42.0,
+        )
+        store.commit()
+
+        stats = store.get_stats()
+        latency = stats["latency_stats"]
+        assert latency["p50_ms"] == 42.0
+        assert latency["p95_ms"] == 42.0
+        assert latency["p99_ms"] == 42.0
+
+    def test_p50_two_values(self, store: MetricsStore) -> None:
+        """Two values [1.0, 2.0]: p50=ceil(2*0.50)-1=0 -> 1.0."""
+        for i in range(2):
+            store.record(
+                request_id=f"p-{i}",
+                timestamp_utc=f"2024-01-15T10:30:0{i}+00:00",
+                outcome="success",
+                latency_ms=float(i + 1),
+            )
+        store.commit()
+
+        stats = store.get_stats()
+        latency = stats["latency_stats"]
+        assert latency["p50_ms"] == 1.0
+
+
 class TestClose:
     """Tests for connection cleanup."""
 

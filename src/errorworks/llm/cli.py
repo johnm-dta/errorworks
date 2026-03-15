@@ -345,14 +345,12 @@ def serve(
     # Show error injection summary
     error_cfg = config.error_injection
     active_errors = []
-    if error_cfg.rate_limit_pct > 0:
-        active_errors.append(f"429:{error_cfg.rate_limit_pct:.1f}%")
-    if error_cfg.capacity_529_pct > 0:
-        active_errors.append(f"529:{error_cfg.capacity_529_pct:.1f}%")
-    if error_cfg.service_unavailable_pct > 0:
-        active_errors.append(f"503:{error_cfg.service_unavailable_pct:.1f}%")
-    if error_cfg.internal_error_pct > 0:
-        active_errors.append(f"500:{error_cfg.internal_error_pct:.1f}%")
+    for name in type(error_cfg).model_fields:
+        if name.endswith("_pct"):
+            val = getattr(error_cfg, name)
+            if val > 0:
+                label = name.removesuffix("_pct")
+                active_errors.append(f"{label}:{val:.1f}%")
 
     if active_errors:
         typer.echo(f"  Error injection: {', '.join(active_errors)}")

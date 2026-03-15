@@ -18,6 +18,9 @@ def parse_range(v: Any) -> tuple[int, int]:
     Use as a Pydantic field_validator(mode="before") for tuple[int, int] fields.
     """
     if isinstance(v, (list, tuple)) and len(v) == 2:
+        for i, val in enumerate(v):
+            if isinstance(val, float) and not val.is_integer():
+                raise ValueError(f"Range values must be integers, got float {val} at index {i}")
         lo, hi = int(v[0]), int(v[1])
         if lo < 0 or hi < 0:
             raise ValueError(f"Range values must be non-negative, got [{lo}, {hi}]")

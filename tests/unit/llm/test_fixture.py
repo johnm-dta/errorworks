@@ -196,6 +196,46 @@ class TestChaosLLMFixtureIsolation:
         assert response.status_code == 200
 
 
+class TestChaosLLMFixtureMissingErrorFields:
+    """Tests for the 4 error fields missing from fixture API: forbidden, not_found, connection_failed, connection_stall."""
+
+    @pytest.mark.chaosllm(forbidden_pct=100.0)
+    def test_marker_forbidden(self, chaosllm_server):
+        """Marker can set forbidden_pct."""
+        response = chaosllm_server.post_completion()
+        assert response.status_code == 403
+
+    @pytest.mark.chaosllm(not_found_pct=100.0)
+    def test_marker_not_found(self, chaosllm_server):
+        """Marker can set not_found_pct."""
+        response = chaosllm_server.post_completion()
+        assert response.status_code == 404
+
+    def test_update_config_forbidden(self, chaosllm_server):
+        """update_config can set forbidden_pct at runtime."""
+        chaosllm_server.update_config(forbidden_pct=100.0)
+        response = chaosllm_server.post_completion()
+        assert response.status_code == 403
+
+    def test_update_config_not_found(self, chaosllm_server):
+        """update_config can set not_found_pct at runtime."""
+        chaosllm_server.update_config(not_found_pct=100.0)
+        response = chaosllm_server.post_completion()
+        assert response.status_code == 404
+
+    def test_update_config_connection_failed(self, chaosllm_server):
+        """update_config accepts connection_failed_pct without error."""
+        chaosllm_server.update_config(connection_failed_pct=50.0)
+        current = chaosllm_server.server.get_current_config()
+        assert current["error_injection"]["connection_failed_pct"] == 50.0
+
+    def test_update_config_connection_stall(self, chaosllm_server):
+        """update_config accepts connection_stall_pct without error."""
+        chaosllm_server.update_config(connection_stall_pct=50.0)
+        current = chaosllm_server.server.get_current_config()
+        assert current["error_injection"]["connection_stall_pct"] == 50.0
+
+
 class TestChaosLLMErrorTypes:
     """Test various error injection types via the fixture."""
 
