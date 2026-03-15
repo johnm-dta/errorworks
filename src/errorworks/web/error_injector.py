@@ -128,6 +128,7 @@ class WebErrorDecision:
             malformed_category=WebErrorCategory.MALFORMED,
             valid_error_types=WEB_HTTP_ERRORS.keys() | WEB_CONNECTION_ERRORS | {"malformed"} | WEB_REDIRECT_TYPES,
             valid_malformed_types=WEB_MALFORMED_TYPES,
+            extra_categories=frozenset({WebErrorCategory.REDIRECT}),
         )
 
         # Web-specific validation beyond the shared checks

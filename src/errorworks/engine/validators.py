@@ -56,6 +56,7 @@ def validate_error_decision(
     malformed_category: StrEnum,
     valid_error_types: set[str],
     valid_malformed_types: set[str],
+    extra_categories: frozenset[StrEnum] | None = None,
 ) -> None:
     """Validate shared invariants for error decision dataclasses.
 
@@ -77,6 +78,9 @@ def validate_error_decision(
         malformed_category: The MALFORMED category enum member for comparison.
         valid_error_types: Set of all valid error_type values.
         valid_malformed_types: Set of all valid malformed_type values.
+        extra_categories: Optional frozenset of plugin-specific category enum
+            members that this function should accept without category-specific
+            validation (the caller handles those).
 
     Raises:
         ValueError: If any invariant is violated.
@@ -114,6 +118,12 @@ def validate_error_decision(
             raise ValueError(f"Unknown malformed_type '{malformed_type}'; must be one of {sorted(valid_malformed_types)}")
         if status_code is not None and status_code != 200:
             raise ValueError(f"Malformed error must have status_code 200, got {status_code}")
+
+    elif extra_categories is not None and category in extra_categories:
+        pass  # Plugin-specific category — validated by caller
+
+    else:
+        raise ValueError(f"Unknown error category: {category}")
 
     if retry_after_sec is not None and retry_after_sec < 0:
         raise ValueError(f"retry_after_sec must be non-negative, got {retry_after_sec}")

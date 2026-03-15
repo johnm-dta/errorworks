@@ -165,6 +165,36 @@ class TestLoadPreset:
 # =============================================================================
 
 
+class TestLoadConfigPresetNameField:
+    """Tests for load_config conditional preset_name injection."""
+
+    def test_skips_preset_name_when_model_lacks_field(self, tmp_path: Path) -> None:
+        """load_config does not inject preset_name if config_cls lacks that field."""
+        from pydantic import BaseModel
+
+        class SimpleConfig(BaseModel):
+            mode: str = "default"
+
+        presets_dir = tmp_path / "presets"
+        presets_dir.mkdir()
+        (presets_dir / "basic.yaml").write_text(yaml.dump({"mode": "custom"}))
+
+        # Should not raise even though SimpleConfig has no preset_name field
+        config = load_config(SimpleConfig, presets_dir, preset="basic")
+        assert config.mode == "custom"
+
+    def test_injects_preset_name_when_model_has_field(self, tmp_path: Path) -> None:
+        """load_config still injects preset_name if config_cls has that field."""
+        from errorworks.llm.config import ChaosLLMConfig
+
+        presets_dir = tmp_path / "presets"
+        presets_dir.mkdir()
+        (presets_dir / "test.yaml").write_text(yaml.dump({}))
+
+        config = load_config(ChaosLLMConfig, presets_dir, preset="test")
+        assert config.preset_name == "test"
+
+
 class TestLoadConfigFileValidation:
     """Tests for load_config config file type validation."""
 

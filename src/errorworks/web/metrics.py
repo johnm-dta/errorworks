@@ -8,7 +8,7 @@ not_found, redirect tracking, encoding, content type).
 from typing import Any, NamedTuple
 
 from errorworks.engine.metrics_store import MetricsStore
-from errorworks.engine.types import ColumnDef, MetricsConfig, MetricsSchema
+from errorworks.engine.types import ColumnDef, MetricsConfig, MetricsSchema, SqlType
 
 
 class WebOutcomeClassification(NamedTuple):
@@ -27,33 +27,33 @@ class WebOutcomeClassification(NamedTuple):
 # Schema definition for web metrics tables.
 WEB_METRICS_SCHEMA = MetricsSchema(
     request_columns=(
-        ColumnDef("request_id", "TEXT", nullable=False, primary_key=True),
-        ColumnDef("timestamp_utc", "TEXT", nullable=False),
-        ColumnDef("path", "TEXT", nullable=False),
-        ColumnDef("outcome", "TEXT", nullable=False),
-        ColumnDef("status_code", "INTEGER"),
-        ColumnDef("error_type", "TEXT"),
-        ColumnDef("injection_type", "TEXT"),
-        ColumnDef("latency_ms", "REAL"),
-        ColumnDef("injected_delay_ms", "REAL"),
-        ColumnDef("content_type_served", "TEXT"),
-        ColumnDef("encoding_served", "TEXT"),
-        ColumnDef("redirect_target", "TEXT"),
-        ColumnDef("redirect_hops", "INTEGER"),
+        ColumnDef("request_id", SqlType.TEXT, nullable=False, primary_key=True),
+        ColumnDef("timestamp_utc", SqlType.TEXT, nullable=False),
+        ColumnDef("path", SqlType.TEXT, nullable=False),
+        ColumnDef("outcome", SqlType.TEXT, nullable=False),
+        ColumnDef("status_code", SqlType.INTEGER),
+        ColumnDef("error_type", SqlType.TEXT),
+        ColumnDef("injection_type", SqlType.TEXT),
+        ColumnDef("latency_ms", SqlType.REAL),
+        ColumnDef("injected_delay_ms", SqlType.REAL),
+        ColumnDef("content_type_served", SqlType.TEXT),
+        ColumnDef("encoding_served", SqlType.TEXT),
+        ColumnDef("redirect_target", SqlType.TEXT),
+        ColumnDef("redirect_hops", SqlType.INTEGER),
     ),
     timeseries_columns=(
-        ColumnDef("bucket_utc", "TEXT", nullable=False, primary_key=True),
-        ColumnDef("requests_total", "INTEGER", nullable=False, default="0"),
-        ColumnDef("requests_success", "INTEGER", nullable=False, default="0"),
-        ColumnDef("requests_rate_limited", "INTEGER", nullable=False, default="0"),
-        ColumnDef("requests_forbidden", "INTEGER", nullable=False, default="0"),
-        ColumnDef("requests_not_found", "INTEGER", nullable=False, default="0"),
-        ColumnDef("requests_server_error", "INTEGER", nullable=False, default="0"),
-        ColumnDef("requests_connection_error", "INTEGER", nullable=False, default="0"),
-        ColumnDef("requests_malformed", "INTEGER", nullable=False, default="0"),
-        ColumnDef("requests_redirect", "INTEGER", nullable=False, default="0"),
-        ColumnDef("avg_latency_ms", "REAL"),
-        ColumnDef("p99_latency_ms", "REAL"),
+        ColumnDef("bucket_utc", SqlType.TEXT, nullable=False, primary_key=True),
+        ColumnDef("requests_total", SqlType.INTEGER, nullable=False, default="0"),
+        ColumnDef("requests_success", SqlType.INTEGER, nullable=False, default="0"),
+        ColumnDef("requests_rate_limited", SqlType.INTEGER, nullable=False, default="0"),
+        ColumnDef("requests_forbidden", SqlType.INTEGER, nullable=False, default="0"),
+        ColumnDef("requests_not_found", SqlType.INTEGER, nullable=False, default="0"),
+        ColumnDef("requests_server_error", SqlType.INTEGER, nullable=False, default="0"),
+        ColumnDef("requests_connection_error", SqlType.INTEGER, nullable=False, default="0"),
+        ColumnDef("requests_malformed", SqlType.INTEGER, nullable=False, default="0"),
+        ColumnDef("requests_redirect", SqlType.INTEGER, nullable=False, default="0"),
+        ColumnDef("avg_latency_ms", SqlType.REAL),
+        ColumnDef("p99_latency_ms", SqlType.REAL),
     ),
     request_indexes=(
         ("idx_requests_timestamp", "timestamp_utc"),

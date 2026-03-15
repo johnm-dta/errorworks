@@ -188,7 +188,14 @@ class MetricsStore:
             return conn
 
     def _cleanup_stale_connections(self) -> None:
-        """Close connections from threads that have exited."""
+        """Close connections from threads that have exited.
+
+        Note: Thread IDs can be reused by the OS. If a new thread receives the
+        same ID as a previously exited thread, the stale connection will not be
+        detected (it looks "live") and the new thread's connection will overwrite
+        it in ``_connections``, leaking the old one. This is an acceptable
+        trade-off for a testing tool where long-lived thread churn is uncommon.
+        """
         live_thread_ids = {t.ident for t in threading.enumerate()}
         with self._lock:
             dead_ids = [tid for tid in self._connections if tid not in live_thread_ids]

@@ -165,7 +165,17 @@ class BurstConfig:
 # =============================================================================
 
 
-_VALID_SQL_TYPES = frozenset({"TEXT", "INTEGER", "REAL", "BLOB", "NUMERIC"})
+class SqlType(StrEnum):
+    """Valid SQLite column types for metrics schema definitions."""
+
+    TEXT = "TEXT"
+    INTEGER = "INTEGER"
+    REAL = "REAL"
+    BLOB = "BLOB"
+    NUMERIC = "NUMERIC"
+
+
+_VALID_SQL_TYPES = frozenset(SqlType)
 _VALID_COLUMN_NAME = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
 
 # Safe DEFAULT expressions: NULL, numeric literals, quoted strings.
@@ -193,7 +203,7 @@ class ColumnDef:
     """
 
     name: str
-    sql_type: str
+    sql_type: SqlType
     nullable: bool = True
     default: str | None = None
     primary_key: bool = False

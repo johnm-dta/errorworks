@@ -31,6 +31,7 @@ from errorworks.engine.types import (
     MetricsSchema,
     SelectionMode,
     ServerConfig,
+    SqlType,
 )
 from errorworks.engine.vocabulary import ENGLISH_VOCABULARY, LOREM_VOCABULARY
 
@@ -49,6 +50,7 @@ __all__ = [
     "MetricsStore",
     "SelectionMode",
     "ServerConfig",
+    "SqlType",
     "deep_merge",
     "list_presets",
     "load_preset",

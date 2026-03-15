@@ -12,24 +12,24 @@ from typing import Any
 import pytest
 
 from errorworks.engine.metrics_store import MetricsStore, _column_ddl, _generate_ddl, _get_bucket_utc
-from errorworks.engine.types import ColumnDef, MetricsConfig, MetricsSchema
+from errorworks.engine.types import ColumnDef, MetricsConfig, MetricsSchema, SqlType
 
 # Minimal test schema for MetricsStore unit tests.
 _TEST_SCHEMA = MetricsSchema(
     request_columns=(
-        ColumnDef("request_id", "TEXT", nullable=False, primary_key=True),
-        ColumnDef("timestamp_utc", "TEXT", nullable=False),
-        ColumnDef("outcome", "TEXT", nullable=False),
-        ColumnDef("status_code", "INTEGER"),
-        ColumnDef("latency_ms", "REAL"),
+        ColumnDef("request_id", SqlType.TEXT, nullable=False, primary_key=True),
+        ColumnDef("timestamp_utc", SqlType.TEXT, nullable=False),
+        ColumnDef("outcome", SqlType.TEXT, nullable=False),
+        ColumnDef("status_code", SqlType.INTEGER),
+        ColumnDef("latency_ms", SqlType.REAL),
     ),
     timeseries_columns=(
-        ColumnDef("bucket_utc", "TEXT", nullable=False, primary_key=True),
-        ColumnDef("requests_total", "INTEGER", nullable=False, default="0"),
-        ColumnDef("requests_success", "INTEGER", nullable=False, default="0"),
-        ColumnDef("requests_error", "INTEGER", nullable=False, default="0"),
-        ColumnDef("avg_latency_ms", "REAL"),
-        ColumnDef("p99_latency_ms", "REAL"),
+        ColumnDef("bucket_utc", SqlType.TEXT, nullable=False, primary_key=True),
+        ColumnDef("requests_total", SqlType.INTEGER, nullable=False, default="0"),
+        ColumnDef("requests_success", SqlType.INTEGER, nullable=False, default="0"),
+        ColumnDef("requests_error", SqlType.INTEGER, nullable=False, default="0"),
+        ColumnDef("avg_latency_ms", SqlType.REAL),
+        ColumnDef("p99_latency_ms", SqlType.REAL),
     ),
     request_indexes=(
         ("idx_req_ts", "timestamp_utc"),
@@ -48,53 +48,53 @@ class TestColumnDefValidation:
 
     def test_valid_numeric_default(self) -> None:
         """Numeric defaults are accepted."""
-        col = ColumnDef("count", "INTEGER", default="0")
+        col = ColumnDef("count", SqlType.INTEGER, default="0")
         assert col.default == "0"
 
     def test_valid_null_default(self) -> None:
         """NULL default is accepted."""
-        col = ColumnDef("value", "TEXT", default="NULL")
+        col = ColumnDef("value", SqlType.TEXT, default="NULL")
         assert col.default == "NULL"
 
     def test_valid_quoted_string_default(self) -> None:
         """Single-quoted string default is accepted."""
-        col = ColumnDef("status", "TEXT", default="'active'")
+        col = ColumnDef("status", SqlType.TEXT, default="'active'")
         assert col.default == "'active'"
 
     def test_valid_negative_numeric_default(self) -> None:
         """Negative numeric default is accepted."""
-        col = ColumnDef("offset_val", "INTEGER", default="-1")
+        col = ColumnDef("offset_val", SqlType.INTEGER, default="-1")
         assert col.default == "-1"
 
     def test_valid_float_default(self) -> None:
         """Float default is accepted."""
-        col = ColumnDef("ratio", "REAL", default="0.5")
+        col = ColumnDef("ratio", SqlType.REAL, default="0.5")
         assert col.default == "0.5"
 
     def test_no_default_is_fine(self) -> None:
         """None default is accepted (no DEFAULT clause)."""
-        col = ColumnDef("name", "TEXT", default=None)
+        col = ColumnDef("name", SqlType.TEXT, default=None)
         assert col.default is None
 
     def test_sql_injection_in_default_raises(self) -> None:
         """SQL injection attempt in default is rejected."""
         with pytest.raises(ValueError, match="default must be"):
-            ColumnDef("x", "TEXT", default="0; DROP TABLE requests")
+            ColumnDef("x", SqlType.TEXT, default="0; DROP TABLE requests")
 
     def test_subquery_in_default_raises(self) -> None:
         """Subquery in default is rejected."""
         with pytest.raises(ValueError, match="default must be"):
-            ColumnDef("x", "TEXT", default="(SELECT 1)")
+            ColumnDef("x", SqlType.TEXT, default="(SELECT 1)")
 
     def test_function_call_in_default_raises(self) -> None:
         """Function call in default is rejected."""
         with pytest.raises(ValueError, match="default must be"):
-            ColumnDef("x", "TEXT", default="CURRENT_TIMESTAMP")
+            ColumnDef("x", SqlType.TEXT, default="CURRENT_TIMESTAMP")
 
     def test_unquoted_string_in_default_raises(self) -> None:
         """Unquoted string in default is rejected."""
         with pytest.raises(ValueError, match="default must be"):
-            ColumnDef("x", "TEXT", default="active")
+            ColumnDef("x", SqlType.TEXT, default="active")
 
 
 # =============================================================================
@@ -140,12 +140,12 @@ class TestDDLGeneration:
         """Schema with no indexes generates no CREATE INDEX."""
         schema = MetricsSchema(
             request_columns=(
-                ColumnDef("id", "TEXT", nullable=False, primary_key=True),
-                ColumnDef("timestamp_utc", "TEXT", nullable=False),
+                ColumnDef("id", SqlType.TEXT, nullable=False, primary_key=True),
+                ColumnDef("timestamp_utc", SqlType.TEXT, nullable=False),
             ),
             timeseries_columns=(
-                ColumnDef("bucket_utc", "TEXT", nullable=False, primary_key=True),
-                ColumnDef("requests_total", "INTEGER", nullable=False, default="0"),
+                ColumnDef("bucket_utc", SqlType.TEXT, nullable=False, primary_key=True),
+                ColumnDef("requests_total", SqlType.INTEGER, nullable=False, default="0"),
             ),
         )
         ddl = _generate_ddl(schema)
@@ -153,7 +153,7 @@ class TestDDLGeneration:
 
     def test_primary_key_text_column_emits_not_null(self) -> None:
         """TEXT PRIMARY KEY columns must emit NOT NULL for SQLite correctness."""
-        col = ColumnDef(name="id", sql_type="TEXT", nullable=False, primary_key=True)
+        col = ColumnDef(name="id", sql_type=SqlType.TEXT, nullable=False, primary_key=True)
         ddl = _column_ddl(col)
         assert "PRIMARY KEY" in ddl
         assert "NOT NULL" in ddl
@@ -575,12 +575,12 @@ class TestPagination:
         """get_requests raises ValueError when filtering by outcome on a schema without that column."""
         schema_no_outcome = MetricsSchema(
             request_columns=(
-                ColumnDef("request_id", "TEXT", nullable=False, primary_key=True),
-                ColumnDef("timestamp_utc", "TEXT", nullable=False),
+                ColumnDef("request_id", SqlType.TEXT, nullable=False, primary_key=True),
+                ColumnDef("timestamp_utc", SqlType.TEXT, nullable=False),
             ),
             timeseries_columns=(
-                ColumnDef("bucket_utc", "TEXT", nullable=False, primary_key=True),
-                ColumnDef("requests_total", "INTEGER", nullable=False, default="0"),
+                ColumnDef("bucket_utc", SqlType.TEXT, nullable=False, primary_key=True),
+                ColumnDef("requests_total", SqlType.INTEGER, nullable=False, default="0"),
             ),
         )
         config = MetricsConfig(database=":memory:")

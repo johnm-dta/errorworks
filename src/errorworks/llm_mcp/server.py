@@ -26,6 +26,9 @@ from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import CallToolResult, TextContent, Tool
 
+from errorworks.llm.error_injector import HTTP_ERRORS
+from errorworks.llm.metrics import LLM_METRICS_SCHEMA
+
 logger = logging.getLogger(__name__)
 
 _SQLITE_OK = sqlite3.SQLITE_OK
@@ -495,7 +498,7 @@ class ChaosLLMAnalyzer:
 
         # Check for unexpected status codes (not in the set of codes
         # that ChaosLLM's error injector can produce)
-        expected_codes = {200, 403, 404, 429, 500, 502, 503, 504, 529}
+        expected_codes = {200} | set(HTTP_ERRORS.values())
         cursor = conn.execute(
             """
             SELECT status_code, COUNT(*) as count
@@ -809,50 +812,31 @@ class ChaosLLMAnalyzer:
 
         return [dict(zip(columns, row, strict=True)) for row in rows]
 
+    @staticmethod
+    def _format_column(col: Any) -> str:
+        """Format a ColumnDef as a human-readable schema description."""
+        parts = [f"{col.name} ({col.sql_type}"]
+        if col.primary_key:
+            parts.append(" PK")
+        parts.append(")")
+        return "".join(parts)
+
     def describe_schema(self) -> dict[str, Any]:
         """Describe the metrics database schema.
 
-        NOTE: This description must be kept in sync with LLM_METRICS_SCHEMA
-        in errorworks/llm/metrics.py. Changes to the schema definition there
-        must be reflected here manually.
+        Generated from LLM_METRICS_SCHEMA so it stays in sync automatically
+        when columns are added or removed.
         """
+        schema = LLM_METRICS_SCHEMA
         return {
             "tables": {
                 "requests": {
                     "description": "Individual request records",
-                    "columns": [
-                        "request_id (TEXT PK)",
-                        "timestamp_utc (TEXT)",
-                        "endpoint (TEXT)",
-                        "deployment (TEXT)",
-                        "model (TEXT)",
-                        "outcome (TEXT: success/error_injected/error_malformed)",
-                        "status_code (INTEGER)",
-                        "error_type (TEXT)",
-                        "injection_type (TEXT)",
-                        "latency_ms (REAL)",
-                        "injected_delay_ms (REAL)",
-                        "message_count (INTEGER)",
-                        "prompt_tokens_approx (INTEGER)",
-                        "response_tokens (INTEGER)",
-                        "response_mode (TEXT)",
-                    ],
+                    "columns": [self._format_column(col) for col in schema.request_columns],
                 },
                 "timeseries": {
                     "description": "Time-bucketed aggregations",
-                    "columns": [
-                        "bucket_utc (TEXT PK)",
-                        "requests_total (INTEGER)",
-                        "requests_success (INTEGER)",
-                        "requests_rate_limited (INTEGER)",
-                        "requests_capacity_error (INTEGER)",
-                        "requests_server_error (INTEGER)",
-                        "requests_client_error (INTEGER)",
-                        "requests_connection_error (INTEGER)",
-                        "requests_malformed (INTEGER)",
-                        "avg_latency_ms (REAL)",
-                        "p99_latency_ms (REAL)",
-                    ],
+                    "columns": [self._format_column(col) for col in schema.timeseries_columns],
                 },
                 "run_info": {
                     "description": "Run metadata",

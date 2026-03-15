@@ -462,7 +462,7 @@ class TestTemplateMode:
         """Template random_words helper generates words."""
         config = ResponseConfig(
             mode="template",
-            template=TemplateResponseConfig(body="{{ random_words(5, 'english') }}"),
+            template=TemplateResponseConfig(body="{{ random_words(5) }}"),
         )
         generator = ResponseGenerator(config)
 
@@ -472,17 +472,28 @@ class TestTemplateMode:
         words = response.content.split()
         assert len(words) == 5
 
-    def test_random_words_unknown_vocabulary_raises(self) -> None:
-        """Template random_words with unknown vocabulary raises ValueError."""
+    def test_random_words_range(self) -> None:
+        """Template random_words(min, max) generates words in range."""
         config = ResponseConfig(
             mode="template",
-            template=TemplateResponseConfig(body="{{ random_words(3, 'klingon') }}"),
+            template=TemplateResponseConfig(body="{{ random_words(10, 20) }}"),
         )
         generator = ResponseGenerator(config)
 
-        request = {"model": "test", "messages": []}
-        with pytest.raises(ValueError, match="klingon"):
-            generator.generate(request)
+        request = {"model": "gpt-4", "messages": []}
+        response = generator.generate(request)
+
+        words = response.content.split()
+        assert 10 <= len(words) <= 20
+
+    def test_random_words_unknown_vocabulary_raises(self) -> None:
+        """Config with unknown vocabulary is rejected by Pydantic validation."""
+        with pytest.raises(Exception, match="klingon|literal_error"):
+            ResponseConfig(
+                mode="template",
+                template=TemplateResponseConfig(body="{{ random_words(3) }}"),
+                random=RandomResponseConfig(vocabulary="klingon"),
+            )
 
     def test_timestamp_helper(self) -> None:
         """Template timestamp helper returns current time."""

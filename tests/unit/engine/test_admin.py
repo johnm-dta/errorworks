@@ -193,6 +193,25 @@ class TestHandleAdminConfig:
         assert resp.status_code == 422
         assert "invalid mode" in resp.json()["error"]["message"]
 
+    def test_post_list_body_returns_400(self) -> None:
+        """POST with a JSON array instead of object returns 400."""
+        server = _make_mock_server()
+        client = _make_app(server)
+        resp = client.post("/admin/config", json=[1, 2, 3], headers=self._headers())
+        assert resp.status_code == 400
+        assert resp.json()["error"]["type"] == "invalid_request_error"
+        assert "JSON object" in resp.json()["error"]["message"]
+        server.update_config.assert_not_called()
+
+    def test_post_string_body_returns_400(self) -> None:
+        """POST with a JSON string instead of object returns 400."""
+        server = _make_mock_server()
+        client = _make_app(server)
+        resp = client.post("/admin/config", json="hello", headers=self._headers())
+        assert resp.status_code == 400
+        assert resp.json()["error"]["type"] == "invalid_request_error"
+        server.update_config.assert_not_called()
+
 
 # =============================================================================
 # handle_admin_stats

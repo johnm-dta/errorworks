@@ -18,6 +18,7 @@ from errorworks.engine.types import (
     ErrorSpec,
     MetricsSchema,
     ServerConfig,
+    SqlType,
 )
 
 # =============================================================================
@@ -126,24 +127,24 @@ class TestColumnDefValidation:
     """Tests for ColumnDef.__post_init__ validation."""
 
     def test_valid_column(self) -> None:
-        col = ColumnDef(name="request_id", sql_type="TEXT", nullable=False, primary_key=True)
+        col = ColumnDef(name="request_id", sql_type=SqlType.TEXT, nullable=False, primary_key=True)
         assert col.name == "request_id"
 
     def test_valid_column_with_default(self) -> None:
-        col = ColumnDef(name="count", sql_type="INTEGER", default="0")
+        col = ColumnDef(name="count", sql_type=SqlType.INTEGER, default="0")
         assert col.default == "0"
 
     def test_valid_column_with_string_default(self) -> None:
-        col = ColumnDef(name="status", sql_type="TEXT", default="'pending'")
+        col = ColumnDef(name="status", sql_type=SqlType.TEXT, default="'pending'")
         assert col.default == "'pending'"
 
     def test_valid_column_with_null_default(self) -> None:
-        col = ColumnDef(name="extra", sql_type="TEXT", default="NULL")
+        col = ColumnDef(name="extra", sql_type=SqlType.TEXT, default="NULL")
         assert col.default == "NULL"
 
     def test_empty_name_raises(self) -> None:
         with pytest.raises(ValueError, match="name must not be empty"):
-            ColumnDef(name="", sql_type="TEXT")
+            ColumnDef(name="", sql_type=SqlType.TEXT)
 
     @pytest.mark.parametrize(
         "name",
@@ -157,12 +158,12 @@ class TestColumnDefValidation:
     )
     def test_invalid_column_name_raises(self, name: str) -> None:
         with pytest.raises(ValueError, match="must be a valid SQL identifier"):
-            ColumnDef(name=name, sql_type="TEXT")
+            ColumnDef(name=name, sql_type=SqlType.TEXT)
 
     def test_valid_column_names(self) -> None:
         """Underscores and mixed case are valid SQL identifiers."""
         for name in ["_private", "Col123", "UPPER", "lower_case", "a"]:
-            col = ColumnDef(name=name, sql_type="TEXT")
+            col = ColumnDef(name=name, sql_type=SqlType.TEXT)
             assert col.name == name
 
     @pytest.mark.parametrize("sql_type", ["VARCHAR", "STRING", "INT", "bool", "FLOAT", ""])
@@ -170,17 +171,17 @@ class TestColumnDefValidation:
         with pytest.raises(ValueError, match="sql_type must be one of"):
             ColumnDef(name="col", sql_type=sql_type)
 
-    @pytest.mark.parametrize("sql_type", ["TEXT", "INTEGER", "REAL", "BLOB", "NUMERIC"])
-    def test_valid_sql_types(self, sql_type: str) -> None:
+    @pytest.mark.parametrize("sql_type", [SqlType.TEXT, SqlType.INTEGER, SqlType.REAL, SqlType.BLOB, SqlType.NUMERIC])
+    def test_valid_sql_types(self, sql_type: SqlType) -> None:
         col = ColumnDef(name="col", sql_type=sql_type)
         assert col.sql_type == sql_type
 
     def test_primary_key_nullable_raises(self) -> None:
         with pytest.raises(ValueError, match="primary_key columns cannot be nullable"):
-            ColumnDef(name="id", sql_type="INTEGER", nullable=True, primary_key=True)
+            ColumnDef(name="id", sql_type=SqlType.INTEGER, nullable=True, primary_key=True)
 
     def test_primary_key_not_nullable_is_valid(self) -> None:
-        col = ColumnDef(name="id", sql_type="INTEGER", nullable=False, primary_key=True)
+        col = ColumnDef(name="id", sql_type=SqlType.INTEGER, nullable=False, primary_key=True)
         assert col.primary_key is True
 
     @pytest.mark.parametrize(
@@ -194,7 +195,7 @@ class TestColumnDefValidation:
     )
     def test_invalid_default_raises(self, default: str) -> None:
         with pytest.raises(ValueError, match="default must be NULL, a numeric literal, or a single-quoted string"):
-            ColumnDef(name="col", sql_type="TEXT", default=default)
+            ColumnDef(name="col", sql_type=SqlType.TEXT, default=default)
 
     @pytest.mark.parametrize(
         "default",
@@ -209,7 +210,7 @@ class TestColumnDefValidation:
     def test_control_characters_in_quoted_default_raises(self, default: str) -> None:
         """Control characters in quoted defaults produce malformed DDL and must be rejected."""
         with pytest.raises(ValueError, match="default must be NULL, a numeric literal, or a single-quoted string"):
-            ColumnDef(name="col", sql_type="TEXT", default=default)
+            ColumnDef(name="col", sql_type=SqlType.TEXT, default=default)
 
 
 # =============================================================================
@@ -219,14 +220,14 @@ class TestColumnDefValidation:
 
 def _minimal_request_columns() -> tuple[ColumnDef, ...]:
     """Return the minimum required request columns."""
-    return (ColumnDef(name="timestamp_utc", sql_type="TEXT"),)
+    return (ColumnDef(name="timestamp_utc", sql_type=SqlType.TEXT),)
 
 
 def _minimal_timeseries_columns() -> tuple[ColumnDef, ...]:
     """Return the minimum required timeseries columns."""
     return (
-        ColumnDef(name="bucket_utc", sql_type="TEXT", nullable=False, primary_key=True),
-        ColumnDef(name="requests_total", sql_type="INTEGER", default="0"),
+        ColumnDef(name="bucket_utc", sql_type=SqlType.TEXT, nullable=False, primary_key=True),
+        ColumnDef(name="requests_total", sql_type=SqlType.INTEGER, default="0"),
     )
 
 
@@ -259,8 +260,8 @@ class TestMetricsSchemaValidation:
         with pytest.raises(ValueError, match="Duplicate request column names"):
             MetricsSchema(
                 request_columns=(
-                    ColumnDef(name="timestamp_utc", sql_type="TEXT"),
-                    ColumnDef(name="timestamp_utc", sql_type="INTEGER"),
+                    ColumnDef(name="timestamp_utc", sql_type=SqlType.TEXT),
+                    ColumnDef(name="timestamp_utc", sql_type=SqlType.INTEGER),
                 ),
                 timeseries_columns=_minimal_timeseries_columns(),
             )
@@ -270,9 +271,9 @@ class TestMetricsSchemaValidation:
             MetricsSchema(
                 request_columns=_minimal_request_columns(),
                 timeseries_columns=(
-                    ColumnDef(name="bucket_utc", sql_type="TEXT", nullable=False, primary_key=True),
-                    ColumnDef(name="requests_total", sql_type="INTEGER", default="0"),
-                    ColumnDef(name="requests_total", sql_type="REAL"),
+                    ColumnDef(name="bucket_utc", sql_type=SqlType.TEXT, nullable=False, primary_key=True),
+                    ColumnDef(name="requests_total", sql_type=SqlType.INTEGER, default="0"),
+                    ColumnDef(name="requests_total", sql_type=SqlType.REAL),
                 ),
             )
 
@@ -304,20 +305,20 @@ class TestMetricsSchemaValidation:
         with pytest.raises(ValueError, match=r"timeseries_columns must include.*bucket_utc"):
             MetricsSchema(
                 request_columns=_minimal_request_columns(),
-                timeseries_columns=(ColumnDef(name="requests_total", sql_type="INTEGER", default="0"),),
+                timeseries_columns=(ColumnDef(name="requests_total", sql_type=SqlType.INTEGER, default="0"),),
             )
 
     def test_missing_requests_total_in_timeseries_raises(self) -> None:
         with pytest.raises(ValueError, match=r"timeseries_columns must include.*requests_total"):
             MetricsSchema(
                 request_columns=_minimal_request_columns(),
-                timeseries_columns=(ColumnDef(name="bucket_utc", sql_type="TEXT", nullable=False, primary_key=True),),
+                timeseries_columns=(ColumnDef(name="bucket_utc", sql_type=SqlType.TEXT, nullable=False, primary_key=True),),
             )
 
     def test_missing_timestamp_utc_in_request_columns_raises(self) -> None:
         with pytest.raises(ValueError, match="request_columns must include 'timestamp_utc'"):
             MetricsSchema(
-                request_columns=(ColumnDef(name="other_col", sql_type="TEXT"),),
+                request_columns=(ColumnDef(name="other_col", sql_type=SqlType.TEXT),),
                 timeseries_columns=_minimal_timeseries_columns(),
             )
 
@@ -326,8 +327,8 @@ class TestMetricsSchemaValidation:
             MetricsSchema(
                 request_columns=_minimal_request_columns(),
                 timeseries_columns=(
-                    ColumnDef(name="bucket_utc", sql_type="TEXT"),  # nullable=True, primary_key=False
-                    ColumnDef(name="requests_total", sql_type="INTEGER", default="0"),
+                    ColumnDef(name="bucket_utc", sql_type=SqlType.TEXT),  # nullable=True, primary_key=False
+                    ColumnDef(name="requests_total", sql_type=SqlType.INTEGER, default="0"),
                 ),
             )
 

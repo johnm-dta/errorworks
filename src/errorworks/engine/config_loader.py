@@ -148,7 +148,8 @@ def load_config[ConfigT: BaseModel](
         config_dict = deep_merge(config_dict, cli_overrides)
 
     # Record preset name used for this config (if any)
-    config_dict["preset_name"] = preset
+    if "preset_name" in config_cls.model_fields:
+        config_dict["preset_name"] = preset
 
     # Validate and return
     return config_cls(**config_dict)

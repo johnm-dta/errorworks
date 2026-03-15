@@ -66,6 +66,11 @@ async def handle_admin_config(request: Request, server: ChaosServer) -> JSONResp
             {"error": {"type": "invalid_request_error", "message": "Request body must be valid JSON"}},
             status_code=400,
         )
+    if not isinstance(body, dict):
+        return JSONResponse(
+            {"error": {"type": "invalid_request_error", "message": "Request body must be a JSON object"}},
+            status_code=400,
+        )
     try:
         server.update_config(body)
     except (ValueError, TypeError, pydantic.ValidationError) as e:

@@ -110,7 +110,9 @@ class InjectionEngine:
         """Determine if an error should trigger based on percentage.
 
         Args:
-            percentage: Error percentage (0-100).
+            percentage: Error percentage (0-100). Values >= 100 always trigger
+                since ``random() * 100`` is strictly less than 100.
+                Values <= 0 never trigger (short-circuited).
 
         Returns:
             True if the error should trigger.

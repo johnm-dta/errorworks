@@ -279,9 +279,17 @@ class ResponseGenerator:
         """Jinja2 helper: Generate random integer in range."""
         return self._rng.randint(min_val, max_val)
 
-    def _template_random_words(self, count: int = 5, vocabulary: str = "english") -> str:
-        """Jinja2 helper: Generate random words."""
-        vocab = get_vocabulary(vocabulary)
+    def _template_random_words(self, min_count: int = 5, max_count: int | None = None) -> str:
+        """Jinja2 helper: Generate random words.
+
+        Can be called as random_words(50) for exactly 50 words,
+        or random_words(50, 100) for 50-100 words.
+        """
+        if max_count is None:
+            count = min_count
+        else:
+            count = self._rng.randint(min_count, max_count)
+        vocab = self._get_vocabulary()
         words = [self._rng.choice(vocab) for _ in range(count)]
         return " ".join(words)
 

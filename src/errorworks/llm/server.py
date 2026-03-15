@@ -173,6 +173,11 @@ class ChaosLLMServer:
         swapped atomically under _config_lock to prevent concurrent request
         handlers from seeing a half-updated configuration.
 
+        Note: Request handlers that have already snapshotted component references
+        (the config snapshot pattern) will continue using the old components for
+        the remainder of that request. This is intentional — it guarantees each
+        request sees a consistent configuration throughout its lifetime.
+
         Args:
             updates: Dict with sections to update (error_injection, response, latency)
         """

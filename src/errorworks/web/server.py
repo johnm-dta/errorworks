@@ -146,6 +146,11 @@ class ChaosWebServer:
         Components are built outside the lock (validation may be expensive),
         then swapped atomically under _config_lock to prevent concurrent
         request handlers from seeing a half-updated configuration.
+
+        Note: Request handlers that have already snapshotted component references
+        (the config snapshot pattern) will continue using the old components for
+        the remainder of that request. This is intentional — it guarantees each
+        request sees a consistent configuration throughout its lifetime.
         """
         # Build new components outside the lock
         new_error: WebErrorInjector | None = None
