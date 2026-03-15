@@ -577,6 +577,33 @@ class TestRebuildTimeseries:
         assert rows[0]["avg_latency_ms"] == pytest.approx(42.0)
         assert rows[0]["p99_latency_ms"] == pytest.approx(42.0)
 
+    def test_rebuild_aggregates_float_values(self, store: MetricsStore) -> None:
+        """rebuild_timeseries correctly sums float counter values from classify().
+
+        Regression test: the classify() return type allows int | float | None,
+        but aggregation previously only summed isinstance(value, int), silently
+        dropping float values.
+        """
+
+        def classify_with_floats(row):
+            return {
+                "requests_success": 0.5,  # float counter
+                "requests_error": 0.5,
+                "latency_ms": row["latency_ms"],
+            }
+
+        store.record(request_id="r1", timestamp_utc="2024-01-15T10:30:05+00:00", outcome="success", latency_ms=50.0)
+        store.record(request_id="r2", timestamp_utc="2024-01-15T10:30:05.500+00:00", outcome="error", latency_ms=100.0)
+        store.commit()
+
+        store.rebuild_timeseries(classify_with_floats)
+
+        rows = store.get_timeseries()
+        assert len(rows) == 1
+        assert rows[0]["requests_total"] == 2
+        assert rows[0]["requests_success"] == pytest.approx(1.0)  # 0.5 + 0.5
+        assert rows[0]["requests_error"] == pytest.approx(1.0)  # 0.5 + 0.5
+
     def test_rebuild_no_latency(self, store: MetricsStore) -> None:
         """rebuild_timeseries handles requests with no latency."""
 

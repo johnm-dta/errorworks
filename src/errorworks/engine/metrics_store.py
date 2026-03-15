@@ -387,14 +387,14 @@ class MetricsStore:
                     continue
 
                 # Aggregate counters and latencies across all rows in this bucket
-                totals: dict[str, int] = {}
+                totals: dict[str, int | float] = {}
                 latencies: list[float] = []
 
                 for row in rows:
                     classified = classify(row)
                     latency = classified.pop("latency_ms", None)
                     for col, value in classified.items():
-                        if isinstance(value, int):
+                        if isinstance(value, (int, float)):
                             totals[col] = totals.get(col, 0) + value
                     if latency is not None:
                         latencies.append(float(latency))
