@@ -704,6 +704,18 @@ class TestAdminAuthRejection:
 # =============================================================================
 
 
+class TestErrorMappingSync:
+    """Verify error mapping dicts stay in sync with WEB_HTTP_ERRORS."""
+
+    def test_web_error_messages_cover_all_http_errors(self) -> None:
+        """_WEB_ERROR_MESSAGES should have an entry for every HTTP error type."""
+        from errorworks.web.error_injector import WEB_HTTP_ERRORS
+        from errorworks.web.server import _WEB_ERROR_MESSAGES
+
+        missing = WEB_HTTP_ERRORS.keys() - _WEB_ERROR_MESSAGES.keys()
+        assert not missing, f"_WEB_ERROR_MESSAGES missing entries for: {sorted(missing)}"
+
+
 class TestAdminTokenNotLeaked:
     """Tests that admin_token is excluded from serialized config."""
 

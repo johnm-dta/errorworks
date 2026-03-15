@@ -638,6 +638,30 @@ class TestChaosLLMServer:
         assert server._error_injector._config.rate_limit_pct == 25.0
 
 
+class TestErrorMappingSync:
+    """Verify error mapping dicts stay in sync with HTTP_ERRORS."""
+
+    def test_error_type_mapping_keys_match_http_errors(self) -> None:
+        """_ERROR_TYPE_MAPPING must have an entry for every HTTP error type."""
+        from errorworks.llm.error_injector import HTTP_ERRORS
+        from errorworks.llm.server import _ERROR_TYPE_MAPPING
+
+        assert _ERROR_TYPE_MAPPING.keys() == HTTP_ERRORS.keys(), (
+            f"Missing from _ERROR_TYPE_MAPPING: {HTTP_ERRORS.keys() - _ERROR_TYPE_MAPPING.keys()}, "
+            f"Extra in _ERROR_TYPE_MAPPING: {_ERROR_TYPE_MAPPING.keys() - HTTP_ERRORS.keys()}"
+        )
+
+    def test_error_message_mapping_keys_match_http_errors(self) -> None:
+        """_ERROR_MESSAGE_MAPPING must have an entry for every HTTP error type."""
+        from errorworks.llm.error_injector import HTTP_ERRORS
+        from errorworks.llm.server import _ERROR_MESSAGE_MAPPING
+
+        assert _ERROR_MESSAGE_MAPPING.keys() == HTTP_ERRORS.keys(), (
+            f"Missing from _ERROR_MESSAGE_MAPPING: {HTTP_ERRORS.keys() - _ERROR_MESSAGE_MAPPING.keys()}, "
+            f"Extra in _ERROR_MESSAGE_MAPPING: {_ERROR_MESSAGE_MAPPING.keys() - HTTP_ERRORS.keys()}"
+        )
+
+
 class TestErrorResponseBodies:
     """Tests for error response body format."""
 

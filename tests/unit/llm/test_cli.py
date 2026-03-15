@@ -176,6 +176,55 @@ def test_serve_invalid_selection_mode():
 
 
 # ---------------------------------------------------------------------------
+# CLI flag propagation tests (verify flags reach the server config)
+# ---------------------------------------------------------------------------
+
+
+@_patch_uvicorn_run
+def test_cli_flags_propagate_to_server_config(mock_run):
+    """CLI flags actually modify the server config, not just exit 0."""
+    result = runner.invoke(
+        app,
+        [
+            "serve",
+            "--rate-limit-pct=42",
+            "--timeout-pct=7",
+            "--selection-mode=weighted",
+            "--base-ms=200",
+            "--jitter-ms=50",
+            "--response-mode=echo",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+
+    # Extract the app passed to uvicorn.run and get the server from app.state
+    uvicorn_app = mock_run.call_args.args[0]
+    server = uvicorn_app.state.server
+    ei = server._error_injector.config
+    assert ei.rate_limit_pct == 42.0
+    assert ei.timeout_pct == 7.0
+    assert ei.selection_mode == "weighted"
+
+    lat = server._latency_simulator.config
+    assert lat.base_ms == 200
+    assert lat.jitter_ms == 50
+
+    assert server._response_generator.config.mode == "echo"
+
+
+@_patch_uvicorn_run
+def test_preset_values_not_overridden_by_cli_defaults(mock_run):
+    """Preset workers=4 is preserved when no --workers flag is given."""
+    result = runner.invoke(app, ["serve", "--preset=gentle"])
+    assert result.exit_code == 0, result.output
+
+    uvicorn_app = mock_run.call_args.args[0]
+    server = uvicorn_app.state.server
+    # gentle preset sets workers=4 — CLI should NOT override to 1
+    assert mock_run.call_args.kwargs["workers"] == 4
+
+
+# ---------------------------------------------------------------------------
 # presets command tests
 # ---------------------------------------------------------------------------
 

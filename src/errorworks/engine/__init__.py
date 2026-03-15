@@ -24,6 +24,7 @@ from errorworks.engine.metrics_store import MetricsStore
 from errorworks.engine.types import (
     DANGEROUS_BIND_HOSTS,
     BurstConfig,
+    ColumnDef,
     ErrorSpec,
     LatencyConfig,
     MetricsConfig,
@@ -38,6 +39,7 @@ __all__ = [
     "ENGLISH_VOCABULARY",
     "LOREM_VOCABULARY",
     "BurstConfig",
+    "ColumnDef",
     "ErrorSpec",
     "InjectionEngine",
     "LatencyConfig",
