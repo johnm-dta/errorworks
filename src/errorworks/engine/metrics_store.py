@@ -22,13 +22,15 @@ from errorworks.engine.types import ColumnDef, MetricsConfig, MetricsSchema
 
 logger = structlog.get_logger(__name__)
 
+_RESERVED_TIMESERIES_COLS = frozenset({"bucket_utc", "requests_total"})
+
 
 def _column_ddl(col: ColumnDef) -> str:
     """Generate a single column DDL fragment from a ColumnDef."""
     col_def = f"    {col.name} {col.sql_type}"
     if col.primary_key:
         col_def += " PRIMARY KEY"
-    if not col.nullable and not col.primary_key:
+    if not col.nullable:
         col_def += " NOT NULL"
     if col.default is not None:
         col_def += f" DEFAULT {col.default}"
@@ -278,6 +280,10 @@ class MetricsStore:
             **counters: Column name=increment pairs for timeseries columns.
                         Only integer counter columns should be passed.
         """
+        reserved = set(counters) & _RESERVED_TIMESERIES_COLS
+        if reserved:
+            raise ValueError(f"Reserved timeseries columns cannot be used as counters: {sorted(reserved)}")
+
         unknown = set(counters) - set(self._timeseries_col_names)
         if unknown:
             raise ValueError(
@@ -410,8 +416,10 @@ class MetricsStore:
 
                 for row in rows:
                     classified = classify(row)
-                    latency = classified.pop("latency_ms", None)
+                    latency = classified.get("latency_ms")
                     for col, value in classified.items():
+                        if col == "latency_ms":
+                            continue
                         if isinstance(value, (int, float)):
                             totals[col] = totals.get(col, 0) + value
                     if latency is not None:

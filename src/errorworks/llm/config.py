@@ -392,9 +392,9 @@ class ErrorInjectionConfig(BaseModel):
         if self.selection_mode != "weighted":
             return self
         total = sum(getattr(self, name) for name in type(self).model_fields if name.endswith("_pct"))
-        if total > 100.0:
+        if total >= 100.0:
             warnings.warn(
-                f"Total error percentages ({total:.1f}%) exceed 100% in weighted mode. No successful responses will be generated.",
+                f"Total error percentages ({total:.1f}%) reach or exceed 100% in weighted mode. No successful responses will be generated.",
                 stacklevel=2,
             )
         return self

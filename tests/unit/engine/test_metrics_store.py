@@ -7,10 +7,11 @@ time-series bucketing, stats computation, and lifecycle management.
 from __future__ import annotations
 
 import threading
+from typing import Any
 
 import pytest
 
-from errorworks.engine.metrics_store import MetricsStore, _generate_ddl, _get_bucket_utc
+from errorworks.engine.metrics_store import MetricsStore, _column_ddl, _generate_ddl, _get_bucket_utc
 from errorworks.engine.types import ColumnDef, MetricsConfig, MetricsSchema
 
 # Minimal test schema for MetricsStore unit tests.
@@ -150,6 +151,13 @@ class TestDDLGeneration:
         ddl = _generate_ddl(schema)
         assert "CREATE INDEX" not in ddl
 
+    def test_primary_key_text_column_emits_not_null(self) -> None:
+        """TEXT PRIMARY KEY columns must emit NOT NULL for SQLite correctness."""
+        col = ColumnDef(name="id", sql_type="TEXT", nullable=False, primary_key=True)
+        ddl = _column_ddl(col)
+        assert "PRIMARY KEY" in ddl
+        assert "NOT NULL" in ddl
+
 
 # =============================================================================
 # Bucket Calculation
@@ -267,6 +275,17 @@ class TestUpdateTimeseries:
         assert rows[0]["requests_total"] == 2
         assert rows[0]["requests_success"] == 1
         assert rows[0]["requests_error"] == 1
+
+    def test_rejects_reserved_columns_as_counters(self, store: MetricsStore) -> None:
+        """update_timeseries raises ValueError for reserved column names."""
+        with pytest.raises(ValueError, match="Reserved timeseries columns"):
+            store.update_timeseries("2024-01-15T10:00:00+00:00", requests_total=1)
+
+        # bucket_utc cannot reach **counters via normal call syntax (Python binds
+        # it to the positional parameter), but the guard still protects against
+        # programmatic dict-unpacking when the positional arg is omitted.
+        with pytest.raises(ValueError, match="Reserved timeseries columns"):
+            store.update_timeseries(bucket_utc="2024-01-15T10:00:00+00:00", requests_total=1)
 
 
 class TestBucketLatency:
@@ -504,6 +523,7 @@ class TestPagination:
         assert len(rows) == 3
 
 
+
 # =============================================================================
 # Rebuild Timeseries
 # =============================================================================
@@ -647,6 +667,24 @@ class TestRebuildTimeseries:
         assert len(rows) == 1
         assert rows[0]["requests_total"] == 1
         assert rows[0]["avg_latency_ms"] is None
+
+    def test_rebuild_does_not_mutate_classify_dict(self) -> None:
+        """rebuild_timeseries must not mutate the dict returned by classify."""
+        config = MetricsConfig(database=":memory:", timeseries_bucket_sec=60)
+        s = MetricsStore(config, _TEST_SCHEMA, run_id="test-no-mutate")
+
+        s.record(request_id="r1", timestamp_utc="2024-01-15T10:30:05+00:00", outcome="success", latency_ms=50.0)
+        s.commit()
+
+        # classify returns a cached dict; rebuild must not pop keys from it
+        cached: dict[str, object] = {"requests_success": 1, "requests_error": 0, "latency_ms": 50.0}
+
+        def classify_cached(row: Any) -> dict[str, object]:
+            return cached
+
+        s.rebuild_timeseries(classify_cached)
+
+        assert "latency_ms" in cached, "rebuild_timeseries mutated the classify callback's returned dict"
 
 
 # =============================================================================

@@ -97,12 +97,11 @@ class TestListPresets:
         assert result == ["gentle", "stress"]
 
     def test_ignores_subdirectories(self, tmp_path: Path) -> None:
-        """Subdirectories are not listed as presets."""
+        """Subdirectories with .yaml suffix are not listed as presets."""
         (tmp_path / "subdir.yaml").mkdir()
         (tmp_path / "real.yaml").write_text("key: value")
         result = list_presets(tmp_path)
-        # subdir.yaml won't match glob("*.yaml") as it's a directory
-        assert "real" in result
+        assert result == ["real"]
 
 
 # =============================================================================

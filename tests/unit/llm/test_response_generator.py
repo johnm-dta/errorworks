@@ -471,6 +471,18 @@ class TestTemplateMode:
         words = response.content.split()
         assert len(words) == 5
 
+    def test_random_words_unknown_vocabulary_raises(self) -> None:
+        """Template random_words with unknown vocabulary raises ValueError."""
+        config = ResponseConfig(
+            mode="template",
+            template=TemplateResponseConfig(body="{{ random_words(3, 'klingon') }}"),
+        )
+        generator = ResponseGenerator(config)
+
+        request = {"model": "test", "messages": []}
+        with pytest.raises(ValueError, match="klingon"):
+            generator.generate(request)
+
     def test_timestamp_helper(self) -> None:
         """Template timestamp helper returns current time."""
         fixed_time = 1706644800.0

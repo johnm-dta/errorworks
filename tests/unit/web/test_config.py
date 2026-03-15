@@ -368,7 +368,24 @@ class TestWebErrorInjectionPercentageWarning:
                 forbidden_pct=60.0,
             )
             assert len(w) == 1
-            assert "exceed 100%" in str(w[0].message)
+            assert "reach or exceed 100%" in str(w[0].message)
+
+    def test_weighted_mode_warns_when_total_equals_100(self) -> None:
+        """Weighted mode warns when total error percentages equal exactly 100%."""
+        import warnings
+
+        from errorworks.web.config import WebErrorInjectionConfig
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            WebErrorInjectionConfig(
+                selection_mode="weighted",
+                rate_limit_pct=50.0,
+                forbidden_pct=50.0,
+            )
+            assert len(w) == 1
+            assert "100.0%" in str(w[0].message)
+            assert "No successful responses" in str(w[0].message)
 
     def test_priority_mode_no_warning_even_above_100(self) -> None:
         """Priority mode never warns about total percentages."""

@@ -50,7 +50,7 @@ def list_presets(presets_dir: Path) -> list[str]:
     """
     if not presets_dir.exists():
         return []
-    return sorted(p.stem for p in presets_dir.glob("*.yaml"))
+    return sorted(p.stem for p in presets_dir.glob("*.yaml") if p.is_file())
 
 
 def load_preset(presets_dir: Path, preset_name: str) -> dict[str, Any]:

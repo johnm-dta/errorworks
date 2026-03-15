@@ -280,7 +280,7 @@ class ResponseGenerator:
 
     def _template_random_words(self, count: int = 5, vocabulary: str = "english") -> str:
         """Jinja2 helper: Generate random words."""
-        vocab = ENGLISH_VOCABULARY if vocabulary == "english" else LOREM_VOCABULARY
+        vocab = get_vocabulary(vocabulary)
         words = [self._rng.choice(vocab) for _ in range(count)]
         return " ".join(words)
 
