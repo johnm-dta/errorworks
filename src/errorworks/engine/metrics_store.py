@@ -308,6 +308,11 @@ class MetricsStore:
     def update_bucket_latency(self, bucket_utc: str, latency_ms: float | None) -> None:
         """Recalculate latency statistics for a time-series bucket.
 
+        Uses SQL aggregation to compute avg and approximate p99 without
+        fetching all rows into Python. This is O(N) in SQLite (single
+        table scan) instead of the previous O(N²) approach that loaded
+        all latencies per request.
+
         Args:
             bucket_utc: The bucket timestamp.
             latency_ms: The latency to record (triggers recalculation if not None).
@@ -318,21 +323,34 @@ class MetricsStore:
         conn = self._get_connection()
         bucket_end = (datetime.fromisoformat(bucket_utc) + timedelta(seconds=self._config.timeseries_bucket_sec)).isoformat()
 
+        # Compute avg in SQL (single scan, no Python-side data transfer)
+        cursor = conn.execute(
+            """
+            SELECT AVG(latency_ms), COUNT(latency_ms) FROM requests
+            WHERE timestamp_utc >= ? AND timestamp_utc < ? AND latency_ms IS NOT NULL
+            """,
+            (bucket_utc, bucket_end),
+        )
+        row = cursor.fetchone()
+        if row is None or row[1] == 0:
+            return
+
+        avg_latency = row[0]
+        count = row[1]
+
+        # Compute p99 via LIMIT/OFFSET (SQLite handles the sort internally)
+        p99_offset = min(int(count * 0.99), count - 1)
         cursor = conn.execute(
             """
             SELECT latency_ms FROM requests
             WHERE timestamp_utc >= ? AND timestamp_utc < ? AND latency_ms IS NOT NULL
             ORDER BY latency_ms
+            LIMIT 1 OFFSET ?
             """,
-            (bucket_utc, bucket_end),
+            (bucket_utc, bucket_end, p99_offset),
         )
-        latencies = [row[0] for row in cursor.fetchall()]
-        if not latencies:
-            return
-
-        avg_latency = sum(latencies) / len(latencies)
-        p99_index = min(int(len(latencies) * 0.99), len(latencies) - 1)
-        p99_latency = latencies[p99_index]
+        p99_row = cursor.fetchone()
+        p99_latency = p99_row[0] if p99_row is not None else avg_latency
 
         conn.execute(
             "UPDATE timeseries SET avg_latency_ms = ?, p99_latency_ms = ? WHERE bucket_utc = ?",

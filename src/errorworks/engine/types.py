@@ -36,6 +36,7 @@ class ServerConfig(BaseModel):
     host: str = Field(
         default="127.0.0.1",
         min_length=1,
+        pattern=r"^[a-zA-Z0-9.:\[\]-]+$",
         description="Host address to bind to",
     )
     port: int = Field(

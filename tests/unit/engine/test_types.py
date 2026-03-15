@@ -377,6 +377,25 @@ class TestServerConfigValidation:
         config = ServerConfig()
         assert len(config.admin_token) > 0
 
+    @pytest.mark.parametrize(
+        "host",
+        [
+            "host;evil",  # semicolon (command injection vector)
+            "host\x00null",  # null byte
+            "host\nnewline",  # newline
+            "host name",  # space
+        ],
+    )
+    def test_invalid_host_characters_rejected(self, host: str) -> None:
+        """Host with control characters or invalid chars is rejected."""
+        with pytest.raises(ValidationError):
+            ServerConfig(host=host)
+
+    def test_valid_ipv6_host_accepted(self) -> None:
+        """IPv6 addresses are valid hosts."""
+        config = ServerConfig(host="::")
+        assert config.host == "::"
+
     @pytest.mark.parametrize("workers", [0, -1, -10])
     def test_workers_zero_or_negative_raises(self, workers: int) -> None:
         with pytest.raises(ValidationError):

@@ -23,14 +23,14 @@ _UVICORN_RUN = "uvicorn.run"
 
 @patch(_UVICORN_RUN)
 def test_serve_defaults(mock_run):
-    """Default serve invocation calls uvicorn with host=127.0.0.1, port=8200, workers=1."""
+    """Default serve uses Pydantic model defaults (not CLI defaults)."""
     result = runner.invoke(app, ["serve"])
     assert result.exit_code == 0, result.output
     mock_run.assert_called_once()
     call_kwargs = mock_run.call_args[1]
     assert call_kwargs["host"] == "127.0.0.1"
     assert call_kwargs["port"] == 8200
-    assert call_kwargs["workers"] == 1
+    assert call_kwargs["workers"] == 4  # ServerConfig default, not CLI default
 
 
 @patch(_UVICORN_RUN)

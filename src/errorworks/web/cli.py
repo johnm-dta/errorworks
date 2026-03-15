@@ -71,22 +71,22 @@ def serve(
     ] = None,
     # Server binding
     host: Annotated[
-        str,
-        typer.Option("--host", "-h", help="Host address to bind to."),
-    ] = "127.0.0.1",
+        str | None,
+        typer.Option("--host", "-h", help="Host address to bind to (default: 127.0.0.1)."),
+    ] = None,
     port: Annotated[
-        int,
-        typer.Option("--port", "-P", help="Port to listen on.", min=1, max=65535),
-    ] = 8200,
+        int | None,
+        typer.Option("--port", "-P", help="Port to listen on (default: 8200).", min=1, max=65535),
+    ] = None,
     workers: Annotated[
-        int,
-        typer.Option("--workers", "-w", help="Number of uvicorn workers.", min=1),
-    ] = 1,
+        int | None,
+        typer.Option("--workers", "-w", help="Number of uvicorn workers (default: from preset or 1).", min=1),
+    ] = None,
     # Metrics
     database: Annotated[
-        str,
+        str | None,
         typer.Option("--database", "-d", help="SQLite database path for metrics."),
-    ] = DEFAULT_MEMORY_DB,
+    ] = None,
     # Error injection overrides
     rate_limit_pct: Annotated[
         float | None,
@@ -177,10 +177,22 @@ def serve(
         chaosweb serve --rate-limit-pct=10 --forbidden-pct=5
         chaosweb serve --port=9000 --database=./web-metrics.db
     """
-    cli_overrides: dict[str, Any] = {
-        "server": {"host": host, "port": port, "workers": workers},
-        "metrics": {"database": database},
-    }
+    # Build CLI overrides dict — only include explicitly provided values
+    # so that preset/config file settings are preserved for unspecified flags.
+    cli_overrides: dict[str, Any] = {}
+
+    server_overrides: dict[str, Any] = {}
+    if host is not None:
+        server_overrides["host"] = host
+    if port is not None:
+        server_overrides["port"] = port
+    if workers is not None:
+        server_overrides["workers"] = workers
+    if server_overrides:
+        cli_overrides["server"] = server_overrides
+
+    if database is not None:
+        cli_overrides["metrics"] = {"database": database}
 
     # Error injection overrides
     error_overrides: dict[str, Any] = {}
