@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "filigree": {
+      "type": "stdio",
+      "command": "/home/john/errorworks/.venv/bin/filigree-mcp",
+      "args": [
+        "--project",
+        "/home/john/errorworks"
+      ],
+      "env": {}
+    }
+  }
+}

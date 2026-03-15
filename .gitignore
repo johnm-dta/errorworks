@@ -34,3 +34,6 @@ Thumbs.db
 .env
 .env.*
 .hypothesis/
+
+# Filigree issue tracker
+.filigree/
