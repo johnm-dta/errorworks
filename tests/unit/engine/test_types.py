@@ -196,6 +196,21 @@ class TestColumnDefValidation:
         with pytest.raises(ValueError, match="default must be NULL, a numeric literal, or a single-quoted string"):
             ColumnDef(name="col", sql_type="TEXT", default=default)
 
+    @pytest.mark.parametrize(
+        "default",
+        [
+            "'line\nbreak'",  # newline inside quoted string
+            "'null\x00byte'",  # null byte inside quoted string
+            "'tab\there'",  # tab inside quoted string
+            "'cr\rreturn'",  # carriage return inside quoted string
+            "'del\x7fchar'",  # DEL character inside quoted string
+        ],
+    )
+    def test_control_characters_in_quoted_default_raises(self, default: str) -> None:
+        """Control characters in quoted defaults produce malformed DDL and must be rejected."""
+        with pytest.raises(ValueError, match="default must be NULL, a numeric literal, or a single-quoted string"):
+            ColumnDef(name="col", sql_type="TEXT", default=default)
+
 
 # =============================================================================
 # MetricsSchema validation

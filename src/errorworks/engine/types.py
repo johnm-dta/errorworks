@@ -164,7 +164,7 @@ _VALID_COLUMN_NAME = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
 # Safe DEFAULT expressions: NULL, numeric literals, quoted strings.
 # Prevents SQL injection in DDL generation where defaults are interpolated via f-string.
 _VALID_DEFAULT = re.compile(
-    r"^(?:NULL|'[^']*'|[+-]?\d+(?:\.\d+)?)$",
+    r"^(?:NULL|'[^'\x00-\x1f\x7f]*'|[+-]?\d+(?:\.\d+)?)$",
     re.IGNORECASE,
 )
 
