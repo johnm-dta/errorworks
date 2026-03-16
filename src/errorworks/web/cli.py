@@ -22,7 +22,6 @@ import typer
 import yaml
 
 from errorworks.web.config import (
-    DEFAULT_MEMORY_DB,
     list_presets,
     load_config,
 )

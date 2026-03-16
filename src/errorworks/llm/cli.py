@@ -31,7 +31,6 @@ import typer
 import yaml
 
 from errorworks.llm.config import (
-    DEFAULT_MEMORY_DB,
     list_presets,
     load_config,
 )
