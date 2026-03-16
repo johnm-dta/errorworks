@@ -38,9 +38,11 @@ Thumbs.db
 # Worktrees
 .worktrees/
 
-# Filigree issue tracker
+# Claude Code / Filigree
 .filigree/
-.claude/settings.json
+.claude/
+.agents/
+AGENTS.md
 
 # MkDocs
 docs/changelog.md
