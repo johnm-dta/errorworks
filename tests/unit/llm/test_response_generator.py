@@ -488,7 +488,7 @@ class TestTemplateMode:
 
     def test_random_words_unknown_vocabulary_raises(self) -> None:
         """Config with unknown vocabulary is rejected by Pydantic validation."""
-        with pytest.raises(Exception, match="klingon|literal_error"):
+        with pytest.raises(Exception, match=r"klingon|literal_error"):
             ResponseConfig(
                 mode="template",
                 template=TemplateResponseConfig(body="{{ random_words(3) }}"),
