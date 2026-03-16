@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2026-03-17
+
+### Added
+
+- Professional README with badges, value proposition, quickstart, and architecture overview
+- MkDocs-Material documentation site with DTA brand theme (Getting Started, Guides, Reference, Architecture)
+- GitHub Actions workflow for automatic docs deployment to GitHub Pages
+- Community files: CONTRIBUTING.md, SECURITY.md, CODE_OF_CONDUCT.md
+- GitHub issue templates (bug report, feature request) and PR template
+- Pre-commit configuration (ruff lint/format, mypy)
+- PyPI project URLs (Documentation, Changelog, Bug Tracker, Homepage)
+
+### Changed
+
+- Docs directory excluded from sdist distribution
+
+### Fixed
+
+- Unused `DEFAULT_MEMORY_DB` imports in CLI modules
+- Minor lint issues (unsorted `__all__`, raw regex strings, trailing whitespace)
+
 ## [0.1.0] - 2026-03-12
 
 Initial release of Errorworks — composable chaos-testing services for various pipelines.
