@@ -56,6 +56,9 @@ dev = [
     "pre-commit>=4.0,<5",
     "types-PyYAML>=6.0,<7",
 ]
+docs = [
+    "mkdocs-material>=9,<10",
+]
 
 [project.scripts]
 chaosengine = "errorworks.engine.cli:main"
@@ -64,6 +67,10 @@ chaosllm-mcp = "errorworks.llm.cli:mcp_main_entry"
 chaosweb = "errorworks.web.cli:main"
 
 [project.urls]
+Homepage = "https://github.com/johnm-dta/errorworks"
+Documentation = "https://johnm-dta.github.io/errorworks"
+Changelog = "https://github.com/johnm-dta/errorworks/blob/main/CHANGELOG.md"
+"Bug Tracker" = "https://github.com/johnm-dta/errorworks/issues"
 Repository = "https://github.com/johnm-dta/errorworks"
 
 [build-system]
@@ -77,8 +84,7 @@ packages = ["src/errorworks"]
 exclude = [
     ".claude/",
     "CLAUDE.md",
-    "docs/plans/",
-    "docs/arch-analysis-*",
+    "docs/",
     "uv.lock",
 ]
 
