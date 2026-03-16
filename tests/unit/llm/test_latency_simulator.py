@@ -290,7 +290,7 @@ class TestEdgeCases:
         config = LatencyConfig()
         simulator = LatencySimulator(config)
 
-        with pytest.raises(ValueError, match="min_sec.*must be <= max_sec"):
+        with pytest.raises(ValueError, match=r"min_sec.*must be <= max_sec"):
             simulator.simulate_slow_response(30, 10)
 
     def test_equal_min_max_slow_response(self) -> None:

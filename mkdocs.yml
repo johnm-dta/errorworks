@@ -1,0 +1,81 @@
+site_name: errorworks
+site_description: Composable chaos-testing services for LLM and web scraping pipelines
+site_url: https://johnm-dta.github.io/errorworks
+repo_url: https://github.com/johnm-dta/errorworks
+repo_name: johnm-dta/errorworks
+
+copyright: An open-source project by the <a href="https://www.dta.gov.au/">Digital Transformation Agency</a>.
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  font:
+    text: Inter
+    code: JetBrains Mono
+  features:
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - content.tabs.link
+    - content.code.copy
+  icon:
+    repo: fontawesome/brands/github
+  # logo: assets/logo.png  # Uncomment when DTA branding is available
+  # favicon: assets/favicon.png  # Uncomment when DTA branding is available
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: getting-started/installation.md
+    - Quick Start: getting-started/quickstart.md
+  - Guide:
+    - ChaosLLM: guide/chaosllm.md
+    - ChaosWeb: guide/chaosweb.md
+    - Presets: guide/presets.md
+    - Configuration: guide/configuration.md
+    - Metrics: guide/metrics.md
+    - Testing Fixtures: guide/testing-fixtures.md
+  - Reference:
+    - CLI: reference/cli.md
+    - HTTP API: reference/api.md
+    - Configuration Schema: reference/config-schema.md
+  - Architecture: architecture.md
+  - Changelog: changelog.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - attr_list
+  - md_in_html
+  - footnotes
+  - toc:
+      permalink: true
+
+extra_css:
+  - stylesheets/extra.css

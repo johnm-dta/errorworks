@@ -21,11 +21,11 @@ class TestParseRangeFloatRejection:
     """parse_range must reject floats with fractional parts."""
 
     def test_rejects_fractional_floats(self) -> None:
-        with pytest.raises(ValueError, match="must be integers.*1.5"):
+        with pytest.raises(ValueError, match=r"must be integers.*1.5"):
             parse_range([1.5, 3.5])
 
     def test_rejects_single_fractional_float(self) -> None:
-        with pytest.raises(ValueError, match="must be integers.*2.7"):
+        with pytest.raises(ValueError, match=r"must be integers.*2.7"):
             parse_range([1, 2.7])
 
     def test_accepts_exact_integer_floats(self) -> None:

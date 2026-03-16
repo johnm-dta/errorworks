@@ -234,8 +234,6 @@ def test_preset_values_not_overridden_by_cli_defaults(mock_run):
     result = runner.invoke(app, ["serve", "--preset=gentle"])
     assert result.exit_code == 0, result.output
 
-    uvicorn_app = mock_run.call_args.args[0]
-    server = uvicorn_app.state.server
     # gentle preset sets workers=4 — CLI should NOT override to 1
     assert mock_run.call_args.kwargs["workers"] == 4
 

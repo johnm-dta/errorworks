@@ -41,3 +41,7 @@ Thumbs.db
 # Filigree issue tracker
 .filigree/
 .claude/settings.json
+
+# MkDocs
+docs/changelog.md
+site/

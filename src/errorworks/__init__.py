@@ -4,11 +4,8 @@ __version__ = "0.1.0"
 
 __all__ = [
     "__version__",
-    # Engine (shared core)
     "engine",
-    # Chaos plugins
     "llm",
-    "web",
-    # Test support
     "testing",
+    "web",
 ]
