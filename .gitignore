@@ -35,6 +35,9 @@ Thumbs.db
 .env.*
 .hypothesis/
 
+# Worktrees
+.worktrees/
+
 # Filigree issue tracker
 .filigree/
 .claude/settings.json
