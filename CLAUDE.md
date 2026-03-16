@@ -97,12 +97,40 @@ Key fixture helpers: `post_completion()`, `fetch_page()`, `update_config()`, `ge
 - `SIM108` (ternary) is ignored — prefer explicit if/else
 - First-party import: `errorworks`
 
-<!-- filigree:instructions:v1.3.0:6bd811c8 -->
+<!-- filigree:instructions:v1.5.0:bcb039c9 -->
 ## Filigree Issue Tracker
 
 Use `filigree` for all task tracking in this project. Data lives in `.filigree/`.
 
-### Quick Reference
+### MCP Tools (Preferred)
+
+When MCP is configured, prefer `mcp__filigree__*` tools over CLI commands — they're
+faster and return structured data. Key tools:
+
+- `get_ready` / `get_blocked` — find available work
+- `get_issue` / `list_issues` / `search_issues` — read issues
+- `create_issue` / `update_issue` / `close_issue` — manage issues
+- `claim_issue` / `claim_next` — atomic claiming
+- `add_comment` / `add_label` — metadata
+- `create_plan` / `get_plan` — milestone planning
+- `get_stats` / `get_metrics` — project health
+- `get_valid_transitions` — workflow navigation
+- `observe` / `list_observations` / `dismiss_observation` / `promote_observation` — agent scratchpad
+
+Observations are fire-and-forget notes that expire after 14 days. Use `list_issues --label=from-observation` to find promoted observations.
+
+**Observations are ambient.** While doing other work, use `observe` whenever you
+notice something worth noting — a code smell, a potential bug, a missing test, a
+design concern. Don't stop what you're doing; just fire off the observation and
+carry on. They're ideal for "I don't have time to investigate this right now, but
+I want to come back to it." Include `file_path` and `line` when relevant so the
+observation is anchored to code. At session end, skim `list_observations` and
+either `dismiss` (not worth tracking) or `promote` (deserves an issue) anything
+that's accumulated.
+
+Fall back to CLI (`filigree <command>`) when MCP is unavailable.
+
+### CLI Quick Reference
 
 ```bash
 # Finding work
