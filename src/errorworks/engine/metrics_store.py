@@ -513,35 +513,59 @@ class MetricsStore:
             stats["requests_by_status_code"] = {row[0]: row[1] for row in cursor.fetchall()}
 
         if "latency_ms" in col_names:
-            cursor = conn.execute("SELECT AVG(latency_ms), MAX(latency_ms) FROM requests WHERE latency_ms IS NOT NULL")
+            cursor = conn.execute("SELECT AVG(latency_ms), MAX(latency_ms), COUNT(latency_ms) FROM requests WHERE latency_ms IS NOT NULL")
             row = cursor.fetchone()
-
-            cursor = conn.execute("SELECT latency_ms FROM requests WHERE latency_ms IS NOT NULL ORDER BY latency_ms")
-            latencies = [r[0] for r in cursor.fetchall()]
+            avg_latency, max_latency, count = row[0], row[1], row[2]
 
             p50_latency = None
             p95_latency = None
             p99_latency = None
 
-            if latencies:
-                p50_latency = latencies[max(0, min(math.ceil(len(latencies) * 0.50) - 1, len(latencies) - 1))]
-                p95_latency = latencies[max(0, min(math.ceil(len(latencies) * 0.95) - 1, len(latencies) - 1))]
-                p99_latency = latencies[max(0, min(math.ceil(len(latencies) * 0.99) - 1, len(latencies) - 1))]
+            if count > 0:
+                # Compute percentiles via SQL LIMIT/OFFSET (no Python-side data transfer)
+                for pct, name in ((0.50, "p50"), (0.95, "p95"), (0.99, "p99")):
+                    offset = max(0, min(math.ceil(count * pct) - 1, count - 1))
+                    pcursor = conn.execute(
+                        "SELECT latency_ms FROM requests WHERE latency_ms IS NOT NULL ORDER BY latency_ms LIMIT 1 OFFSET ?",
+                        (offset,),
+                    )
+                    prow = pcursor.fetchone()
+                    if name == "p50":
+                        p50_latency = prow[0]
+                    elif name == "p95":
+                        p95_latency = prow[0]
+                    else:
+                        p99_latency = prow[0]
 
             stats["latency_stats"] = {
-                "avg_ms": row[0],
+                "avg_ms": avg_latency,
                 "p50_ms": p50_latency,
                 "p95_ms": p95_latency,
                 "p99_ms": p99_latency,
-                "max_ms": row[1],
+                "max_ms": max_latency,
             }
 
         return stats
 
-    def export_data(self) -> dict[str, Any]:
-        """Export raw requests and time-series data."""
+    def export_data(
+        self,
+        *,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> dict[str, Any]:
+        """Export raw requests and time-series data.
+
+        Args:
+            limit: Maximum number of request rows to return (default: all).
+            offset: Number of request rows to skip (default: 0).
+        """
         conn = self._get_connection()
-        requests = [dict(row) for row in conn.execute("SELECT * FROM requests ORDER BY timestamp_utc")]
+        if limit is not None:
+            requests = [
+                dict(row) for row in conn.execute("SELECT * FROM requests ORDER BY timestamp_utc LIMIT ? OFFSET ?", (limit, offset))
+            ]
+        else:
+            requests = [dict(row) for row in conn.execute("SELECT * FROM requests ORDER BY timestamp_utc")]
         timeseries = [dict(row) for row in conn.execute("SELECT * FROM timeseries ORDER BY bucket_utc")]
         return {
             "run_id": self._run_id,

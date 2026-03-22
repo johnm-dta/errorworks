@@ -264,9 +264,9 @@ class MetricsRecorder:
         """Get summary statistics for the current run."""
         return self._store.get_stats()
 
-    def export_data(self) -> dict[str, Any]:
+    def export_data(self, *, limit: int | None = None, offset: int = 0) -> dict[str, Any]:
         """Export raw requests and time-series data for external analysis or archival."""
-        return self._store.export_data()
+        return self._store.export_data(limit=limit, offset=offset)
 
     def save_run_info(
         self,

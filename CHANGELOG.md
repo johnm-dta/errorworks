@@ -29,6 +29,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   instead of only `rate_limited` and `capacity_error`.
 - **Thread safety**: Added double-checked locking to `ContentGenerator._get_preset_bank()`,
   porting the pattern already used in the LLM `ResponseGenerator`.
+- **Memory scalability** (2 bugs): `get_stats()` loaded all latency values into Python memory
+  for percentile computation — replaced with SQL `LIMIT 1 OFFSET` queries (O(1) memory).
+  `export_data()` loaded entire database unbounded — added `limit`/`offset` parameters.
 
 ### Changed
 
