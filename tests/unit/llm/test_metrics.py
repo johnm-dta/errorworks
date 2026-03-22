@@ -139,6 +139,15 @@ class TestClassifyOutcome:
         _, _, _, _, _, is_conn, _ = result
         assert is_conn is False
 
+    # --- Test using actual server input (not synthetic) ---
+
+    def test_timeout_with_504_is_connection_error(self) -> None:
+        """Server records timeout with status_code=504 (50% of timeouts) — must be connection_error."""
+        result = _classify_outcome("error_injected", 504, "timeout")
+        _, _, _, is_server, _, is_conn, _ = result
+        assert is_conn is True
+        assert is_server is False
+
     def test_malformed_outcome(self) -> None:
         """error_malformed outcome is classified correctly."""
         result = _classify_outcome("error_malformed", 200, None)

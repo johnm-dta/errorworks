@@ -63,29 +63,30 @@ WEB_METRICS_SCHEMA = MetricsSchema(
 )
 
 
+_WEB_CONNECTION_ERROR_TYPES = frozenset({
+    "timeout",
+    "connection_reset",
+    "connection_stall",
+    "incomplete_response",
+})
+
+
 def _classify_web_outcome(
     outcome: str,
     status_code: int | None,
     error_type: str | None,
 ) -> WebOutcomeClassification:
     """Classify an outcome for web time-series aggregation."""
+    is_connection_error = error_type in _WEB_CONNECTION_ERROR_TYPES
     return WebOutcomeClassification(
         success=outcome == "success",
         rate_limited=status_code == 429,
         forbidden=status_code == 403,
         not_found=status_code == 404,
-        server_error=status_code is not None and 500 <= status_code < 600,
-        connection_error=status_code is None
-        and error_type
-        in (
-            "timeout",
-            "connection_reset",
-            "connection_stall",
-            "slow_response",
-            "incomplete_response",
-        ),
+        server_error=status_code is not None and 500 <= status_code < 600 and not is_connection_error,
         malformed=outcome == "error_malformed",
-        redirect=outcome == "error_redirect",
+        redirect=outcome in ("error_redirect", "redirect_loop_terminated"),
+        connection_error=is_connection_error,
     )
 
 
