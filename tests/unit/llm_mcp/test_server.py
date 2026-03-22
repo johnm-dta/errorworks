@@ -929,3 +929,156 @@ class TestConnectionResilience:
         conn2 = analyzer._get_connection()
         assert conn1 is conn2
         analyzer.close()
+
+
+# =============================================================================
+# Analysis Logic Bug Fixes
+# =============================================================================
+
+
+class TestPercentileCalculation:
+    """Tests for percentile calculation in analyze_latency."""
+
+    def test_p99_not_maximum_for_100_values(self, temp_db: Path) -> None:
+        """With exactly 100 values, p99 should NOT equal the maximum value."""
+        conn = sqlite3.connect(str(temp_db))
+        base_time = datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC)
+        for i in range(100):
+            conn.execute(
+                "INSERT INTO requests VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    f"req-{i}", (base_time + timedelta(seconds=i)).isoformat(),
+                    "/chat/completions", None, None, "success", 200, None, None,
+                    float(i + 1), None, None, None, None, None,  # latency 1..100
+                ),
+            )
+        conn.commit()
+        conn.close()
+
+        analyzer = ChaosLLMAnalyzer(str(temp_db))
+        result = analyzer.analyze_latency()
+        analyzer.close()
+
+        # p99 of [1..100] should be 99, not 100 (the max)
+        assert result["p99_ms"] < 100.0, f"p99 should not equal the maximum value, got {result['p99_ms']}"
+
+
+class TestBurstDetection:
+    """Tests for burst detection in get_burst_events and analyze_aimd_behavior."""
+
+    @pytest.fixture
+    def trailing_burst_analyzer(self, temp_db: Path) -> Generator[ChaosLLMAnalyzer, None, None]:
+        """Create analyzer with timeseries data where a burst is active at the end."""
+        conn = sqlite3.connect(str(temp_db))
+        base_time = datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC)
+        # 5 normal buckets, then 3 burst buckets at the end (no recovery)
+        for i in range(8):
+            bucket = (base_time + timedelta(minutes=i)).strftime("%Y-%m-%dT%H:%M")
+            if i < 5:
+                # Normal: 10 requests, 1 error (10% error rate)
+                conn.execute(
+                    "INSERT INTO timeseries (bucket_utc, requests_total, requests_success, "
+                    "requests_rate_limited, requests_capacity_error, requests_server_error, "
+                    "requests_client_error, requests_connection_error, requests_malformed) "
+                    "VALUES (?, 10, 9, 1, 0, 0, 0, 0, 0)",
+                    (bucket,),
+                )
+            else:
+                # Burst: 10 requests, 5 rate limited (50% error rate)
+                conn.execute(
+                    "INSERT INTO timeseries (bucket_utc, requests_total, requests_success, "
+                    "requests_rate_limited, requests_capacity_error, requests_server_error, "
+                    "requests_client_error, requests_connection_error, requests_malformed) "
+                    "VALUES (?, 10, 5, 5, 0, 0, 0, 0, 0)",
+                    (bucket,),
+                )
+        conn.commit()
+        conn.close()
+
+        analyzer = ChaosLLMAnalyzer(str(temp_db))
+        yield analyzer
+        analyzer.close()
+
+    def test_trailing_burst_not_dropped(self, trailing_burst_analyzer: ChaosLLMAnalyzer) -> None:
+        """A burst still active at end of data should be included in burst_events."""
+        result = trailing_burst_analyzer.get_burst_events()
+        assert result["burst_count"] >= 1, "Trailing burst was silently dropped"
+
+    def test_trailing_burst_excluded_from_aimd_recovery(self, trailing_burst_analyzer: ChaosLLMAnalyzer) -> None:
+        """Unfinished bursts should not contribute to avg_recovery_buckets."""
+        # Add request data so analyze_aimd_behavior has something to work with
+        conn = sqlite3.connect(trailing_burst_analyzer._db_path)
+        base_time = datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC)
+        for i in range(20):
+            if i < 12:
+                outcome, status, etype = "success", 200, None
+            else:
+                outcome, status, etype = "error_injected", 429, "rate_limit"
+            conn.execute(
+                "INSERT INTO requests VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    f"req-{i}", (base_time + timedelta(seconds=i)).isoformat(),
+                    "/chat/completions", None, None, outcome, status, etype, etype,
+                    100.0, None, None, None, None, None,
+                ),
+            )
+        conn.commit()
+        conn.close()
+
+        result = trailing_burst_analyzer.analyze_aimd_behavior()
+        # If there's only an unfinished burst, avg_recovery should be 0 (no completed recoveries)
+        if result.get("burst_count", 0) > 0 and result.get("status") != "NO_DATA":
+            assert result.get("avg_recovery_buckets", 0) == 0, (
+                "Unfinished burst should not report a recovery time"
+            )
+
+
+class TestAnomalyDetection:
+    """Tests for find_anomalies error clustering."""
+
+    def test_server_error_clustering_detected(self, temp_db: Path) -> None:
+        """Error clustering should detect server_error, not just rate_limited/capacity_error."""
+        conn = sqlite3.connect(str(temp_db))
+        base_time = datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC)
+
+        # Insert 30 requests — 15 success, 15 server errors (need >10 errors for threshold)
+        for i in range(30):
+            if i < 15:
+                outcome, status, etype = "success", 200, None
+            else:
+                outcome, status, etype = "error_injected", 500, "internal_error"
+            conn.execute(
+                "INSERT INTO requests VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    f"req-{i}", (base_time + timedelta(seconds=i)).isoformat(),
+                    "/chat/completions", None, None, outcome, status, etype, etype,
+                    100.0, None, None, None, None, None,
+                ),
+            )
+
+        # 20 timeseries buckets, only 1 has server errors (= 5% of buckets, under 10% threshold)
+        for i in range(20):
+            bucket = (base_time + timedelta(minutes=i)).strftime("%Y-%m-%dT%H:%M")
+            if i == 10:
+                conn.execute(
+                    "INSERT INTO timeseries (bucket_utc, requests_total, requests_success, "
+                    "requests_rate_limited, requests_capacity_error, requests_server_error, "
+                    "requests_client_error, requests_connection_error, requests_malformed) "
+                    "VALUES (?, 5, 0, 0, 0, 5, 0, 0, 0)", (bucket,),
+                )
+            else:
+                conn.execute(
+                    "INSERT INTO timeseries (bucket_utc, requests_total, requests_success, "
+                    "requests_rate_limited, requests_capacity_error, requests_server_error, "
+                    "requests_client_error, requests_connection_error, requests_malformed) "
+                    "VALUES (?, 1, 1, 0, 0, 0, 0, 0, 0)", (bucket,),
+                )
+        conn.commit()
+        conn.close()
+
+        analyzer = ChaosLLMAnalyzer(str(temp_db))
+        result = analyzer.find_anomalies()
+        analyzer.close()
+
+        clustering = [a for a in result["anomalies"] if a["type"] == "error_clustering"]
+        assert len(clustering) > 0, "Server error clustering was not detected"
