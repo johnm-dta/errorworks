@@ -239,9 +239,13 @@ class ResponseGenerator:
         # Setup Jinja2 environment with custom helpers
         self._jinja_env = self._create_jinja_env()
 
-        # Pre-compile template at construction — fail fast on syntax errors
+        # Pre-compile template at construction — fail fast on syntax/length errors
         self._compiled_template: jinja2.Template | None = None
         if config.mode == "template":
+            if len(config.template.body) > config.max_template_length:
+                raise ValueError(
+                    f"Config template body exceeds max_template_length ({len(config.template.body)} > {config.max_template_length})"
+                )
             self._compiled_template = self._jinja_env.from_string(config.template.body)
 
     @property
@@ -423,21 +427,27 @@ class ResponseGenerator:
         elif mode == "template":
             # Use override template if provided
             if template_override is not None:
-                if len(template_override) > max_len:
-                    raise ValueError(f"Template override exceeds max length ({len(template_override)} > {max_len})")
                 # Header-override template is Tier 3 (external data from request header).
                 # Return error content instead of crashing — the server must produce
                 # a deterministic response, not an unplanned 500.
-                try:
-                    template = self._jinja_env.from_string(template_override)
-                    content = template.render(
-                        request=request,
-                        messages=request.get("messages", []),
-                        model=request.get("model"),
+                if len(template_override) > max_len:
+                    logger.warning(
+                        "template_override_too_long",
+                        length=len(template_override),
+                        max_length=max_len,
                     )
-                except jinja2.TemplateError as exc:
-                    logger.warning("template_override_error", error=str(exc), error_type=type(exc).__name__)
-                    content = f"[template_override_error: {exc}]"
+                    content = f"[template_override_error: exceeds max length ({len(template_override)} > {max_len})]"
+                else:
+                    try:
+                        template = self._jinja_env.from_string(template_override)
+                        content = template.render(
+                            request=request,
+                            messages=request.get("messages", []),
+                            model=request.get("model"),
+                        )
+                    except jinja2.TemplateError as exc:
+                        logger.warning("template_override_error", error=str(exc), error_type=type(exc).__name__)
+                        content = f"[template_override_error: {exc}]"
             else:
                 if self._compiled_template is None:
                     logger.warning("template_mode_unavailable", detail="server not configured for template mode")
