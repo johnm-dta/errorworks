@@ -440,9 +440,8 @@ class WebErrorInjectionConfig(BaseModel):
             return self
         total = sum(getattr(self, name) for name in type(self).model_fields if name.endswith("_pct"))
         if total >= 100.0:
-            warnings.warn(
+            warnings.warn(  # noqa: B028 — stacklevel is unreliable inside Pydantic model validators
                 f"Total error percentages ({total:.1f}%) reach or exceed 100% in weighted mode. No successful responses will be generated.",
-                stacklevel=2,
             )
         return self
 

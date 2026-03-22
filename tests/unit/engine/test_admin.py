@@ -241,6 +241,17 @@ class TestHandleAdminStats:
         assert resp.status_code == 503
         assert resp.json()["error"]["type"] == "database_error"
 
+    def test_sqlite_error_does_not_leak_details(self) -> None:
+        """sqlite3.Error message must not appear in HTTP response body."""
+        server = _make_mock_server()
+        server.get_stats.side_effect = sqlite3.OperationalError("no such table: requests")
+        client = _make_app(server)
+        resp = client.get("/admin/stats", headers=self._headers())
+        assert resp.status_code == 503
+        body = resp.json()
+        assert "no such table" not in body["error"]["message"]
+        assert "requests" not in body["error"]["message"]
+
 
 # =============================================================================
 # handle_admin_reset
@@ -265,14 +276,14 @@ class TestHandleAdminReset:
         server.reset.assert_called_once()
 
     def test_sqlite_error_returns_503(self) -> None:
-        """sqlite3.Error from reset returns 503 with structured error."""
+        """sqlite3.Error from reset returns 503 with generic error (no detail leak)."""
         server = _make_mock_server()
         server.reset.side_effect = sqlite3.OperationalError("disk I/O error")
         client = _make_app(server)
         resp = client.post("/admin/reset", headers=self._headers())
         assert resp.status_code == 503
         assert resp.json()["error"]["type"] == "database_error"
-        assert "disk I/O error" in resp.json()["error"]["message"]
+        assert "disk I/O error" not in resp.json()["error"]["message"]
 
     def test_auth_required(self) -> None:
         """Reset without auth returns 401."""
