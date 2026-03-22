@@ -86,9 +86,19 @@ def validate_error_decision(
         ValueError: If any invariant is violated.
     """
     if error_type is None:
-        # Success case: no other fields should be set
+        # Success case: no error-related fields should be set
         if category is not None:
             raise ValueError("Success decision must not have a category")
+        if status_code is not None:
+            raise ValueError(f"Success decision must not have a status_code, got {status_code}")
+        if retry_after_sec is not None:
+            raise ValueError("Success decision must not have retry_after_sec")
+        if delay_sec is not None:
+            raise ValueError("Success decision must not have delay_sec")
+        if start_delay_sec is not None:
+            raise ValueError("Success decision must not have start_delay_sec")
+        if malformed_type is not None:
+            raise ValueError("Success decision must not have malformed_type")
         return
 
     if category is None:
