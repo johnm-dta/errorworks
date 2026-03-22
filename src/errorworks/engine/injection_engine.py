@@ -30,9 +30,14 @@ from errorworks.engine.types import BurstConfig, ErrorSpec, SelectionMode
 class InjectionEngine:
     """Burst state machine + priority/weighted error selection.
 
-    Thread-safe for burst state management. The RNG is not thread-safe —
-    callers are expected to snapshot the engine reference per-request (see
-    config snapshot pattern) rather than sharing concurrent calls to select().
+    Thread-safe for burst state management. The RNG (``random.Random``) is
+    not inherently thread-safe, but this is acceptable because:
+    - ASGI servers (uvicorn) use a single-threaded event loop per worker
+    - Multi-worker mode forks processes, giving each its own RNG instance
+    - The config snapshot pattern prevents mid-request component swaps
+
+    If the engine is used from a multi-threaded context (e.g. sync endpoints
+    on a ThreadPoolExecutor), callers should provide per-thread engines.
 
     The engine handles:
     - Periodic burst windows (is the system currently in a burst?)
