@@ -63,12 +63,14 @@ WEB_METRICS_SCHEMA = MetricsSchema(
 )
 
 
-_WEB_CONNECTION_ERROR_TYPES = frozenset({
-    "timeout",
-    "connection_reset",
-    "connection_stall",
-    "incomplete_response",
-})
+_WEB_CONNECTION_ERROR_TYPES = frozenset(
+    {
+        "timeout",
+        "connection_reset",
+        "connection_stall",
+        "incomplete_response",
+    }
+)
 
 
 def _classify_web_outcome(

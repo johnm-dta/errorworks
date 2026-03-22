@@ -947,9 +947,21 @@ class TestPercentileCalculation:
             conn.execute(
                 "INSERT INTO requests VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
-                    f"req-{i}", (base_time + timedelta(seconds=i)).isoformat(),
-                    "/chat/completions", None, None, "success", 200, None, None,
-                    float(i + 1), None, None, None, None, None,  # latency 1..100
+                    f"req-{i}",
+                    (base_time + timedelta(seconds=i)).isoformat(),
+                    "/chat/completions",
+                    None,
+                    None,
+                    "success",
+                    200,
+                    None,
+                    None,
+                    float(i + 1),
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,  # latency 1..100
                 ),
             )
         conn.commit()
@@ -1017,9 +1029,21 @@ class TestBurstDetection:
             conn.execute(
                 "INSERT INTO requests VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
-                    f"req-{i}", (base_time + timedelta(seconds=i)).isoformat(),
-                    "/chat/completions", None, None, outcome, status, etype, etype,
-                    100.0, None, None, None, None, None,
+                    f"req-{i}",
+                    (base_time + timedelta(seconds=i)).isoformat(),
+                    "/chat/completions",
+                    None,
+                    None,
+                    outcome,
+                    status,
+                    etype,
+                    etype,
+                    100.0,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
                 ),
             )
         conn.commit()
@@ -1028,9 +1052,7 @@ class TestBurstDetection:
         result = trailing_burst_analyzer.analyze_aimd_behavior()
         # If there's only an unfinished burst, avg_recovery should be 0 (no completed recoveries)
         if result.get("burst_count", 0) > 0 and result.get("status") != "NO_DATA":
-            assert result.get("avg_recovery_buckets", 0) == 0, (
-                "Unfinished burst should not report a recovery time"
-            )
+            assert result.get("avg_recovery_buckets", 0) == 0, "Unfinished burst should not report a recovery time"
 
 
 class TestAnomalyDetection:
@@ -1050,9 +1072,21 @@ class TestAnomalyDetection:
             conn.execute(
                 "INSERT INTO requests VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
-                    f"req-{i}", (base_time + timedelta(seconds=i)).isoformat(),
-                    "/chat/completions", None, None, outcome, status, etype, etype,
-                    100.0, None, None, None, None, None,
+                    f"req-{i}",
+                    (base_time + timedelta(seconds=i)).isoformat(),
+                    "/chat/completions",
+                    None,
+                    None,
+                    outcome,
+                    status,
+                    etype,
+                    etype,
+                    100.0,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
                 ),
             )
 
@@ -1064,14 +1098,16 @@ class TestAnomalyDetection:
                     "INSERT INTO timeseries (bucket_utc, requests_total, requests_success, "
                     "requests_rate_limited, requests_capacity_error, requests_server_error, "
                     "requests_client_error, requests_connection_error, requests_malformed) "
-                    "VALUES (?, 5, 0, 0, 0, 5, 0, 0, 0)", (bucket,),
+                    "VALUES (?, 5, 0, 0, 0, 5, 0, 0, 0)",
+                    (bucket,),
                 )
             else:
                 conn.execute(
                     "INSERT INTO timeseries (bucket_utc, requests_total, requests_success, "
                     "requests_rate_limited, requests_capacity_error, requests_server_error, "
                     "requests_client_error, requests_connection_error, requests_malformed) "
-                    "VALUES (?, 1, 1, 0, 0, 0, 0, 0, 0)", (bucket,),
+                    "VALUES (?, 1, 1, 0, 0, 0, 0, 0, 0)",
+                    (bucket,),
                 )
         conn.commit()
         conn.close()

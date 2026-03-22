@@ -62,12 +62,14 @@ class OutcomeClassification(NamedTuple):
     is_malformed: bool
 
 
-_LLM_CONNECTION_ERROR_TYPES = frozenset({
-    "timeout",
-    "connection_failed",
-    "connection_stall",
-    "connection_reset",
-})
+_LLM_CONNECTION_ERROR_TYPES = frozenset(
+    {
+        "timeout",
+        "connection_failed",
+        "connection_stall",
+        "connection_reset",
+    }
+)
 
 
 def _classify_outcome(
