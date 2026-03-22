@@ -372,17 +372,32 @@ def serve(
         )
         raise typer.Exit(1) from e
 
-    from errorworks.llm.server import create_app
+    if config.server.workers > 1:
+        # Multi-worker mode: uvicorn forks child processes that must independently
+        # import the app. Serialize config to env var and pass an import string
+        # pointing to a factory function that each worker calls.
+        import os
 
-    app = create_app(config)
+        os.environ["_ERRORWORKS_LLM_CONFIG"] = config.model_dump_json()
+        uvicorn.run(
+            "errorworks.llm.server:_create_app_from_env",
+            factory=True,
+            host=config.server.host,
+            port=config.server.port,
+            workers=config.server.workers,
+            log_level="info",
+        )
+    else:
+        from errorworks.llm.server import create_app
 
-    uvicorn.run(
-        app,
-        host=config.server.host,
-        port=config.server.port,
-        workers=config.server.workers,
-        log_level="info",
-    )
+        server_app = create_app(config)
+        uvicorn.run(
+            server_app,
+            host=config.server.host,
+            port=config.server.port,
+            workers=1,
+            log_level="info",
+        )
 
 
 @app.command()
