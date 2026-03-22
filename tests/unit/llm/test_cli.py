@@ -317,13 +317,12 @@ def test_presets_sorted():
 
 
 def test_show_config_defaults_yaml():
-    """show-config with defaults produces parseable YAML output."""
+    """show-config with defaults produces YAML parseable by safe_load (no !!python tags)."""
     result = runner.invoke(app, ["show-config"])
     assert result.exit_code == 0, result.output
-    # The YAML output may contain Python-tagged tuples that safe_load rejects,
-    # so use yaml.full_load which handles !!python/tuple tags.
-    parsed = yaml.full_load(result.output)
+    parsed = yaml.safe_load(result.output)
     assert isinstance(parsed, dict)
+    assert "!!python" not in result.output
 
 
 def test_show_config_json_format():
@@ -344,6 +343,22 @@ def test_show_config_invalid_preset():
     """show-config --preset=nonexistent exits 1."""
     result = runner.invoke(app, ["show-config", "--preset=nonexistent"])
     assert result.exit_code == 1
+
+
+def test_show_config_invalid_format():
+    """show-config --format=xml should exit non-zero, not silently fall through."""
+    result = runner.invoke(app, ["show-config", "--format=xml"])
+    assert result.exit_code != 0
+
+
+@_patch_uvicorn_run
+def test_serve_multi_worker_cleans_up_env_var(mock_run):
+    """Env var _ERRORWORKS_LLM_CONFIG is cleaned up after uvicorn.run returns."""
+    import os
+
+    result = runner.invoke(app, ["serve", "--workers=2"])
+    assert result.exit_code == 0, result.output
+    assert "_ERRORWORKS_LLM_CONFIG" not in os.environ
 
 
 # ---------------------------------------------------------------------------

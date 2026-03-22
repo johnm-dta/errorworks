@@ -379,14 +379,17 @@ def serve(
         import os
 
         os.environ["_ERRORWORKS_LLM_CONFIG"] = config.model_dump_json()
-        uvicorn.run(
-            "errorworks.llm.server:_create_app_from_env",
-            factory=True,
-            host=config.server.host,
-            port=config.server.port,
-            workers=config.server.workers,
-            log_level="info",
-        )
+        try:
+            uvicorn.run(
+                "errorworks.llm.server:_create_app_from_env",
+                factory=True,
+                host=config.server.host,
+                port=config.server.port,
+                workers=config.server.workers,
+                log_level="info",
+            )
+        finally:
+            os.environ.pop("_ERRORWORKS_LLM_CONFIG", None)
     else:
         from errorworks.llm.server import create_app
 
@@ -468,12 +471,15 @@ def show_config(
         typer.secho(f"Configuration error: {e}", fg=typer.colors.RED, err=True)
         raise typer.Exit(1) from e
 
-    config_dict = config.model_dump()
+    config_dict = config.model_dump(mode="json")
 
     if output_format == "json":
         typer.echo(json.dumps(config_dict, indent=2))
-    else:
+    elif output_format == "yaml":
         typer.echo(yaml.dump(config_dict, default_flow_style=False, sort_keys=False))
+    else:
+        typer.secho(f"Error: unsupported format '{output_format}'. Use 'json' or 'yaml'.", fg=typer.colors.RED, err=True)
+        raise typer.Exit(1)
 
 
 # MCP server CLI - separate entry point
