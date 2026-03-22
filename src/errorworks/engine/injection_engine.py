@@ -175,9 +175,10 @@ class InjectionEngine:
             if roll < threshold:
                 return spec
 
-        # Unreachable: roll < total_weight (guarded above) guarantees a match
-        # in the loop. Defensive return for static analysis / type checkers.
-        return None  # pragma: no cover
+        # Defensive return for static analysis / type checkers.
+        # Reachable via floating-point accumulation edge cases where
+        # cumulative sum never reaches roll due to precision loss.
+        return None
 
     def reset(self) -> None:
         """Reset the engine state (clears burst timing)."""
