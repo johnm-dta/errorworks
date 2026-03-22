@@ -666,7 +666,7 @@ class TestErrorResponseBodies:
     """Tests for error response body format."""
 
     def test_rate_limit_error_body(self, tmp_metrics_db):
-        """429 error has OpenAI-compatible error body."""
+        """429 error has OpenAI-compatible error body with all 4 fields."""
         config = ChaosLLMConfig(
             metrics=MetricsConfig(database=tmp_metrics_db),
             latency=LatencyConfig(base_ms=0, jitter_ms=0),
@@ -684,9 +684,11 @@ class TestErrorResponseBodies:
         assert "error" in data
         assert data["error"]["type"] == "rate_limit_error"
         assert "message" in data["error"]
+        assert "param" in data["error"]
+        assert "code" in data["error"]
 
     def test_server_error_body(self, tmp_metrics_db):
-        """500 error has OpenAI-compatible error body."""
+        """500 error has OpenAI-compatible error body with param field."""
         config = ChaosLLMConfig(
             metrics=MetricsConfig(database=tmp_metrics_db),
             latency=LatencyConfig(base_ms=0, jitter_ms=0),
@@ -703,6 +705,7 @@ class TestErrorResponseBodies:
 
         assert "error" in data
         assert data["error"]["type"] == "server_error"
+        assert data["error"]["param"] is None
 
 
 class TestContentTypeHeaders:
@@ -880,6 +883,42 @@ class TestConnectionErrors:
         )
         # Timeout either returns 504 (50%) or drops connection (50% -> 500 in TestClient)
         assert response.status_code in {500, 504}
+
+    def test_timeout_504_body_matches_standard_format(self, tmp_metrics_db):
+        """When timeout returns 504, body format must match other HTTP errors (type, message, param, code)."""
+        import random as random_module
+
+        config = ChaosLLMConfig(
+            server=ServerConfig(admin_token=TEST_ADMIN_TOKEN),
+            metrics=MetricsConfig(database=tmp_metrics_db),
+            latency=LatencyConfig(base_ms=0, jitter_ms=0),
+            error_injection=ErrorInjectionConfig(
+                timeout_pct=100.0,
+                timeout_sec=(0, 0),
+            ),
+        )
+        app = create_app(config)
+        server = app.state.server
+        # Force the 504 path by seeding RNG to produce return_504=True
+        server._error_injector._engine._rng = random_module.Random(42)
+        client = TestClient(app, raise_server_exceptions=False)
+
+        # Try multiple times to hit a 504 (50% chance each time)
+        for _ in range(20):
+            server._error_injector._engine._rng = random_module.Random(42)
+            response = client.post(
+                "/v1/chat/completions",
+                json={"model": "gpt-4", "messages": []},
+            )
+            if response.status_code == 504:
+                data = response.json()
+                assert "error" in data
+                assert "type" in data["error"]
+                assert "message" in data["error"]
+                assert "param" in data["error"]
+                assert "code" in data["error"]
+                return
+        pytest.skip("Could not hit 504 path in 20 attempts")
 
     def test_connection_stall_raises(self, tmp_metrics_db):
         """100% connection_stall with zero delays raises ConnectionResetError."""

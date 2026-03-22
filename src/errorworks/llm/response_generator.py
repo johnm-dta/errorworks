@@ -328,6 +328,17 @@ class ResponseGenerator:
             model=request.get("model"),
         )
 
+    @staticmethod
+    def _extract_text_content(content: Any) -> str:
+        """Extract text from message content, handling both string and multi-modal list formats."""
+        if isinstance(content, str):
+            return content
+        if isinstance(content, list):
+            # Multi-modal: extract text parts
+            text_parts = [part.get("text", "") for part in content if isinstance(part, dict) and part.get("type") == "text"]
+            return " ".join(text_parts) if text_parts else ""
+        return str(content) if content else ""
+
     def _generate_echo_response(self, request: dict[str, Any]) -> str:
         """Echo parts of the input prompt."""
         messages = request.get("messages", [])
@@ -337,10 +348,10 @@ class ResponseGenerator:
         # Get the last user message
         user_messages = [m for m in messages if m.get("role") == "user"]
         if user_messages:
-            last_content = user_messages[-1].get("content", "")
+            last_content = self._extract_text_content(user_messages[-1].get("content", ""))
         else:
             # Fall back to last message of any role
-            last_content = messages[-1].get("content", "")
+            last_content = self._extract_text_content(messages[-1].get("content", ""))
 
         # Truncate if too long
         max_echo_len = 200
@@ -381,7 +392,7 @@ class ResponseGenerator:
         parts = []
         for msg in messages:
             role = msg.get("role", "")
-            content = msg.get("content", "")
+            content = self._extract_text_content(msg.get("content", ""))
             parts.append(f"{role}: {content}")
         return "\n".join(parts)
 

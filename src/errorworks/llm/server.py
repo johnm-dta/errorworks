@@ -538,7 +538,7 @@ class ChaosLLMServer:
             )
             if status_code == 504:
                 return JSONResponse(
-                    {"error": {"type": "timeout", "message": "Request timed out"}},
+                    {"error": {"message": "Request timed out", "type": "server_error", "param": None, "code": "timeout"}},
                     status_code=504,
                 )
             raise ConnectionResetError("Request timed out")
@@ -589,8 +589,9 @@ class ChaosLLMServer:
 
         body = {
             "error": {
-                "type": openai_error_type,
                 "message": error_message,
+                "type": openai_error_type,
+                "param": None,
                 "code": error_type,
             }
         }

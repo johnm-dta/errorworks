@@ -640,6 +640,29 @@ class TestEchoMode:
         assert len(response.content) == len("Echo: ") + 200 + len("...")
         assert response.content.endswith("...")
 
+    def test_echo_multimodal_content_extracts_text(self) -> None:
+        """Echo mode extracts text from multi-modal content (list of parts) instead of dumping raw list."""
+        config = ResponseConfig(mode="echo")
+        generator = ResponseGenerator(config)
+
+        request = {
+            "model": "gpt-4",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": "What is in this image?"},
+                        {"type": "image_url", "image_url": {"url": "https://example.com/img.png"}},
+                    ],
+                }
+            ],
+        }
+        response = generator.generate(request)
+        assert isinstance(response.content, str)
+        assert "What is in this image?" in response.content
+        # Must not contain raw list/dict representation
+        assert "[{" not in response.content
+
 
 class TestPresetMode:
     """Tests for preset response generation mode."""
