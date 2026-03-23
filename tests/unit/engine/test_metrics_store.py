@@ -383,6 +383,69 @@ class TestExportData:
         assert data["requests"][0]["request_id"] == "req-1"
 
 
+class TestGetStatsSQL:
+    """Tests that get_stats computes percentiles via SQL, not Python-side fetchall."""
+
+    def test_percentiles_correct_with_many_rows(self, store: MetricsStore) -> None:
+        """Percentiles are correct with 200 rows (verifies SQL-based computation)."""
+        for i in range(200):
+            store.record(
+                request_id=f"req-{i}",
+                timestamp_utc="2024-01-15T10:30:00+00:00",
+                outcome="success",
+                status_code=200,
+                latency_ms=float(i + 1),  # 1.0 .. 200.0
+            )
+        store.commit()
+        stats = store.get_stats()
+        lat = stats["latency_stats"]
+        # p50 of [1..200] = 100, p95 = 190, p99 = 198
+        assert lat["p50_ms"] == 100.0
+        assert lat["p95_ms"] == 190.0
+        assert lat["p99_ms"] == 198.0
+        assert lat["max_ms"] == 200.0
+
+
+class TestExportDataPagination:
+    """Tests for export_data with limit/offset parameters."""
+
+    def test_export_with_limit(self, store: MetricsStore) -> None:
+        """export_data respects limit parameter."""
+        for i in range(10):
+            store.record(
+                request_id=f"req-{i}",
+                timestamp_utc="2024-01-15T10:30:00+00:00",
+                outcome="success",
+            )
+        store.commit()
+        data = store.export_data(limit=3)
+        assert len(data["requests"]) == 3
+
+    def test_export_with_offset(self, store: MetricsStore) -> None:
+        """export_data respects offset parameter."""
+        for i in range(10):
+            store.record(
+                request_id=f"req-{i:03d}",
+                timestamp_utc=f"2024-01-15T10:30:{i:02d}+00:00",
+                outcome="success",
+            )
+        store.commit()
+        data = store.export_data(limit=3, offset=7)
+        assert len(data["requests"]) == 3
+
+    def test_export_default_no_limit_preserved(self, store: MetricsStore) -> None:
+        """export_data with no args still returns all data (backward compat)."""
+        for i in range(5):
+            store.record(
+                request_id=f"req-{i}",
+                timestamp_utc="2024-01-15T10:30:00+00:00",
+                outcome="success",
+            )
+        store.commit()
+        data = store.export_data()
+        assert len(data["requests"]) == 5
+
+
 class TestReset:
     """Tests for reset behavior."""
 

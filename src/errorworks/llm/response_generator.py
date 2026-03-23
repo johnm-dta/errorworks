@@ -239,9 +239,13 @@ class ResponseGenerator:
         # Setup Jinja2 environment with custom helpers
         self._jinja_env = self._create_jinja_env()
 
-        # Pre-compile template at construction — fail fast on syntax errors
+        # Pre-compile template at construction — fail fast on syntax/length errors
         self._compiled_template: jinja2.Template | None = None
         if config.mode == "template":
+            if len(config.template.body) > config.max_template_length:
+                raise ValueError(
+                    f"Config template body exceeds max_template_length ({len(config.template.body)} > {config.max_template_length})"
+                )
             self._compiled_template = self._jinja_env.from_string(config.template.body)
 
     @property
@@ -328,6 +332,17 @@ class ResponseGenerator:
             model=request.get("model"),
         )
 
+    @staticmethod
+    def _extract_text_content(content: Any) -> str:
+        """Extract text from message content, handling both string and multi-modal list formats."""
+        if isinstance(content, str):
+            return content
+        if isinstance(content, list):
+            # Multi-modal: extract text parts
+            text_parts = [part.get("text", "") for part in content if isinstance(part, dict) and part.get("type") == "text"]
+            return " ".join(text_parts) if text_parts else ""
+        return str(content) if content else ""
+
     def _generate_echo_response(self, request: dict[str, Any]) -> str:
         """Echo parts of the input prompt."""
         messages = request.get("messages", [])
@@ -337,10 +352,10 @@ class ResponseGenerator:
         # Get the last user message
         user_messages = [m for m in messages if m.get("role") == "user"]
         if user_messages:
-            last_content = user_messages[-1].get("content", "")
+            last_content = self._extract_text_content(user_messages[-1].get("content", ""))
         else:
             # Fall back to last message of any role
-            last_content = messages[-1].get("content", "")
+            last_content = self._extract_text_content(messages[-1].get("content", ""))
 
         # Truncate if too long
         max_echo_len = 200
@@ -381,7 +396,7 @@ class ResponseGenerator:
         parts = []
         for msg in messages:
             role = msg.get("role", "")
-            content = msg.get("content", "")
+            content = self._extract_text_content(msg.get("content", ""))
             parts.append(f"{role}: {content}")
         return "\n".join(parts)
 
@@ -412,21 +427,27 @@ class ResponseGenerator:
         elif mode == "template":
             # Use override template if provided
             if template_override is not None:
-                if len(template_override) > max_len:
-                    raise ValueError(f"Template override exceeds max length ({len(template_override)} > {max_len})")
                 # Header-override template is Tier 3 (external data from request header).
                 # Return error content instead of crashing — the server must produce
                 # a deterministic response, not an unplanned 500.
-                try:
-                    template = self._jinja_env.from_string(template_override)
-                    content = template.render(
-                        request=request,
-                        messages=request.get("messages", []),
-                        model=request.get("model"),
+                if len(template_override) > max_len:
+                    logger.warning(
+                        "template_override_too_long",
+                        length=len(template_override),
+                        max_length=max_len,
                     )
-                except jinja2.TemplateError as exc:
-                    logger.warning("template_override_error", error=str(exc), error_type=type(exc).__name__)
-                    content = f"[template_override_error: {exc}]"
+                    content = f"[template_override_error: exceeds max length ({len(template_override)} > {max_len})]"
+                else:
+                    try:
+                        template = self._jinja_env.from_string(template_override)
+                        content = template.render(
+                            request=request,
+                            messages=request.get("messages", []),
+                            model=request.get("model"),
+                        )
+                    except jinja2.TemplateError as exc:
+                        logger.warning("template_override_error", error=str(exc), error_type=type(exc).__name__)
+                        content = f"[template_override_error: {exc}]"
             else:
                 if self._compiled_template is None:
                     logger.warning("template_mode_unavailable", detail="server not configured for template mode")

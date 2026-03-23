@@ -538,7 +538,7 @@ class ChaosLLMServer:
             )
             if status_code == 504:
                 return JSONResponse(
-                    {"error": {"type": "timeout", "message": "Request timed out"}},
+                    {"error": {"message": "Request timed out", "type": "server_error", "param": None, "code": "timeout"}},
                     status_code=504,
                 )
             raise ConnectionResetError("Request timed out")
@@ -589,8 +589,9 @@ class ChaosLLMServer:
 
         body = {
             "error": {
-                "type": openai_error_type,
                 "message": error_message,
+                "type": openai_error_type,
+                "param": None,
                 "code": error_type,
             }
         }
@@ -814,3 +815,16 @@ def create_app(config: ChaosLLMConfig) -> Starlette:
     # Attach server to app.state for external consumers (e.g., test fixtures)
     server.app.state.server = server
     return server.app
+
+
+def _create_app_from_env() -> Starlette:
+    """Factory for uvicorn multi-worker mode.
+
+    Reads serialized config from the _ERRORWORKS_LLM_CONFIG environment
+    variable and returns a fully configured Starlette app. Each forked
+    worker calls this independently to build its own app instance.
+    """
+    import os
+
+    config = ChaosLLMConfig.model_validate_json(os.environ["_ERRORWORKS_LLM_CONFIG"])
+    return create_app(config)

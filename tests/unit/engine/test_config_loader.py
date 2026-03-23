@@ -79,6 +79,16 @@ class TestDeepMerge:
         result["a"]["nested"] = 99
         assert base["a"]["nested"] == 1, "Mutating result must not affect base"
 
+    def test_result_does_not_alias_override_mutable_values(self) -> None:
+        """Mutable values from override must be copied, not aliased into result."""
+        override_list = [1, 2, 3]
+        base = {"a": "old"}
+        override = {"a": override_list}
+        result = deep_merge(base, override)
+        # Mutating the override's list must not affect the result
+        override_list.append(4)
+        assert result["a"] == [1, 2, 3], "Result aliases override mutable value"
+
 
 # =============================================================================
 # list_presets

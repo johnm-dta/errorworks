@@ -940,3 +940,16 @@ def create_app(config: ChaosWebConfig) -> Starlette:
     server = ChaosWebServer(config)
     server.app.state.server = server
     return server.app
+
+
+def _create_app_from_env() -> Starlette:
+    """Factory for uvicorn multi-worker mode.
+
+    Reads serialized config from the _ERRORWORKS_WEB_CONFIG environment
+    variable and returns a fully configured Starlette app. Each forked
+    worker calls this independently to build its own app instance.
+    """
+    import os
+
+    config = ChaosWebConfig.model_validate_json(os.environ["_ERRORWORKS_WEB_CONFIG"])
+    return create_app(config)

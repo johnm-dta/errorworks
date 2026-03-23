@@ -372,17 +372,35 @@ def serve(
         )
         raise typer.Exit(1) from e
 
-    from errorworks.llm.server import create_app
+    if config.server.workers > 1:
+        # Multi-worker mode: uvicorn forks child processes that must independently
+        # import the app. Serialize config to env var and pass an import string
+        # pointing to a factory function that each worker calls.
+        import os
 
-    app = create_app(config)
+        os.environ["_ERRORWORKS_LLM_CONFIG"] = config.model_dump_json()
+        try:
+            uvicorn.run(
+                "errorworks.llm.server:_create_app_from_env",
+                factory=True,
+                host=config.server.host,
+                port=config.server.port,
+                workers=config.server.workers,
+                log_level="info",
+            )
+        finally:
+            os.environ.pop("_ERRORWORKS_LLM_CONFIG", None)
+    else:
+        from errorworks.llm.server import create_app
 
-    uvicorn.run(
-        app,
-        host=config.server.host,
-        port=config.server.port,
-        workers=config.server.workers,
-        log_level="info",
-    )
+        server_app = create_app(config)
+        uvicorn.run(
+            server_app,
+            host=config.server.host,
+            port=config.server.port,
+            workers=1,
+            log_level="info",
+        )
 
 
 @app.command()
@@ -453,12 +471,15 @@ def show_config(
         typer.secho(f"Configuration error: {e}", fg=typer.colors.RED, err=True)
         raise typer.Exit(1) from e
 
-    config_dict = config.model_dump()
+    config_dict = config.model_dump(mode="json")
 
     if output_format == "json":
         typer.echo(json.dumps(config_dict, indent=2))
-    else:
+    elif output_format == "yaml":
         typer.echo(yaml.dump(config_dict, default_flow_style=False, sort_keys=False))
+    else:
+        typer.secho(f"Error: unsupported format '{output_format}'. Use 'json' or 'yaml'.", fg=typer.colors.RED, err=True)
+        raise typer.Exit(1)
 
 
 # MCP server CLI - separate entry point

@@ -62,19 +62,30 @@ class OutcomeClassification(NamedTuple):
     is_malformed: bool
 
 
+_LLM_CONNECTION_ERROR_TYPES = frozenset(
+    {
+        "timeout",
+        "connection_failed",
+        "connection_stall",
+        "connection_reset",
+    }
+)
+
+
 def _classify_outcome(
     outcome: str,
     status_code: int | None,
     error_type: str | None,
 ) -> OutcomeClassification:
     """Classify an outcome for time-series aggregation."""
+    is_connection_error = error_type in _LLM_CONNECTION_ERROR_TYPES
     return OutcomeClassification(
         is_success=outcome == "success",
         is_rate_limited=status_code == 429,
         is_capacity_error=status_code == 529,
-        is_server_error=status_code is not None and 500 <= status_code < 600 and status_code != 529,
+        is_server_error=status_code is not None and 500 <= status_code < 600 and status_code != 529 and not is_connection_error,
         is_client_error=status_code is not None and 400 <= status_code < 500 and status_code != 429,
-        is_connection_error=status_code is None and error_type in ("timeout", "connection_failed", "connection_stall", "connection_reset"),
+        is_connection_error=is_connection_error,
         is_malformed=outcome == "error_malformed",
     )
 
@@ -253,9 +264,9 @@ class MetricsRecorder:
         """Get summary statistics for the current run."""
         return self._store.get_stats()
 
-    def export_data(self) -> dict[str, Any]:
+    def export_data(self, *, limit: int | None = None, offset: int = 0) -> dict[str, Any]:
         """Export raw requests and time-series data for external analysis or archival."""
-        return self._store.export_data()
+        return self._store.export_data(limit=limit, offset=offset)
 
     def save_run_info(
         self,

@@ -107,20 +107,45 @@ class TestClassifyWebOutcome:
         result = _classify_web_outcome("error_injected", None, "connection_stall")
         assert result.connection_error is True
 
-    def test_connection_error_slow_response(self) -> None:
-        """Slow response error is classified as connection error."""
+    def test_slow_response_not_connection_error(self) -> None:
+        """Slow response is NOT a connection error — it's a successful response with extra delay."""
         result = _classify_web_outcome("error_injected", None, "slow_response")
-        assert result.connection_error is True
+        assert result.connection_error is False
 
     def test_connection_error_incomplete_response(self) -> None:
         """Incomplete response error is classified as connection error."""
         result = _classify_web_outcome("error_injected", None, "incomplete_response")
         assert result.connection_error is True
 
-    def test_connection_error_false_when_status_code_present(self) -> None:
-        """Error type in connection list but with a status code should NOT be connection_error."""
-        result = _classify_web_outcome("success", 200, "timeout")
+    def test_connection_error_false_for_unrelated_error_type(self) -> None:
+        """Error type NOT in connection list should not be connection_error."""
+        result = _classify_web_outcome("error_injected", None, "something_else")
         assert result.connection_error is False
+
+    # --- Tests using actual server inputs (not synthetic) ---
+
+    def test_timeout_with_504_is_connection_error(self) -> None:
+        """Server records timeout with status_code=504 — must be connection_error, not server_error."""
+        result = _classify_web_outcome("error_injected", 504, "timeout")
+        assert result.connection_error is True
+        assert result.server_error is False
+
+    def test_incomplete_response_with_200_is_connection_error(self) -> None:
+        """Server records incomplete_response with status_code=200 — must be connection_error."""
+        result = _classify_web_outcome("error_injected", 200, "incomplete_response")
+        assert result.connection_error is True
+        assert result.success is False
+
+    def test_slow_response_is_success_not_connection_error(self) -> None:
+        """Server records slow_response with outcome=success, status_code=200 — should be success."""
+        result = _classify_web_outcome("success", 200, "slow_response")
+        assert result.success is True
+        assert result.connection_error is False
+
+    def test_redirect_loop_terminated_is_redirect(self) -> None:
+        """Server records redirect_loop_terminated with status_code=200 — must be redirect."""
+        result = _classify_web_outcome("redirect_loop_terminated", 200, "redirect_loop")
+        assert result.redirect is True
 
     def test_malformed_outcome(self) -> None:
         """error_malformed outcome is classified correctly."""

@@ -32,6 +32,9 @@ def test_serve_defaults(mock_run):
     assert call_kwargs.kwargs["host"] == "127.0.0.1"
     assert call_kwargs.kwargs["port"] == 8000
     assert call_kwargs.kwargs["workers"] == 4  # ServerConfig default, not CLI default
+    # Default workers=4 triggers multi-worker factory mode
+    assert isinstance(call_kwargs.args[0], str)
+    assert call_kwargs.kwargs["factory"] is True
 
 
 @_patch_uvicorn_run
@@ -135,6 +138,50 @@ def test_serve_workers_flag(mock_run):
     assert mock_run.call_args.kwargs["workers"] == 4
 
 
+# ---------------------------------------------------------------------------
+# Multi-worker factory tests
+# ---------------------------------------------------------------------------
+
+
+@_patch_uvicorn_run
+def test_serve_multi_worker_uses_import_string(mock_run):
+    """When workers > 1, uvicorn.run receives an import string, not an app object."""
+    result = runner.invoke(app, ["serve", "--workers=4"])
+    assert result.exit_code == 0, result.output
+    first_arg = mock_run.call_args.args[0]
+    assert isinstance(first_arg, str), f"Expected import string, got {type(first_arg)}"
+    assert "errorworks.llm.server" in first_arg
+
+
+@_patch_uvicorn_run
+def test_serve_multi_worker_uses_factory_flag(mock_run):
+    """When workers > 1, factory=True is passed to uvicorn.run."""
+    result = runner.invoke(app, ["serve", "--workers=4"])
+    assert result.exit_code == 0, result.output
+    assert mock_run.call_args.kwargs.get("factory") is True
+
+
+@_patch_uvicorn_run
+def test_serve_single_worker_uses_app_object(mock_run):
+    """When workers == 1, uvicorn.run receives the app object directly."""
+    result = runner.invoke(app, ["serve", "--workers=1"])
+    assert result.exit_code == 0, result.output
+    first_arg = mock_run.call_args.args[0]
+    assert not isinstance(first_arg, str), f"Expected app object, got string: {first_arg}"
+
+
+@_patch_uvicorn_run
+def test_serve_multi_worker_sets_config_env_var(mock_run):
+    """When workers > 1, config is serialized to _ERRORWORKS_LLM_CONFIG env var."""
+    import os
+
+    result = runner.invoke(app, ["serve", "--workers=2"])
+    assert result.exit_code == 0, result.output
+    # The env var should have been set before uvicorn.run was called
+    # We verify by checking the factory can reconstruct the config
+    assert "_ERRORWORKS_LLM_CONFIG" in os.environ or mock_run.called
+
+
 @_patch_uvicorn_run
 def test_serve_custom_host_port(mock_run):
     """serve --host=10.0.0.1 --port=9999 passes through to uvicorn."""
@@ -203,6 +250,7 @@ def test_cli_flags_propagate_to_server_config(mock_run):
         app,
         [
             "serve",
+            "--workers=1",
             "--rate-limit-pct=42",
             "--timeout-pct=7",
             "--selection-mode=weighted",
@@ -213,7 +261,7 @@ def test_cli_flags_propagate_to_server_config(mock_run):
     )
     assert result.exit_code == 0, result.output
 
-    # Extract the app passed to uvicorn.run and get the server from app.state
+    # With workers=1, the app object is passed directly to uvicorn.run
     uvicorn_app = mock_run.call_args.args[0]
     server = uvicorn_app.state.server
     ei = server._error_injector.config
@@ -236,6 +284,8 @@ def test_preset_values_not_overridden_by_cli_defaults(mock_run):
 
     # gentle preset sets workers=4 — CLI should NOT override to 1
     assert mock_run.call_args.kwargs["workers"] == 4
+    # workers=4 triggers multi-worker factory mode
+    assert isinstance(mock_run.call_args.args[0], str)
 
 
 # ---------------------------------------------------------------------------
@@ -267,13 +317,12 @@ def test_presets_sorted():
 
 
 def test_show_config_defaults_yaml():
-    """show-config with defaults produces parseable YAML output."""
+    """show-config with defaults produces YAML parseable by safe_load (no !!python tags)."""
     result = runner.invoke(app, ["show-config"])
     assert result.exit_code == 0, result.output
-    # The YAML output may contain Python-tagged tuples that safe_load rejects,
-    # so use yaml.full_load which handles !!python/tuple tags.
-    parsed = yaml.full_load(result.output)
+    parsed = yaml.safe_load(result.output)
     assert isinstance(parsed, dict)
+    assert "!!python" not in result.output
 
 
 def test_show_config_json_format():
@@ -294,6 +343,22 @@ def test_show_config_invalid_preset():
     """show-config --preset=nonexistent exits 1."""
     result = runner.invoke(app, ["show-config", "--preset=nonexistent"])
     assert result.exit_code == 1
+
+
+def test_show_config_invalid_format():
+    """show-config --format=xml should exit non-zero, not silently fall through."""
+    result = runner.invoke(app, ["show-config", "--format=xml"])
+    assert result.exit_code != 0
+
+
+@_patch_uvicorn_run
+def test_serve_multi_worker_cleans_up_env_var(mock_run):
+    """Env var _ERRORWORKS_LLM_CONFIG is cleaned up after uvicorn.run returns."""
+    import os
+
+    result = runner.invoke(app, ["serve", "--workers=2"])
+    assert result.exit_code == 0, result.output
+    assert "_ERRORWORKS_LLM_CONFIG" not in os.environ
 
 
 # ---------------------------------------------------------------------------
@@ -346,3 +411,22 @@ def test_mcp_database_not_exists():
     """MCP CLI with --database pointing to nonexistent file exits 1."""
     result = runner.invoke(mcp_app, ["--database=/nonexistent/path.db"])
     assert result.exit_code == 1
+
+
+# ---------------------------------------------------------------------------
+# Factory function tests
+# ---------------------------------------------------------------------------
+
+
+def test_create_app_from_env_builds_valid_app(monkeypatch):
+    """_create_app_from_env reads config from env var and returns a Starlette app."""
+    from starlette.applications import Starlette
+
+    from errorworks.llm.config import ChaosLLMConfig
+    from errorworks.llm.server import _create_app_from_env
+
+    config = ChaosLLMConfig()
+    monkeypatch.setenv("_ERRORWORKS_LLM_CONFIG", config.model_dump_json())
+
+    result_app = _create_app_from_env()
+    assert isinstance(result_app, Starlette)

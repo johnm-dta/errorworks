@@ -97,7 +97,27 @@ Key fixture helpers: `post_completion()`, `fetch_page()`, `update_config()`, `ge
 - `SIM108` (ternary) is ignored — prefer explicit if/else
 - First-party import: `errorworks`
 
-<!-- filigree:instructions:v1.5.0:bcb039c9 -->
+## Epic Creation Workflow
+
+When creating a new epic (a major capability or theme of work), always follow this process:
+
+1. **Create the epic** — `type: epic` with a clear description of the capability and its key sub-capabilities
+2. **Draft requirements** — Create `type: requirement` issues as children of the epic (`parent_id`). Each requirement should have:
+   - `req_type`: functional, non_functional, constraint, or interface
+   - `rationale`: why this requirement exists
+   - `acceptance_criteria`: testable conditions
+   - `stakeholder`: who needs it
+3. **Add acceptance criteria** — For non-trivial requirements, create `type: acceptance_criterion` children with Given/When/Then fields
+4. **Label the epic** — Add `future` label for backlog epics, or appropriate labels for active work
+
+Requirements start in `drafted` state. As epics move out of backlog:
+- Requirements go through `reviewing → approved` during scope refinement
+- Tasks/features created during implementation link back to their requirements via dependencies
+- Requirements move to `implementing → verified` as work completes (verification requires `verification_method`: test, inspection, analysis, or demonstration)
+
+This ensures traceability from "why does this exist" through to "how was it verified."
+
+<!-- filigree:instructions:v1.5.1:63b4188e -->
 ## Filigree Issue Tracker
 
 Use `filigree` for all task tracking in this project. Data lives in `.filigree/`.
@@ -112,10 +132,14 @@ faster and return structured data. Key tools:
 - `create_issue` / `update_issue` / `close_issue` — manage issues
 - `claim_issue` / `claim_next` — atomic claiming
 - `add_comment` / `add_label` — metadata
+- `list_labels` / `get_label_taxonomy` — discover labels and reserved namespaces
 - `create_plan` / `get_plan` — milestone planning
 - `get_stats` / `get_metrics` — project health
 - `get_valid_transitions` — workflow navigation
 - `observe` / `list_observations` / `dismiss_observation` / `promote_observation` — agent scratchpad
+- `trigger_scan` / `trigger_scan_batch` / `get_scan_status` / `preview_scan` / `list_scanners` — automated code scanning
+- `get_finding` / `list_findings` / `update_finding` / `batch_update_findings` — scan finding triage
+- `promote_finding` / `dismiss_finding` — finding lifecycle (promote to issue or dismiss)
 
 Observations are fire-and-forget notes that expire after 14 days. Use `list_issues --label=from-observation` to find promoted observations.
 
@@ -125,8 +149,8 @@ design concern. Don't stop what you're doing; just fire off the observation and
 carry on. They're ideal for "I don't have time to investigate this right now, but
 I want to come back to it." Include `file_path` and `line` when relevant so the
 observation is anchored to code. At session end, skim `list_observations` and
-either `dismiss` (not worth tracking) or `promote` (deserves an issue) anything
-that's accumulated.
+either `dismiss_observation` (not worth tracking) or `promote_observation`
+(deserves an issue) for anything that's accumulated.
 
 Fall back to CLI (`filigree <command>`) when MCP is unavailable.
 
@@ -137,6 +161,9 @@ Fall back to CLI (`filigree <command>`) when MCP is unavailable.
 filigree ready                              # Show issues ready to work (no blockers)
 filigree list --status=open                 # All open issues
 filigree list --status=in_progress          # Active work
+filigree list --label=bug --label=P1        # Filter by multiple labels (AND)
+filigree list --label-prefix=cluster/       # Filter by label namespace prefix
+filigree list --not-label=wontfix           # Exclude issues with label
 filigree show <id>                          # Detailed issue view
 
 # Creating & updating
@@ -155,6 +182,8 @@ filigree add-comment <id> "text"            # Add comment
 filigree get-comments <id>                  # List comments
 filigree add-label <id> <label>             # Add label
 filigree remove-label <id> <label>          # Remove label
+filigree labels                             # List all labels by namespace
+filigree taxonomy                           # Show reserved namespaces and vocabulary
 
 # Workflow templates
 filigree types                              # List registered types with state flows

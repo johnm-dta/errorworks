@@ -31,6 +31,9 @@ def test_serve_defaults(mock_run):
     assert call_kwargs["host"] == "127.0.0.1"
     assert call_kwargs["port"] == 8200
     assert call_kwargs["workers"] == 4  # ServerConfig default, not CLI default
+    # Default workers=4 triggers multi-worker factory mode
+    assert isinstance(mock_run.call_args.args[0], str)
+    assert call_kwargs["factory"] is True
 
 
 @patch(_UVICORN_RUN)
@@ -136,6 +139,38 @@ def test_serve_workers_flag(mock_run):
     assert call_kwargs["workers"] == 4
 
 
+# ---------------------------------------------------------------------------
+# Multi-worker factory tests
+# ---------------------------------------------------------------------------
+
+
+@patch(_UVICORN_RUN)
+def test_serve_multi_worker_uses_import_string(mock_run):
+    """When workers > 1, uvicorn.run receives an import string, not an app object."""
+    result = runner.invoke(app, ["serve", "--workers=4"])
+    assert result.exit_code == 0, result.output
+    first_arg = mock_run.call_args.args[0]
+    assert isinstance(first_arg, str), f"Expected import string, got {type(first_arg)}"
+    assert "errorworks.web.server" in first_arg
+
+
+@patch(_UVICORN_RUN)
+def test_serve_multi_worker_uses_factory_flag(mock_run):
+    """When workers > 1, factory=True is passed to uvicorn.run."""
+    result = runner.invoke(app, ["serve", "--workers=4"])
+    assert result.exit_code == 0, result.output
+    assert mock_run.call_args.kwargs.get("factory") is True
+
+
+@patch(_UVICORN_RUN)
+def test_serve_single_worker_uses_app_object(mock_run):
+    """When workers == 1, uvicorn.run receives the app object directly."""
+    result = runner.invoke(app, ["serve", "--workers=1"])
+    assert result.exit_code == 0, result.output
+    first_arg = mock_run.call_args.args[0]
+    assert not isinstance(first_arg, str), f"Expected app object, got string: {first_arg}"
+
+
 @patch(_UVICORN_RUN)
 def test_serve_custom_host_port(mock_run):
     """Custom host and port are forwarded to uvicorn."""
@@ -214,13 +249,12 @@ def test_presets_sorted():
 
 
 def test_show_config_defaults_yaml():
-    """show-config with no flags produces parseable output."""
+    """show-config with defaults produces YAML parseable by safe_load (no !!python tags)."""
     result = runner.invoke(app, ["show-config"])
     assert result.exit_code == 0, result.output
-    # Verify via JSON format since YAML output may contain Python-specific tags.
-    json_result = runner.invoke(app, ["show-config", "--format=json"])
-    parsed = json.loads(json_result.output)
+    parsed = yaml.safe_load(result.output)
     assert isinstance(parsed, dict)
+    assert "!!python" not in result.output
 
 
 def test_show_config_json_format():
@@ -243,6 +277,22 @@ def test_show_config_invalid_preset():
     assert result.exit_code == 1
 
 
+def test_show_config_invalid_format():
+    """show-config --format=xml should exit non-zero, not silently fall through."""
+    result = runner.invoke(app, ["show-config", "--format=xml"])
+    assert result.exit_code != 0
+
+
+@patch(_UVICORN_RUN)
+def test_serve_multi_worker_cleans_up_env_var(mock_run):
+    """Env var _ERRORWORKS_WEB_CONFIG is cleaned up after uvicorn.run returns."""
+    import os
+
+    result = runner.invoke(app, ["serve", "--workers=2"])
+    assert result.exit_code == 0, result.output
+    assert "_ERRORWORKS_WEB_CONFIG" not in os.environ
+
+
 # ---------------------------------------------------------------------------
 # version flag
 # ---------------------------------------------------------------------------
@@ -253,3 +303,22 @@ def test_version_flag():
     result = runner.invoke(app, ["serve", "--version"])
     assert result.exit_code == 0, result.output
     assert "chaosweb" in result.output
+
+
+# ---------------------------------------------------------------------------
+# Factory function tests
+# ---------------------------------------------------------------------------
+
+
+def test_create_app_from_env_builds_valid_app(monkeypatch):
+    """_create_app_from_env reads config from env var and returns a Starlette app."""
+    from starlette.applications import Starlette
+
+    from errorworks.web.config import ChaosWebConfig
+    from errorworks.web.server import _create_app_from_env
+
+    config = ChaosWebConfig()
+    monkeypatch.setenv("_ERRORWORKS_WEB_CONFIG", config.model_dump_json())
+
+    result_app = _create_app_from_env()
+    assert isinstance(result_app, Starlette)

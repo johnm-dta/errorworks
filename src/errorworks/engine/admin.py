@@ -87,9 +87,10 @@ async def handle_admin_stats(request: Request, server: ChaosServer) -> JSONRespo
         return denied
     try:
         return JSONResponse(server.get_stats())
-    except sqlite3.Error as e:
+    except sqlite3.Error:
+        logger.exception("admin_stats_database_error")
         return JSONResponse(
-            {"error": {"type": "database_error", "message": f"Failed to retrieve stats: {e}"}},
+            {"error": {"type": "database_error", "message": "Failed to retrieve stats due to a database error"}},
             status_code=503,
         )
 
@@ -100,9 +101,10 @@ async def handle_admin_reset(request: Request, server: ChaosServer) -> JSONRespo
         return denied
     try:
         new_run_id = server.reset()
-    except sqlite3.Error as e:
+    except sqlite3.Error:
+        logger.exception("admin_reset_database_error")
         return JSONResponse(
-            {"error": {"type": "database_error", "message": f"Failed to reset metrics: {e}"}},
+            {"error": {"type": "database_error", "message": "Failed to reset metrics due to a database error"}},
             status_code=503,
         )
     return JSONResponse({"status": "reset", "new_run_id": new_run_id})
@@ -114,8 +116,9 @@ async def handle_admin_export(request: Request, server: ChaosServer) -> JSONResp
         return denied
     try:
         return JSONResponse(server.export_metrics())
-    except sqlite3.Error as e:
+    except sqlite3.Error:
+        logger.exception("admin_export_database_error")
         return JSONResponse(
-            {"error": {"type": "database_error", "message": f"Failed to export metrics: {e}"}},
+            {"error": {"type": "database_error", "message": "Failed to export metrics due to a database error"}},
             status_code=503,
         )

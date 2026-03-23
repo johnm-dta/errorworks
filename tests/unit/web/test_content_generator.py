@@ -665,6 +665,25 @@ class TestGenerateWrongContentType:
             assert ct in known
 
 
+class TestContentGeneratorPresetLocking:
+    """Verify ContentGenerator._get_preset_bank() has proper locking."""
+
+    def test_get_preset_bank_has_double_checked_locking(self, tmp_path: Path) -> None:
+        """_get_preset_bank must use double-checked locking like the LLM counterpart."""
+        import threading
+
+        jsonl_file = tmp_path / "pages.jsonl"
+        jsonl_file.write_text('{"content": "<p>page1</p>", "content_type": "text/html"}\n')
+        config = WebContentConfig(mode="preset", preset={"file": str(jsonl_file), "selection": "random"})
+        generator = ContentGenerator(config)
+
+        # Verify the generator has a _preset_lock attribute (required for thread safety)
+        assert hasattr(generator, "_preset_lock"), (
+            "ContentGenerator missing _preset_lock — needs double-checked locking like ResponseGenerator"
+        )
+        assert isinstance(generator._preset_lock, type(threading.Lock()))
+
+
 class TestPresetBankRandomThreadSafety:
     """Verify PresetBank.next() in random mode is thread-safe."""
 

@@ -551,6 +551,34 @@ class TestTemplateMode:
         assert isinstance(response, OpenAIResponse)
         assert "template_override_error" in response.content
 
+    def test_template_override_too_long_returns_error_content(self) -> None:
+        """Oversized template override returns error in content, not ValueError crash."""
+        config = ResponseConfig(
+            mode="template",
+            template=TemplateResponseConfig(body="Normal response"),
+            max_template_length=100,
+        )
+        generator = ResponseGenerator(config)
+
+        request = {"model": "gpt-4", "messages": []}
+        long_template = "x" * 200
+        # Should return error content, not raise ValueError
+        response = generator.generate(request, template_override=long_template)
+        assert isinstance(response, OpenAIResponse)
+        assert "max length" in response.content.lower() or "too long" in response.content.lower()
+
+    def test_config_template_body_validated_against_max_length(self) -> None:
+        """Config-sourced template body exceeding max_template_length is rejected at init."""
+        long_body = "Hello " * 5000  # 30,000 chars, exceeds default 10,000
+        with pytest.raises((ValueError, jinja2.TemplateError)):
+            ResponseGenerator(
+                ResponseConfig(
+                    mode="template",
+                    template=TemplateResponseConfig(body=long_body),
+                    max_template_length=100,
+                )
+            )
+
     def test_template_override_undefined_var_returns_error_content(self) -> None:
         """Override template with undefined variable returns error, not crash."""
         config = ResponseConfig(
@@ -639,6 +667,29 @@ class TestEchoMode:
         # Should be truncated to 200 chars + "..."
         assert len(response.content) == len("Echo: ") + 200 + len("...")
         assert response.content.endswith("...")
+
+    def test_echo_multimodal_content_extracts_text(self) -> None:
+        """Echo mode extracts text from multi-modal content (list of parts) instead of dumping raw list."""
+        config = ResponseConfig(mode="echo")
+        generator = ResponseGenerator(config)
+
+        request = {
+            "model": "gpt-4",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": "What is in this image?"},
+                        {"type": "image_url", "image_url": {"url": "https://example.com/img.png"}},
+                    ],
+                }
+            ],
+        }
+        response = generator.generate(request)
+        assert isinstance(response.content, str)
+        assert "What is in this image?" in response.content
+        # Must not contain raw list/dict representation
+        assert "[{" not in response.content
 
 
 class TestPresetMode:

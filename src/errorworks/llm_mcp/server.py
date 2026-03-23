@@ -254,12 +254,17 @@ class ChaosLLMAnalyzer:
                 in_burst = False
                 burst_ends.append(i)
 
+        # Track whether the last burst is unfinished
+        unfinished_burst = in_burst
         if in_burst:
             burst_ends.append(len(buckets) - 1)
 
-        # Calculate recovery times
+        # Calculate recovery times — exclude unfinished trailing burst
         recovery_times = []
-        for start, end in zip(burst_starts, burst_ends, strict=True):
+        pairs = list(zip(burst_starts, burst_ends, strict=True))
+        for i, (start, end) in enumerate(pairs):
+            if i == len(pairs) - 1 and unfinished_burst:
+                continue  # Skip unfinished burst — no recovery occurred
             recovery_buckets = end - start
             recovery_times.append(recovery_buckets)
 
@@ -422,11 +427,13 @@ class ChaosLLMAnalyzer:
         if not latencies:
             return {"summary": "No latency data recorded.", "status": "NO_DATA"}
 
-        # Percentiles (nearest-rank method, clamped to valid index)
+        # Percentiles (nearest-rank method: index = ceil(n * p) - 1, clamped)
+        import math
+
         n = len(latencies)
-        p50 = latencies[min(int(n * 0.50), n - 1)] if n > 0 else 0
-        p95 = latencies[min(int(n * 0.95), n - 1)] if n > 0 else 0
-        p99 = latencies[min(int(n * 0.99), n - 1)] if n > 0 else 0
+        p50 = latencies[min(max(math.ceil(n * 0.50) - 1, 0), n - 1)] if n > 0 else 0
+        p95 = latencies[min(max(math.ceil(n * 0.95) - 1, 0), n - 1)] if n > 0 else 0
+        p99 = latencies[min(max(math.ceil(n * 0.99) - 1, 0), n - 1)] if n > 0 else 0
         avg = sum(latencies) / n if n > 0 else 0
         max_lat = max(latencies) if latencies else 0
 
@@ -549,7 +556,12 @@ class ChaosLLMAnalyzer:
             cursor = conn.execute(
                 """
                 SELECT COUNT(DISTINCT bucket_utc) FROM timeseries
-                WHERE requests_rate_limited > 0 OR requests_capacity_error > 0
+                WHERE requests_rate_limited > 0
+                   OR requests_capacity_error > 0
+                   OR requests_server_error > 0
+                   OR requests_client_error > 0
+                   OR requests_connection_error > 0
+                   OR requests_malformed > 0
                 """
             )
             error_buckets = cursor.fetchone()[0]
@@ -665,6 +677,46 @@ class ChaosLLMAnalyzer:
                         },
                     }
                 )
+
+        # Handle trailing burst still active at end of data
+        if in_burst:
+            burst_end_idx = len(buckets)
+
+            before_buckets = buckets[max(0, burst_start_idx - 3) : burst_start_idx]
+            during_buckets = buckets[burst_start_idx:burst_end_idx]
+
+            def _avg_success(b_list: list[dict[str, Any]]) -> float:
+                if not b_list:
+                    return 0.0
+                total_s: int = sum(b["requests_success"] for b in b_list)
+                return total_s / len(b_list)
+
+            def _avg_latency(b_list: list[dict[str, Any]]) -> float:
+                lats = [b["avg_latency_ms"] for b in b_list if b["avg_latency_ms"] is not None]
+                return sum(lats) / len(lats) if lats else 0.0
+
+            burst_events.append(
+                {
+                    "start_bucket": buckets[burst_start_idx]["bucket_utc"],
+                    "end_bucket": None,  # Still active
+                    "duration_buckets": burst_end_idx - burst_start_idx,
+                    "still_active": True,
+                    "before": {
+                        "avg_success": round(_avg_success(before_buckets), 2),
+                        "avg_latency_ms": round(_avg_latency(before_buckets), 2),
+                    },
+                    "during": {
+                        "avg_success": round(_avg_success(during_buckets), 2),
+                        "avg_latency_ms": round(_avg_latency(during_buckets), 2),
+                        "total_rate_limited": sum(b["requests_rate_limited"] for b in during_buckets),
+                        "total_capacity_errors": sum(b["requests_capacity_error"] for b in during_buckets),
+                    },
+                    "after": {
+                        "avg_success": 0.0,
+                        "avg_latency_ms": 0.0,
+                    },
+                }
+            )
 
         return {
             "burst_count": len(burst_events),

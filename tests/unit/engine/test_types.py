@@ -332,6 +332,21 @@ class TestMetricsSchemaValidation:
                 ),
             )
 
+    def test_duplicate_index_names_raises(self) -> None:
+        """Two indexes with the same name should be rejected."""
+        with pytest.raises(ValueError, match="Duplicate index names"):
+            MetricsSchema(
+                request_columns=(
+                    ColumnDef(name="timestamp_utc", sql_type=SqlType.TEXT),
+                    ColumnDef(name="outcome", sql_type=SqlType.TEXT),
+                ),
+                timeseries_columns=_minimal_timeseries_columns(),
+                request_indexes=(
+                    ("idx_same", "timestamp_utc"),
+                    ("idx_same", "outcome"),
+                ),
+            )
+
 
 # =============================================================================
 # ServerConfig (Pydantic) validation

@@ -259,6 +259,12 @@ class MetricsSchema:
         if ts_dupes:
             raise ValueError(f"Duplicate timeseries column names: {sorted(ts_dupes)}")
 
+        # Check for duplicate index names
+        idx_names = [name for name, _col in self.request_indexes]
+        idx_dupes = {n for n in idx_names if idx_names.count(n) > 1}
+        if idx_dupes:
+            raise ValueError(f"Duplicate index names: {sorted(idx_dupes)}")
+
         # Validate that index columns reference actual request columns
         req_name_set = set(req_names)
         for index_name, col_name in self.request_indexes:
