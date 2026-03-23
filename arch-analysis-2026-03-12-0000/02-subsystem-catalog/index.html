@@ -1,0 +1,1231 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Composable chaos-testing services for LLM and web scraping pipelines">
+      
+      
+      
+        <link rel="canonical" href="https://johnm-dta.github.io/errorworks/arch-analysis-2026-03-12-0000/02-subsystem-catalog/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.5">
+    
+    
+      
+        <title>Errorworks Subsystem Catalog - errorworks</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#errorworks-subsystem-catalog" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="errorworks" class="md-header__button md-logo" aria-label="errorworks" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            errorworks
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Errorworks Subsystem Catalog
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/johnm-dta/errorworks" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    johnm-dta/errorworks
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="errorworks" class="md-nav__button md-logo" aria-label="errorworks" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    errorworks
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/johnm-dta/errorworks" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    johnm-dta/errorworks
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/chaosllm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ChaosLLM
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/chaosweb/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ChaosWeb
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/presets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Presets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/metrics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Metrics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/testing-fixtures/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing Fixtures
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HTTP API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/config-schema/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration Schema
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../changelog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#engine-shared-core" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Engine (Shared Core)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#llm-chaosllm-fake-openai-server" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LLM (ChaosLLM - Fake OpenAI Server)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#web-chaosweb-fake-web-server" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Web (ChaosWeb - Fake Web Server)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#llm-mcp-metrics-analysis-server" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LLM MCP (Metrics Analysis Server)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing-pytest-fixture-support" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testing (Pytest Fixture Support)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#test-suite" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test Suite
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#confidence-assessment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Confidence Assessment
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#risk-assessment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Risk Assessment
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#information-gaps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Information Gaps
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#caveats" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Caveats
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="errorworks-subsystem-catalog">Errorworks Subsystem Catalog<a class="headerlink" href="#errorworks-subsystem-catalog" title="Permanent link">&para;</a></h1>
+<p>Generated: 2026-03-12</p>
+<h2 id="engine-shared-core">Engine (Shared Core)<a class="headerlink" href="#engine-shared-core" title="Permanent link">&para;</a></h2>
+<p><strong>Location:</strong> <code>src/errorworks/engine/</code></p>
+<p><strong>Responsibility:</strong> Provides composition-based building blocks (injection engine, metrics storage, latency simulation, config loading, vocabulary) shared by all chaos plugins without base-class inheritance.</p>
+<p><strong>Key Components:</strong>
+- <code>types.py</code> (197 lines) - Frozen Pydantic models (ServerConfig, MetricsConfig, LatencyConfig) and frozen dataclasses (ErrorSpec, BurstConfig, ColumnDef, MetricsSchema). All config models use <code>frozen=True, extra="forbid"</code>. ErrorSpec carries an opaque <code>tag</code> + <code>weight</code>; the engine never interprets the tag.
+- <code>injection_engine.py</code> (173 lines) - Burst state machine (periodic windows via modular arithmetic on elapsed time) + two selection algorithms: "priority" (first-triggered-wins) and "weighted" (proportional with implicit success weight of <code>max(0, 100 - total_weight)</code>). Thread-safe via <code>threading.Lock</code> on start time. Injectable <code>time_func</code> and <code>rng</code> for deterministic testing.
+- <code>metrics_store.py</code> (585 lines) - Thread-safe SQLite storage with thread-local connections, WAL mode for file DBs, schema-driven DDL generation from MetricsSchema. Handles connection pooling, stale connection cleanup, run info tracking, UPSERT-based timeseries aggregation, percentile computation, data export, and full timeseries rebuild via caller-supplied classifier callback.
+- <code>config_loader.py</code> (154 lines) - YAML preset loading with path-traversal prevention (regex on preset names), <code>deep_merge</code> for dict layering, generic <code>load_config[ConfigT: BaseModel]</code> with precedence: CLI &gt; config file &gt; preset &gt; defaults.
+- <code>latency.py</code> (77 lines) - Configurable artificial delays: <code>simulate()</code> returns <code>(base_ms + uniform(-jitter, +jitter)) / 1000</code> seconds, clamped to 0. Also provides <code>simulate_slow_response(min_sec, max_sec)</code> for error injection.
+- <code>vocabulary.py</code> (206 lines) - Two word banks: <code>ENGLISH_VOCABULARY</code> (108 common English words including tech terms) and <code>LOREM_VOCABULARY</code> (sorted, deduplicated Lorem Ipsum). Both are frozen tuples.
+- <code>cli.py</code> (38 lines) - Unified <code>chaosengine</code> Typer CLI that mounts LLM and Web sub-apps: <code>chaosengine llm serve</code>, <code>chaosengine web serve</code>.
+- <code>__init__.py</code> (50 lines) - Public API re-exports all key types and functions.</p>
+<p><strong>Dependencies:</strong>
+- Inbound: <code>llm</code>, <code>web</code>, <code>llm_mcp</code> (all chaos plugins compose engine utilities)
+- Outbound: <code>pydantic</code>, <code>pyyaml</code> (no internal errorworks dependencies)</p>
+<p><strong>Patterns Observed:</strong>
+- Composition over inheritance: engine provides utilities that plugins instantiate, not base classes they extend. This avoids covariant return type friction.
+- Immutable configuration: all Pydantic models are <code>frozen=True</code> with <code>extra="forbid"</code>. Runtime updates create new instances via <code>deep_merge</code> + reconstruction.
+- Dependency injection for testability: <code>time_func</code>, <code>rng</code>, <code>uuid_func</code> parameters on InjectionEngine and LatencySimulator enable deterministic testing.
+- Schema-driven DDL: MetricsStore generates CREATE TABLE statements from MetricsSchema dataclasses, keeping schema definitions co-located with domain code.
+- Thread safety via thread-local storage and locks for SQLite connections and burst state.</p>
+<p><strong>Concerns:</strong>
+- <code>metrics_store.py</code> at 585 lines contains substantial logic (DDL generation, UPSERT, timeseries rebuild, stats computation, data export). The <code>rebuild_timeseries</code> method duplicates some logic from <code>update_timeseries</code> and <code>update_bucket_latency</code>.
+- <code>_get_bucket_utc</code> only considers hour/minute/second for bucketing, ignoring the date boundary. A bucket that spans midnight would be computed incorrectly for bucket sizes that are not exact divisors of 86400.
+- The <code>_cleanup_stale_connections</code> method in MetricsStore runs on every new connection creation, which adds overhead proportional to the number of tracked threads.
+- <code>load_config</code> unconditionally sets <code>preset_name</code> in <code>config_dict</code> (line 151), meaning downstream Pydantic models must accept this field even if not explicitly documented.</p>
+<p><strong>Confidence:</strong> High - Read 100% of all 8 files (1480 total lines). Cross-verified imports: all outbound dependencies confirmed in pyproject.toml. Inbound usage verified by reading all consumer <strong>init</strong>.py and server files.</p>
+<hr />
+<h2 id="llm-chaosllm-fake-openai-server">LLM (ChaosLLM - Fake OpenAI Server)<a class="headerlink" href="#llm-chaosllm-fake-openai-server" title="Permanent link">&para;</a></h2>
+<p><strong>Location:</strong> <code>src/errorworks/llm/</code></p>
+<p><strong>Responsibility:</strong> Provides a fake OpenAI and Azure OpenAI compatible HTTP server with configurable error injection (HTTP errors, connection failures, malformed responses), response generation (random, template, echo, preset), burst simulation for AIMD testing, and SQLite metrics recording.</p>
+<p><strong>Key Components:</strong>
+- <code>server.py</code> (828 lines) - Starlette ASGI app via <code>ChaosLLMServer</code> class. Routes: <code>/health</code>, <code>/v1/chat/completions</code>, <code>/openai/deployments/{deployment}/chat/completions</code>, <code>/admin/{config,stats,reset,export}</code>. Admin endpoints require Bearer token auth. Request flow: snapshot components under lock, parse body, check error injection, dispatch to connection/HTTP/malformed/success handler. Metrics recording is best-effort (exceptions logged, not propagated). Runtime config updates use deep_merge + atomic swap under <code>_config_lock</code>.
+- <code>config.py</code> (486 lines) - Pydantic config hierarchy: <code>ChaosLLMConfig</code> contains <code>ServerConfig</code>, <code>MetricsConfig</code>, <code>ResponseConfig</code>, <code>LatencyConfig</code>, <code>ErrorInjectionConfig</code>. ErrorInjectionConfig defines 17 error percentage fields, 6 range tuple fields (retry_after, timeout, stall, etc.), BurstConfig, and selection_mode. All models frozen. <code>load_config</code> wraps engine's generic <code>load_config</code> with ChaosLLM-specific presets directory.
+- <code>error_injector.py</code> (374 lines) - <code>ErrorInjector</code> composes InjectionEngine. Builds 17-element ErrorSpec list with burst-adjusted weights for rate_limit and capacity_529. Maps selected tags to <code>ErrorDecision</code> dataclass (3 categories: HTTP, CONNECTION, MALFORMED). Timeout decisions use 50/50 mix of 504 response vs connection drop.
+- <code>response_generator.py</code> (459 lines) - <code>ResponseGenerator</code> supports 4 modes: random (vocabulary-based text), template (Jinja2 SandboxedEnvironment with helpers: random_choice, random_float, random_int, random_words, timestamp), echo (last user message reflection), preset (JSONL bank with random/sequential selection). Produces <code>OpenAIResponse</code> dataclass that serializes to OpenAI API format. Token estimation: <code>len(text) // 4</code>. Template override from headers is Tier 3 (errors caught, not crashed).
+- <code>metrics.py</code> (288 lines) - <code>MetricsRecorder</code> composes MetricsStore with <code>LLM_METRICS_SCHEMA</code> (15 request columns, 11 timeseries columns, 3 indexes). Classifies outcomes into 7 categories (success, rate_limited, capacity_error, server_error, client_error, connection_error, malformed). Atomic commit of record + timeseries upsert + latency update.
+- <code>cli.py</code> (558 lines) - Typer CLI with <code>serve</code>, <code>presets</code>, <code>show-config</code> commands. 20+ CLI flags map to config overrides. Also hosts <code>chaosllm-mcp</code> entry point that delegates to <code>llm_mcp.server</code>.
+- <code>__init__.py</code> (70 lines) - Public API re-exports.
+- <code>presets/</code> - 6 YAML presets: chaos, gentle, realistic, silent, stress_aimd, stress_extreme.</p>
+<p><strong>Dependencies:</strong>
+- Inbound: <code>engine.cli</code> (mounts llm.cli as sub-command), <code>llm_mcp</code> (imports LLM metrics schema), test fixtures
+- Outbound: <code>engine</code> (InjectionEngine, MetricsStore, LatencySimulator, config_loader, types, vocabulary), <code>starlette</code>, <code>jinja2</code>, <code>structlog</code>, <code>typer</code>, <code>uvicorn</code></p>
+<p><strong>Patterns Observed:</strong>
+- Server composes 4 domain components (ErrorInjector, ResponseGenerator, LatencySimulator, MetricsRecorder) rather than inheriting from a base server class.
+- Config snapshot pattern: request handlers snapshot component references under <code>_config_lock</code> at the start, so concurrent <code>update_config()</code> cannot produce a half-updated view.
+- Best-effort metrics: <code>_record_request</code> wraps all metrics operations in try/except to prevent metrics failures from affecting chaos responses.
+- Error categorization uses a 3-tier priority system: connection &gt; HTTP &gt; malformed, with burst mode dynamically elevating rate_limit and capacity_529 weights.
+- Frozen config with reconstruction: runtime updates merge dicts, create new Pydantic model, create new component, then swap atomically.</p>
+<p><strong>Concerns:</strong>
+- <code>server.py</code> at 828 lines is the largest source file. The connection error handler (<code>_handle_connection_error</code>) has 5 branches with significant code duplication (elapsed_ms calculation, _record_request calls with similar kwargs).
+- The <code>_handle_completion_request</code> method passes <code>response_generator</code> and <code>latency_simulator</code> explicitly to sub-handlers but reads <code>_error_injector</code> indirectly via the snapshot. This asymmetry could cause confusion.
+- Token estimation (<code>len(text) // 4</code>) is very rough -- fine for a fake server but could mislead tests that validate token counts.
+- <code>cli.py</code> has a <code>_version_callback</code> function duplicated identically in <code>web/cli.py</code>.</p>
+<p><strong>Confidence:</strong> High - Read 100% of all 7 source files (3063 total lines) plus all 6 preset filenames verified. Cross-verified imports against engine subsystem. Verified admin auth flow, error injection priority, and metrics recording path.</p>
+<hr />
+<h2 id="web-chaosweb-fake-web-server">Web (ChaosWeb - Fake Web Server)<a class="headerlink" href="#web-chaosweb-fake-web-server" title="Permanent link">&para;</a></h2>
+<p><strong>Location:</strong> <code>src/errorworks/web/</code></p>
+<p><strong>Responsibility:</strong> Provides a fake multi-path web server for testing web scraping pipeline resilience, with error injection (HTTP errors, connection failures, content malformations, redirect loops, SSRF redirects), HTML content generation, and SQLite metrics recording.</p>
+<p><strong>Key Components:</strong>
+- <code>server.py</code> (934 lines) - Starlette ASGI app via <code>ChaosWebServer</code>. Routes: <code>/health</code>, <code>/admin/*</code>, <code>/redirect</code> (redirect loop handler), <code>/{path:path}</code> (catch-all content route). Handles 6 malformed content types (wrong_content_type, encoding_mismatch, truncated_html, invalid_encoding, charset_confusion, malformed_meta) by generating valid HTML then corrupting it. <code>_StreamingDisconnect</code> class enables incomplete response injection by streaming partial body then raising ConnectionResetError.
+- <code>config.py</code> (533 lines) - <code>ChaosWebConfig</code> with web-specific types: <code>WebContentConfig</code> (4 modes), <code>WebErrorInjectionConfig</code> (23 error percentage fields including web-specific: gone_pct, payment_required_pct, unavailable_for_legal_pct, encoding_mismatch_pct, truncated_html_pct, invalid_encoding_pct, charset_confusion_pct, malformed_meta_pct, redirect_loop_pct, ssrf_redirect_pct, incomplete_response_pct). <code>WebBurstConfig</code> elevates rate_limit_pct and forbidden_pct during bursts.
+- <code>error_injector.py</code> (450 lines) - <code>WebErrorInjector</code> composes InjectionEngine. 4 error categories (HTTP, CONNECTION, MALFORMED, REDIRECT) with 22-element ErrorSpec list. SSRF targets include AWS/GCP/Azure metadata endpoints, private networks, loopback, CGNAT, IPv6 variants, and decimal IP encoding tricks. <code>WebErrorDecision</code> extends LLM's pattern with redirect_target, redirect_hops, incomplete_bytes, encoding_actual fields.
+- <code>content_generator.py</code> (521 lines) - <code>ContentGenerator</code> generates syntactically valid HTML5 with random structural elements (headings, paragraphs, blockquotes, lists). Uses <code>html.escape</code> for XSS-safe echo mode. Jinja2 <code>SandboxedEnvironment</code> with <code>autoescape=True</code> for template mode. Content corruption helpers are module-level functions: <code>truncate_html</code>, <code>inject_encoding_mismatch</code>, <code>inject_charset_confusion</code>, <code>inject_invalid_encoding</code>, <code>inject_malformed_meta</code>, <code>generate_wrong_content_type</code>.
+- <code>metrics.py</code> (264 lines) - <code>WebMetricsRecorder</code> composes MetricsStore with <code>WEB_METRICS_SCHEMA</code> (13 request columns including path, content_type_served, encoding_served, redirect_target, redirect_hops; 12 timeseries columns including requests_forbidden, requests_not_found, requests_redirect).
+- <code>cli.py</code> (363 lines) - Typer CLI with <code>serve</code>, <code>presets</code>, <code>show-config</code> commands. Default port 8200 (vs LLM's 8000).
+- <code>__init__.py</code> (65 lines) - Public API re-exports.
+- <code>presets/</code> - 5 YAML presets: gentle, realistic, silent, stress_extreme, stress_scraping.</p>
+<p><strong>Dependencies:</strong>
+- Inbound: <code>engine.cli</code> (mounts web.cli as sub-command), test fixtures
+- Outbound: <code>engine</code> (InjectionEngine, MetricsStore, LatencySimulator, config_loader, types, vocabulary), <code>starlette</code>, <code>jinja2</code>, <code>structlog</code>, <code>typer</code>, <code>uvicorn</code></p>
+<p><strong>Patterns Observed:</strong>
+- Mirrors LLM subsystem's composition pattern: ChaosWebServer composes WebErrorInjector, ContentGenerator, LatencySimulator, WebMetricsRecorder.
+- Same config snapshot + atomic swap pattern for runtime updates.
+- Content corruption is separated into pure functions (module-level helpers) rather than methods on the server class, improving testability.
+- Redirect loops use stateless query parameters (<code>/redirect?hop=N&amp;max=M&amp;target=T</code>) rather than server-side state, enabling proper redirect chain behavior through any HTTP client.
+- SSRF target list is comprehensive and domain-specific, covering real attack vectors including IPv4-mapped IPv6 and decimal IP bypasses.</p>
+<p><strong>Concerns:</strong>
+- <code>server.py</code> at 934 lines is the largest file in the codebase. The <code>_handle_malformed_content</code> method (lines 628-767) has 6 branches with repetitive record + response construction patterns.
+- <code>_StreamingDisconnect</code> class (lines 892-923) directly sets <code>self.background = None</code> and bypasses normal Response initialization, which is fragile against Starlette version changes.
+- The <code>_handle_connection_error</code> method catches <code>sqlite3.Error</code> in <code>_record_request</code> (line 882) but the LLM equivalent catches broad <code>Exception</code> (line 802). This inconsistency could miss non-SQLite metrics failures in the web server.
+- Web and LLM subsystems have significant structural duplication (server.py, cli.py, metrics.py all follow the same patterns with domain-specific differences). This is a deliberate design choice (composition over inheritance) but increases maintenance surface.</p>
+<p><strong>Confidence:</strong> High - Read 100% of all 7 source files (3130 total lines) plus verified 5 preset filenames. Cross-verified imports against engine subsystem. Confirmed architectural symmetry with LLM subsystem.</p>
+<hr />
+<h2 id="llm-mcp-metrics-analysis-server">LLM MCP (Metrics Analysis Server)<a class="headerlink" href="#llm-mcp-metrics-analysis-server" title="Permanent link">&para;</a></h2>
+<p><strong>Location:</strong> <code>src/errorworks/llm_mcp/</code></p>
+<p><strong>Responsibility:</strong> Provides an MCP (Model Context Protocol) server for Claude-optimized analysis of ChaosLLM metrics databases, with pre-computed insights for diagnostics, AIMD behavior analysis, error distribution, latency analysis, anomaly detection, and raw SQL access.</p>
+<p><strong>Key Components:</strong>
+- <code>server.py</code> (1102 lines) - <code>ChaosLLMAnalyzer</code> class with 10 analysis methods: <code>diagnose()</code> (one-paragraph summary with AIMD assessment), <code>analyze_aimd_behavior()</code> (burst detection, recovery times, throughput degradation), <code>analyze_errors()</code> (error breakdown by type and status code with sample timestamps), <code>analyze_latency()</code> (percentiles, slow request detection, error-latency correlation), <code>find_anomalies()</code> (unexpected status codes, throughput cliffs, error clustering, zero-success periods), <code>get_burst_events()</code> (before/during/after burst stats), <code>get_error_samples()</code>, <code>get_time_window()</code>, <code>query()</code> (read-only SQL with keyword blocklist + SQLite <code>set_authorizer</code> defense-in-depth), <code>describe_schema()</code>. MCP Server created via <code>create_server()</code> with tool registration. Also includes <code>_find_metrics_databases()</code> for auto-discovery and argparse-based CLI.
+- <code>__init__.py</code> (26 lines) - Re-exports ChaosLLMAnalyzer, create_server, main, run_server.</p>
+<p><strong>Dependencies:</strong>
+- Inbound: <code>llm.cli</code> (invokes <code>run_server</code> from MCP entry point)
+- Outbound: <code>mcp</code> (MCP SDK -- optional dependency), <code>sqlite3</code> (stdlib, direct database access -- does NOT compose MetricsStore)</p>
+<p><strong>Patterns Observed:</strong>
+- Direct SQLite access rather than composing MetricsStore -- the analyzer is read-only and needs custom aggregation queries that MetricsStore's API doesn't support.
+- Defense-in-depth for SQL injection: keyword blocklist (regex word-boundary matching) + SQLite <code>set_authorizer</code> callback that only permits SELECT, READ, and FUNCTION operations.
+- Pre-computed insights: each tool returns a <code>summary</code> field with a concise text string designed for LLM consumption (~80-150 tokens), plus structured data for detailed exploration.
+- Burst detection uses a simple threshold: &gt;30% error rate in a bucket starts a burst, &lt;10% ends it.
+- Auto LIMIT 100 on raw queries to prevent excessive output.</p>
+<p><strong>Concerns:</strong>
+- At 1102 lines, this is the single largest file in the codebase. The ChaosLLMAnalyzer class has 10 methods with substantial SQL query logic that could be decomposed.
+- The <code>_readonly_authorizer</code> resets to <code>None</code> after each <code>query()</code> call (line 772), meaning concurrent calls to <code>query()</code> could race on the authorizer state. However, the MCP server is async single-threaded, so this is unlikely to be an issue in practice.
+- Schema description in <code>describe_schema()</code> (lines 776-827) is hardcoded and could drift from the actual LLM_METRICS_SCHEMA in <code>llm/metrics.py</code>. No validation ensures they stay in sync.
+- The analyzer only works with ChaosLLM metrics schema (requests table columns like <code>endpoint</code>, <code>deployment</code>, <code>model</code>). It cannot analyze ChaosWeb metrics databases, despite the metrics store being schema-driven.
+- <code>_find_metrics_databases</code> skips directories starting with <code>.</code> but does not handle symlink loops.</p>
+<p><strong>Confidence:</strong> High - Read 100% of both files (1128 total lines). Verified MCP tool registration matches analyzer methods. Confirmed SQL safety mechanisms. Noted the direct SQLite usage vs. MetricsStore composition.</p>
+<hr />
+<h2 id="testing-pytest-fixture-support">Testing (Pytest Fixture Support)<a class="headerlink" href="#testing-pytest-fixture-support" title="Permanent link">&para;</a></h2>
+<p><strong>Location:</strong> <code>src/errorworks/testing/</code> and <code>tests/fixtures/</code></p>
+<p><strong>Responsibility:</strong> Provides in-process test fixtures using Starlette's TestClient for both ChaosLLM and ChaosWeb, enabling tests to run without real network sockets. The <code>testing/</code> package is the public API; <code>tests/fixtures/</code> contains the actual fixture implementations.</p>
+<p><strong>Key Components:</strong>
+- <code>src/errorworks/testing/__init__.py</code> (6 lines) - Docstring-only package. Declares intent to provide ChaosLLMFixture and ChaosWebFixture for consumers but does not actually export them (the fixtures live in tests/fixtures/).
+- <code>tests/fixtures/chaosllm.py</code> (243 lines) - <code>ChaosLLMFixture</code> dataclass wrapping TestClient + ChaosLLMServer. Provides convenience methods: <code>post_completion()</code>, <code>post_azure_completion()</code>, <code>update_config()</code>, <code>get_stats()</code>, <code>export_metrics()</code>, <code>reset()</code>, <code>wait_for_requests()</code>. <code>_build_config_from_marker()</code> constructs config from <code>@pytest.mark.chaosllm(...)</code> kwargs. Tests use zero latency by default (<code>base_ms=0, jitter_ms=0</code>). Fixed admin token for deterministic test auth.
+- <code>tests/fixtures/chaosweb.py</code> (313 lines) - <code>ChaosWebFixture</code> dataclass with <code>fetch_page()</code>, <code>update_config()</code> (24 error injection parameters), <code>wait_for_requests()</code>. Same marker-based config pattern as ChaosLLM. <code>_ERROR_INJECTION_KEYS</code> list (23 entries) mirrors WebErrorInjectionConfig fields.
+- <code>tests/fixtures/__init__.py</code> (0 lines) - Empty package marker.</p>
+<p><strong>Dependencies:</strong>
+- Inbound: All test files (via conftest.py imports)
+- Outbound: <code>llm.config</code>, <code>llm.server</code>, <code>web.config</code>, <code>web.server</code>, <code>starlette.testclient</code>, <code>pytest</code></p>
+<p><strong>Patterns Observed:</strong>
+- Marker-based configuration: <code>@pytest.mark.chaosllm(preset="stress_aimd", rate_limit_pct=50)</code> allows per-test server configuration without fixture duplication.
+- Zero-latency defaults: test fixtures set <code>base_ms=0, jitter_ms=0</code> to avoid test timing sensitivity.
+- Fixed admin token: <code>TEST_ADMIN_TOKEN = "test-admin-token"</code> provides deterministic auth for admin endpoint testing.
+- In-process testing: TestClient wraps the Starlette app directly, avoiding network socket allocation and enabling safe parallel test execution.</p>
+<p><strong>Concerns:</strong>
+- <code>src/errorworks/testing/__init__.py</code> is essentially empty (docstring only). It declares ChaosLLMFixture and ChaosWebFixture as public API in its docstring but does not import or re-export them. Consumers must import from <code>tests/fixtures/</code> directly, which is not a standard package distribution pattern.
+- Both fixture files access <code>server._config.server.admin_token</code> via the private <code>_config</code> attribute (e.g., line 61 in chaosllm.py), coupling tests to internal implementation.
+- <code>wait_for_requests()</code> uses a polling loop with <code>time.sleep(0.01)</code>, which could be slow for CI environments. An event-based approach would be more efficient.
+- The <code>_build_config_from_marker</code> functions in both fixtures duplicate significant config-building logic that could be shared.</p>
+<p><strong>Confidence:</strong> High - Read 100% of all 4 files (562 total lines). Verified marker handling and config construction paths. Confirmed TestClient pattern and admin auth mechanism.</p>
+<hr />
+<h2 id="test-suite">Test Suite<a class="headerlink" href="#test-suite" title="Permanent link">&para;</a></h2>
+<p><strong>Location:</strong> <code>tests/</code></p>
+<p><strong>Responsibility:</strong> Unit and integration tests covering all subsystems, using pytest markers (<code>chaosllm</code>, <code>chaosweb</code>, <code>integration</code>, <code>slow</code>, <code>stress</code>) and the in-process fixture system.</p>
+<p><strong>Key Components:</strong>
+- <code>tests/unit/engine/</code> - 3 test files: <code>test_config_loader.py</code>, <code>test_injection_engine.py</code>, <code>test_metrics_store.py</code> testing core engine components.
+- <code>tests/unit/llm/</code> - 8 test files: <code>test_server.py</code>, <code>test_error_injector.py</code>, <code>test_response_generator.py</code>, <code>test_metrics.py</code>, <code>test_config.py</code>, <code>test_cli.py</code>, <code>test_fixture.py</code>, <code>test_latency_simulator.py</code>. Uses <code>conftest.py</code> for shared LLM fixtures.
+- <code>tests/unit/web/</code> - 6 test files: <code>test_server.py</code>, <code>test_error_injector.py</code>, <code>test_content_generator.py</code>, <code>test_metrics.py</code>, <code>test_config.py</code>, <code>test_cli.py</code>. Uses <code>conftest.py</code> for shared web fixtures.
+- <code>tests/unit/llm_mcp/</code> - 1 test file: <code>test_server.py</code> for MCP server analysis tools.
+- <code>tests/integration/</code> - 3 test files: <code>test_llm_pipeline.py</code>, <code>test_web_pipeline.py</code>, <code>test_mcp_pipeline.py</code>. Uses <code>conftest.py</code> for integration test setup.</p>
+<p><strong>Dependencies:</strong>
+- Inbound: None (test-only code)
+- Outbound: All <code>src/errorworks/</code> subsystems, <code>pytest</code>, <code>starlette.testclient</code>, <code>hypothesis</code> (property-based testing)</p>
+<p><strong>Patterns Observed:</strong>
+- Marker-based test categorization: <code>@pytest.mark.chaosllm</code>, <code>@pytest.mark.chaosweb</code>, <code>@pytest.mark.integration</code> enable selective test execution.
+- Strict marker configuration: <code>--strict-markers</code> and <code>--strict-config</code> in pyproject.toml prevents undefined markers.
+- conftest.py files at unit/llm and unit/web levels import fixtures from <code>tests/fixtures/</code>.
+- Integration tests exercise full request pipelines including error injection, metrics recording, and admin endpoints.</p>
+<p><strong>Concerns:</strong>
+- Test file structure observed but individual test files not read in full (this entry is based on file listing and fixture analysis).
+- Several test files appear in git status as modified (<code>test_llm_pipeline.py</code>, <code>test_web_pipeline.py</code>, <code>test_server.py</code> for both llm and web) -- uncommitted changes may affect test coverage.</p>
+<p><strong>Confidence:</strong> Medium - Read fixtures in full and verified test structure. Did not read individual test file implementations to verify coverage or correctness. Confidence is based on fixture analysis, file naming patterns, and pyproject.toml test configuration.</p>
+<hr />
+<h2 id="confidence-assessment">Confidence Assessment<a class="headerlink" href="#confidence-assessment" title="Permanent link">&para;</a></h2>
+<p>All subsystem entries above are supported by direct source file reading. The engine, LLM, web, LLM MCP, and testing subsystems were read at 100% coverage of their source files. The test suite entry is at medium confidence because individual test implementations were not read.</p>
+<h2 id="risk-assessment">Risk Assessment<a class="headerlink" href="#risk-assessment" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Low risk:</strong> Engine subsystem is well-factored with clear boundaries and comprehensive type safety (frozen models, dataclass validation).</li>
+<li><strong>Low risk:</strong> Config precedence system (CLI &gt; file &gt; preset &gt; defaults) is well-tested by design and uses Pydantic validation.</li>
+<li><strong>Medium risk:</strong> server.py files in both LLM (828 lines) and Web (934 lines) are large and contain repetitive error handling branches that could benefit from extraction.</li>
+<li><strong>Medium risk:</strong> MCP server's <code>describe_schema()</code> is hardcoded and could drift from the actual schema definitions.</li>
+<li><strong>Low risk:</strong> SSRF target list in web error injector is comprehensive and covers real attack vectors.</li>
+</ul>
+<h2 id="information-gaps">Information Gaps<a class="headerlink" href="#information-gaps" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>Preset YAML content</strong> - Preset files were identified but their contents (specific error rates, burst patterns) were not read.</li>
+<li><strong>Individual test implementations</strong> - Test file structure and naming verified but test logic not read.</li>
+<li><strong>CI workflow</strong> - <code>.github/workflows/ci.yml</code> is modified but not read.</li>
+<li><strong>chaos_services directory</strong> - <code>src/chaos_services</code> is listed as an additional working directory but not explored (may be a separate service or deployment concern).</li>
+</ol>
+<h2 id="caveats">Caveats<a class="headerlink" href="#caveats" title="Permanent link">&para;</a></h2>
+<ul>
+<li>This analysis reflects the codebase as of 2026-03-12 with uncommitted changes in 14 files (per git status).</li>
+<li>The <code>src/errorworks/testing/__init__.py</code> package appears to be a planned but incomplete public API for test fixtures.</li>
+<li>Line counts are approximate (from <code>wc -l</code>) and include blank lines and comments.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      An open-source project by the <a href="https://www.dta.gov.au/">Digital Transformation Agency</a>.
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.expand", "navigation.top", "navigation.footer", "search.suggest", "search.highlight", "content.tabs.link", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
