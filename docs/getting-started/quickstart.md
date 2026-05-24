@@ -2,7 +2,7 @@
 
 This walkthrough takes you from zero to chaos-testing in a few minutes. You will
 start fake servers, observe fault injection in action, check metrics, and write
-your first test using the pytest fixture.
+your first contributor test using the repository pytest fixtures.
 
 ## 1. Start ChaosLLM
 
@@ -75,18 +75,21 @@ curl http://localhost:8200/articles/test
 You will see a mix of valid HTML, encoding mismatches, truncated content, and
 other failure modes that commonly break web scrapers.
 
-## 6. Use the pytest fixture
+## 6. Use the repository pytest fixture
 
-The real power of errorworks is in automated testing. The built-in pytest fixtures
-let you spin up an in-process fake server with no real network socket:
+When working from a source checkout, the repository fixtures under
+`tests/fixtures` let maintainers spin up fake servers in tests. They are
+repo-internal helpers, not installed package imports. The ChaosLLM and ChaosWeb
+fixtures use in-process `TestClient` calls, so they do not open real network
+sockets:
 
 ```python
 import pytest
 
 
 @pytest.mark.chaosllm(preset="realistic", rate_limit_pct=25.0)
-def test_retry_on_rate_limit(chaosllm):
-    response = chaosllm.post_completion(
+def test_retry_on_rate_limit(chaosllm_server):
+    response = chaosllm_server.post_completion(
         model="gpt-4",
         messages=[{"role": "user", "content": "test"}],
     )
@@ -94,11 +97,11 @@ def test_retry_on_rate_limit(chaosllm):
 ```
 
 The `@pytest.mark.chaosllm` marker configures the server for that test. The
-`chaosllm` fixture provides helper methods like `post_completion()`,
+`chaosllm_server` fixture provides helper methods like `post_completion()`,
 `get_stats()`, and `update_config()`.
 
-To run this test, make sure errorworks is installed with test extras and invoke
-pytest:
+To run this test, use a source checkout and invoke pytest through the repository
+environment:
 
 ```bash
 uv run pytest -m chaosllm
@@ -109,4 +112,4 @@ uv run pytest -m chaosllm
 - Learn about all the fault types ChaosLLM can inject: [ChaosLLM Guide](../guide/chaosllm.md)
 - Explore ChaosWeb's scraping-specific faults: [ChaosWeb Guide](../guide/chaosweb.md)
 - See available presets and how to customize them: [Presets](../guide/presets.md)
-- Dive into the testing fixture API: [Testing Fixtures](../guide/testing-fixtures.md)
+- See repository fixture helpers for contributors: [Testing Fixtures](../guide/testing-fixtures.md)

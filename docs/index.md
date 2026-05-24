@@ -1,6 +1,6 @@
 # errorworks
 
-**Composable chaos-testing services for LLM, web scraping, and object storage pipelines.**
+**Composable chaos-testing services for LLM, web scraping, object storage, and outbound email pipelines.**
 
 errorworks gives you drop-in fake servers that inject faults, simulate latency,
 generate realistic responses, and record metrics -- so you can test how your
@@ -48,6 +48,21 @@ A fake object-storage server for blob pipeline resilience tests. Stores objects
 in memory and injects S3-style throttling, stale listings, corrupted object
 bodies, metadata loss, malformed XML, and connection failures.
 
+### ChaosSMTP
+
+A fake SMTP receiving server for outbound email resilience tests. Injects
+temporary recipient failures, DATA rejections, rate limits, slow replies, and
+accepted-but-dropped messages while keeping all mail local and never relaying it.
+
+## Quick CLI examples
+
+```bash
+chaosllm serve --preset=realistic
+chaosweb serve --preset=stress_scraping
+chaosblob serve --preset=realistic --port=8300
+chaossmtp serve --preset=realistic --port=2525
+```
+
 ## Next steps
 
 <div class="grid cards" markdown>
@@ -60,13 +75,13 @@ bodies, metadata loss, malformed XML, and connection failures.
 
 -   **Quick Start**
 
-    Walk through a complete scenario with ChaosLLM, ChaosWeb, ChaosBlob, and pytest fixtures.
+    Walk through ChaosLLM, ChaosWeb, ChaosBlob, and ChaosSMTP CLI scenarios plus source-checkout fixture examples for contributors.
 
     [:octicons-arrow-right-24: Quick Start](getting-started/quickstart.md)
 
 -   **Guide**
 
-    Deep dives into presets, configuration, metrics, and testing fixtures.
+    Deep dives into presets, configuration, metrics, and repository testing fixtures.
 
     [:octicons-arrow-right-24: Guide](guide/chaosllm.md)
 

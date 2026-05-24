@@ -47,13 +47,9 @@ async def read_limited_body(request: Request, *, max_bytes: int) -> bytes:
         try:
             declared = int(content_length)
         except ValueError as exc:
-            raise MalformedContentLength(
-                f"Content-Length header is not a valid integer: {content_length!r}"
-            ) from exc
+            raise MalformedContentLength(f"Content-Length header is not a valid integer: {content_length!r}") from exc
         if declared < 0:
-            raise MalformedContentLength(
-                f"Content-Length header is negative: {content_length!r}"
-            )
+            raise MalformedContentLength(f"Content-Length header is negative: {content_length!r}")
         if declared > max_bytes:
             raise RequestBodyTooLarge(f"Request body exceeds {max_bytes} bytes")
 

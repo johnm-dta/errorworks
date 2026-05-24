@@ -1,17 +1,17 @@
 # Architecture Overview
 
-Errorworks is a composable chaos-testing service framework. Each server type (LLM, Web) is built from shared engine components rather than inheriting from a base class. This document explains the design rationale, key components, and extension points.
+Errorworks is a composable chaos-testing service framework. Each server type (LLM, Web, SMTP) is built from shared engine components rather than inheriting from a base class. This document explains the design rationale, key components, and extension points.
 
 ## Composition Over Inheritance
 
-The central design principle is that **HTTP concerns stay out of domain logic**. Each chaos plugin (ChaosLLM, ChaosWeb) creates instances of shared engine utilities and delegates specific responsibilities to them:
+The central design principle is that **transport concerns stay out of shared engine logic**. Each chaos plugin (ChaosLLM, ChaosWeb, ChaosSMTP) creates instances of shared engine utilities and delegates specific responsibilities to them:
 
 - **InjectionEngine** handles burst state and error selection algorithms
 - **MetricsStore** handles SQLite persistence and timeseries aggregation
 - **LatencySimulator** handles delay calculation
 - **ConfigLoader** handles YAML loading and config precedence
 
-The server classes (`ChaosLLMServer`, `ChaosWebServer`) own the HTTP routing, request parsing, and response formatting. They compose engine components but never extend them. This means a new server type (e.g., email, gRPC) can reuse the same engine components without inheriting HTTP-specific behavior it does not need.
+The server classes (`ChaosLLMServer`, `ChaosWebServer`, `ChaosSMTPServer`) own their protocol routing, request parsing, and response formatting. They compose engine components but never extend them. This means a new server type (e.g., gRPC or message queues) can reuse the same engine components without inheriting HTTP-specific behavior it does not need.
 
 ## Package Structure
 
@@ -45,6 +45,15 @@ src/errorworks/
 │   ├── content_generator.py # HTML content generation + corruption functions
 │   ├── metrics.py           # Web-specific MetricsRecorder wrapper
 │   ├── cli.py               # chaosweb CLI
+│   └── presets/             # YAML preset files
+│
+├── smtp/                    # ChaosSMTP: Fake SMTP receiving server
+│   ├── config.py            # ChaosSMTPConfig, SMTP listener/admin/capture config
+│   ├── server.py            # ChaosSMTPServer (aiosmtpd listener + HTTP admin sidecar)
+│   ├── error_injector.py    # SMTP-stage error decision logic
+│   ├── message_capture.py   # Discard, metadata, and full-message capture
+│   ├── metrics.py           # SMTP-specific MetricsRecorder wrapper
+│   ├── cli.py               # chaossmtp CLI
 │   └── presets/             # YAML preset files
 │
 ├── llm_mcp/                 # MCP server for ChaosLLM metrics analysis
@@ -121,7 +130,7 @@ The `deep_merge(base, override)` function recursively merges dicts so that neste
 
 ## Config Snapshot Pattern
 
-Request handlers in both `ChaosLLMServer` and `ChaosWebServer` snapshot component references at the start of each request:
+Request handlers in `ChaosLLMServer`, `ChaosWebServer`, and `ChaosSMTPServer` snapshot component references at the start of each request or SMTP stage:
 
 ```python
 with self._config_lock:
@@ -162,9 +171,21 @@ Errorworks is designed for multi-worker uvicorn deployments. The thread safety s
 
 - **Best-effort metrics recording**: Metrics writes that fail (SQLite errors) are logged but never propagated to the caller. A metrics side-effect must not replace an intended chaos response with an unintended real 500 error.
 
+## ChaosSMTP Protocol Adapter
+
+ChaosSMTP follows the same composition model as the HTTP servers but adapts it to SMTP:
+
+- `aiosmtpd` owns the real SMTP protocol listener and calls handler methods for MAIL, RCPT, and DATA stages.
+- `ChaosSMTPServer` snapshots `SMTPErrorInjector`, `MessageCapture`, and `LatencySimulator` references under `_config_lock` before stage handling.
+- SMTP-stage decisions map engine tags to protocol replies such as `451`, `550`, or transport-level close/stall behavior.
+- The HTTP admin surface is a sidecar Starlette app owned by the same `ChaosSMTPServer`, so metrics, reset, export, and runtime config update behavior stay consistent with ChaosLLM and ChaosWeb.
+- ChaosSMTP never relays mail. It accepts, rejects, drops, or captures messages locally for test assertions.
+
+This split keeps SMTP protocol handling in `smtp/` while reusing the shared admin handlers, metrics store, latency simulator, config loader, and injection engine.
+
 ## Adding a New Server Type
 
-To add a new chaos server type (e.g., email, gRPC, GraphQL), follow this pattern:
+To add a new chaos server type (e.g., gRPC, GraphQL, or a queue protocol), follow this pattern:
 
 1. **Create a new package** under `src/errorworks/` (e.g., `src/errorworks/email/`).
 
@@ -182,12 +203,14 @@ To add a new chaos server type (e.g., email, gRPC, GraphQL), follow this pattern
    - Calls `engine.select(specs)` and maps the selected tag to a domain-specific decision dataclass
 
 5. **Create a server class** that:
-   - Composes all components (error injector, content generator, latency simulator, metrics recorder)
+   - Composes all components (error injector, content/capture component, latency simulator, metrics recorder)
    - Implements the `ChaosServer` protocol from `engine/admin.py` (`get_admin_token`, `get_current_config`, `update_config`, `reset`, `export_metrics`, `get_stats`)
    - Uses the config snapshot pattern in request handlers
    - Uses the immutable config update flow in `update_config()`
 
-6. **Register routes** including `/health`, `/admin/*` (delegating to `engine.admin` handlers), and your domain-specific endpoints.
+6. **Expose protocol surfaces**:
+   - For HTTP-native services, register routes including `/health`, `/admin/*` (delegating to `engine.admin` handlers), and domain-specific endpoints.
+   - For non-HTTP services, build a protocol adapter and pair it with an HTTP admin sidecar for `/health` and `/admin/*`.
 
 7. **Add a CLI** using Typer, with a `serve` command and a `presets` command. Register it as a console script in `pyproject.toml` and add it as a subcommand to `chaosengine`.
 

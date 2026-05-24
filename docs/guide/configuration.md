@@ -285,9 +285,72 @@ error_injection:
     service_unavailable_pct: 10.0
 ```
 
+### ChaosSMTP Full Example
+
+```yaml
+smtp:
+  host: "127.0.0.1"
+  port: 2525              # Use 0 in tests for an ephemeral loopback port
+  hostname: "chaossmtp.local"
+  data_size_limit: 10485760
+  enable_smtputf8: true
+  require_starttls: false       # true is reserved until TLS context support exists
+
+admin:
+  enabled: true
+  host: "127.0.0.1"
+  port: 8525
+  admin_token: "my-secret-token"  # Auto-generated if omitted
+
+metrics:
+  database: "file:chaossmtp-metrics?mode=memory&cache=shared"
+  timeseries_bucket_sec: 1
+
+capture:
+  mode: metadata          # discard | metadata | full
+  max_message_bytes: 1048576
+  max_messages: 1000
+
+latency:
+  base_ms: 120
+  jitter_ms: 60
+
+error_injection:
+  selection_mode: priority
+
+  # SMTP-stage failures
+  rate_limit_pct: 3.0
+  mail_from_tempfail_pct: 0.0
+  mail_from_reject_pct: 0.0
+  rcpt_to_tempfail_pct: 4.0
+  rcpt_to_reject_pct: 0.0
+  data_tempfail_pct: 3.0
+  data_reject_pct: 1.0
+  accept_then_drop_pct: 0.0
+  malformed_reply_pct: 0.0
+  wrong_reply_code_pct: 0.0
+  connection_reset_pct: 0.0
+  connection_stall_pct: 0.0
+  slow_response_pct: 2.0
+
+  # Delay ranges for selected SMTP behavior
+  # retry_after_sec is validated config; current SMTP replies do not emit a Retry-After header.
+  retry_after_sec: [1, 30]
+  connection_stall_sec: [30, 60]
+  slow_response_sec: [3, 15]
+
+  # Burst patterns
+  burst:
+    enabled: true
+    interval_sec: 60
+    duration_sec: 8
+    rcpt_to_tempfail_pct: 50.0
+    rate_limit_pct: 40.0
+```
+
 ## Configuration Sections
 
-### Server
+### Server (ChaosLLM and ChaosWeb)
 
 | Field | Type | Default (LLM/Web/Blob) | Description |
 |---|---|---|---|
@@ -297,7 +360,26 @@ error_injection:
 | `admin_token` | string | auto-generated | Bearer token for `/admin/*` endpoints |
 
 !!! warning
-    Binding to `0.0.0.0` or `::` is blocked by default. ChaosLLM, ChaosWeb, and ChaosBlob are testing tools and should not be exposed to the network. Set `allow_external_bind: true` at the top level to override this safety check.
+    Binding to `0.0.0.0` or `::` is blocked by default. Errorworks servers are testing tools and should not be exposed to the network. Set `allow_external_bind: true` at the top level to override this safety check.
+
+### SMTP Listener and Admin Sidecar (ChaosSMTP)
+
+ChaosSMTP separates the SMTP listener from the HTTP admin sidecar:
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `smtp.host` | string | `127.0.0.1` | SMTP listener bind address |
+| `smtp.port` | int | `2525` | SMTP listener port. Config accepts `0` for an ephemeral test port. |
+| `smtp.hostname` | string | `chaossmtp.local` | Hostname announced to SMTP clients |
+| `smtp.data_size_limit` | int | `10485760` | Maximum SMTP DATA size in bytes |
+| `smtp.enable_smtputf8` | bool | `true` | Enable SMTPUTF8 extension support |
+| `smtp.require_starttls` | bool | `false` | Reserved for future TLS context support. `true` is rejected. |
+| `admin.enabled` | bool | `true` | Run the HTTP admin sidecar |
+| `admin.host` | string | `127.0.0.1` | Admin sidecar bind address |
+| `admin.port` | int | `8525` | Admin sidecar port |
+| `admin.admin_token` | string | auto-generated | Bearer token for `/admin/*` endpoints |
+
+`chaossmtp show-config` redacts `admin.admin_token`, but admin endpoints still require the bearer token at runtime.
 
 ### Metrics
 
@@ -308,6 +390,12 @@ error_injection:
 
 Use `--database=/path/to/metrics.db` for persistent file-backed storage. See the [Metrics Guide](metrics.md) for details.
 
+Default in-memory database URIs are service-specific:
+
+- ChaosLLM: `file:chaosllm-metrics?mode=memory&cache=shared`
+- ChaosWeb: `file:chaosweb-metrics?mode=memory&cache=shared`
+- ChaosSMTP: `file:chaossmtp-metrics?mode=memory&cache=shared`
+
 ### Latency
 
 | Field | Type | Default | Description |
@@ -316,6 +404,16 @@ Use `--database=/path/to/metrics.db` for persistent file-backed storage. See the
 | `jitter_ms` | int | `30` | Random jitter range (+/- milliseconds) |
 
 The actual delay per request is `(base_ms + random(-jitter_ms, +jitter_ms)) / 1000` seconds, clamped to zero.
+
+### SMTP Capture
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `capture.mode` | `discard \| metadata \| full` | `metadata` | How accepted SMTP messages are stored |
+| `capture.max_message_bytes` | int | `1048576` | Maximum bytes stored in `full` capture mode |
+| `capture.max_messages` | int | `1000` | Maximum captured messages kept in memory |
+
+`discard` records metrics only. `metadata` stores the envelope, subject, and safe headers. `full` stores base64-encoded message bytes up to `max_message_bytes`. Metadata and full capture keep at most `max_messages` records and drop the oldest first.
 
 ## Runtime Config Updates
 
@@ -341,6 +439,8 @@ curl http://localhost:8000/admin/config \
 
 Runtime updates use the same deep-merge behavior as config file layering. You only send the fields you want to change -- everything else is preserved.
 
+ChaosSMTP runtime updates cover `error_injection`, `capture`, and `latency`. Listener binding, admin binding, metrics database, and admin token changes require restarting the server with a new config.
+
 ### How Runtime Updates Work
 
 The server uses immutable Pydantic models (`frozen=True`) for all configuration. When you POST an update:
@@ -348,7 +448,7 @@ The server uses immutable Pydantic models (`frozen=True`) for all configuration.
 1. The current config is serialized to a dict
 2. Your update is deep-merged into it
 3. New immutable model instances are created and validated
-4. The new components (error injector, response generator, latency simulator) are built
+4. The new components (error injector, response/content/capture component, latency simulator) are built
 5. References are atomically swapped under a lock
 
 Requests that are already in-flight continue using the old configuration. This guarantees each request sees a consistent configuration throughout its lifetime.
@@ -372,4 +472,5 @@ If your update contains invalid values, the server returns 422 with a validation
 - [ChaosLLM](chaosllm.md) -- LLM-specific error types and endpoints
 - [ChaosWeb](chaosweb.md) -- Web-specific error types and endpoints
 - [ChaosBlob](chaosblob.md) -- Blob-specific error types and endpoints
+- [ChaosSMTP](chaossmtp.md) -- SMTP-specific listener, capture, and error injection behavior
 - [Metrics](metrics.md) -- Metrics storage configuration

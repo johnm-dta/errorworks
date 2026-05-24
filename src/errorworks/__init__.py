@@ -1,6 +1,6 @@
-"""Composable chaos-testing servers for LLM, web scraping, and object storage pipelines."""
+"""Composable chaos-testing servers for LLM, web scraping, object storage, and outbound email pipelines."""
 
-__version__ = "0.1.3"
+__version__ = "0.2.0"
 
 __all__ = [
     "__version__",
@@ -8,6 +8,7 @@ __all__ = [
     "engine",
     "llm",
     "llm_mcp",
+    "smtp",
     "testing",
     "web",
 ]

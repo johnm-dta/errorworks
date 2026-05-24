@@ -1,6 +1,6 @@
-# HTTP API Reference
+# HTTP and SMTP API Reference
 
-ChaosLLM, ChaosWeb, and ChaosBlob are Starlette ASGI applications. This page documents every HTTP endpoint exposed by each server.
+ChaosLLM, ChaosWeb, and ChaosBlob are Starlette ASGI applications. ChaosSMTP exposes a real SMTP listener plus a Starlette HTTP admin sidecar. This page documents every HTTP endpoint exposed by each server and the SMTP listener behavior.
 
 ## Authentication
 
@@ -10,7 +10,7 @@ All `/admin/*` endpoints require a Bearer token in the `Authorization` header:
 Authorization: Bearer <admin_token>
 ```
 
-The `admin_token` is auto-generated if omitted, but generated tokens are not printed. Set `server.admin_token` explicitly in config when you need to call the admin API. Requests without a valid token receive:
+The `admin_token` is auto-generated if omitted, but generated tokens are not printed. Set `server.admin_token` explicitly in config when you need to call the web or LLM admin API. For ChaosSMTP, use `admin.admin_token` or `--admin-token` when you need a stable token; `chaossmtp show-config` redacts the token from CLI output. Requests without a valid token receive:
 
 - **401** if the `Authorization: Bearer` header is missing
 - **403** if the token does not match
@@ -232,9 +232,116 @@ curl "http://localhost:8300/my-bucket?list-type=2&prefix=data/&max-keys=10"
 
 ---
 
+## ChaosSMTP Listener and Admin Sidecar
+
+ChaosSMTP has two network surfaces:
+
+- SMTP listener: default `127.0.0.1:2525`, accepts real SMTP clients such as `smtplib`.
+- HTTP admin sidecar: default `127.0.0.1:8525`, exposes health, metrics, export, reset, and runtime config endpoints.
+
+ChaosSMTP never relays mail. Messages are accepted, rejected, dropped, or captured locally according to configuration.
+
+### SMTP Listener
+
+The SMTP listener supports normal SMTP transactions with `MAIL FROM`, `RCPT TO`, and `DATA`. The server announces `smtp.hostname` (default `chaossmtp.local`) and enforces `smtp.data_size_limit` (default `10485760` bytes). `smtp.port` may be `0` in YAML or Python config for ephemeral test binding.
+
+**Success behavior:** successful messages receive normal `250` replies and are captured according to `capture.mode`.
+
+**Injected SMTP outcomes:** current server handling invokes MAIL, RCPT, DATA, and ACCEPT stage decisions. CONNECT/banner-stage injection is not exposed until the listener has a real banner hook.
+
+| Injection | Stage | Reply or Behavior |
+|-----------|-------|-------------------|
+| `rate_limit` | MAIL/RCPT | `450 4.7.0 Mailbox temporarily unavailable due to rate limiting` |
+| `mail_from_tempfail` | MAIL | `451 4.3.0 Temporary sender failure` |
+| `mail_from_reject` | MAIL | `550 5.1.0 Sender rejected` |
+| `rcpt_to_tempfail` | RCPT | `451 4.3.0 Temporary recipient failure` |
+| `rcpt_to_reject` | RCPT | `550 5.1.1 Recipient rejected` |
+| `data_tempfail` | DATA | `451 4.3.0 Temporary message failure` |
+| `data_reject` | DATA | `554 5.6.0 Message rejected` |
+| `accept_then_drop` | ACCEPT | Returns `250` but records `accepted_then_dropped` and skips capture |
+| `malformed_reply` | DATA | Writes a malformed SMTP reply and closes the transport |
+| `wrong_reply_code` | DATA | Returns `252 2.5.2 Cannot VRFY user, accepting chaos path` |
+| `connection_reset` | MAIL/RCPT/DATA | Closes the SMTP transport |
+| `connection_stall` | MAIL/RCPT/DATA | Delays for `connection_stall_sec`, then closes the transport |
+| `slow_response` | MAIL/RCPT/DATA | Delays for `slow_response_sec`, then continues the normal path |
+
+**Example smtplib client:**
+
+```python
+from email.message import EmailMessage
+import smtplib
+
+message = EmailMessage()
+message["From"] = "sender@example.com"
+message["To"] = "recipient@example.com"
+message["Subject"] = "SMTP API test"
+message.set_content("hello")
+
+with smtplib.SMTP("127.0.0.1", 2525, timeout=5) as client:
+    client.send_message(message)
+```
+
+### HTTP Admin Sidecar
+
+The admin sidecar uses the shared admin endpoint set documented below. Use the sidecar port, not the SMTP port:
+
+```bash
+curl -H "Authorization: Bearer $ADMIN_TOKEN" \
+  http://127.0.0.1:8525/admin/stats
+```
+
+Admin endpoints require the bearer token even though `chaossmtp show-config` redacts `admin_token` from CLI output. Set the token with `admin.admin_token` or `--admin-token` when tests need a stable value.
+
+`GET /health` includes `smtp_running` in addition to the shared health fields:
+
+```json
+{
+  "status": "healthy",
+  "smtp_running": true,
+  "run_id": "550e8400-e29b-41d4-a716-446655440000",
+  "started_utc": "2025-01-15T10:30:00+00:00",
+  "in_burst": false
+}
+```
+
+`GET /admin/config` and `POST /admin/config` expose runtime-updatable SMTP sections: `error_injection`, `capture`, and `latency`. Listener binding, admin binding, metrics database, and admin token changes require restart.
+
+`GET /admin/export` returns raw SMTP transaction metrics plus captured messages:
+
+```json
+{
+  "requests": [
+    {
+      "transaction_id": "abc-123",
+      "mail_from": "sender@example.com",
+      "rcpt_count": 1,
+      "outcome": "success",
+      "smtp_stage": "data",
+      "reply_code": 250,
+      "capture_mode": "metadata"
+    }
+  ],
+  "messages": [
+    {
+      "transaction_id": "abc-123",
+      "mail_from": "sender@example.com",
+      "rcpt_tos": ["recipient@example.com"],
+      "message_size_bytes": 184,
+      "subject": "SMTP API test",
+      "headers": {"from": "sender@example.com", "to": "recipient@example.com", "subject": "SMTP API test"},
+      "body": null,
+      "body_encoding": null,
+      "truncated": false
+    }
+  ]
+}
+```
+
+---
+
 ## Shared Endpoints
 
-These endpoints are available on ChaosLLM, ChaosWeb, and ChaosBlob servers.
+These endpoints are available on ChaosLLM, ChaosWeb, and ChaosBlob servers, and on the ChaosSMTP HTTP admin sidecar.
 
 ### `GET /health`
 
@@ -250,6 +357,8 @@ Health check endpoint. No authentication required.
   "in_burst": false
 }
 ```
+
+ChaosSMTP also includes `smtp_running`.
 
 **Example curl:**
 
@@ -303,7 +412,7 @@ curl -H "Authorization: Bearer $ADMIN_TOKEN" \
 
 ### `GET /admin/config`
 
-Returns the current runtime configuration (error injection, response/content/storage, and latency settings).
+Returns the current runtime configuration (error injection, response/content/storage or capture settings, and latency settings).
 
 **Response** (200):
 
@@ -470,6 +579,8 @@ Export all raw metrics data for external analysis or archival. Returns the compl
 curl -H "Authorization: Bearer $ADMIN_TOKEN" \
   http://localhost:8000/admin/export
 ```
+
+For ChaosSMTP, use `http://localhost:8525/...` for these admin endpoints.
 
 ---
 

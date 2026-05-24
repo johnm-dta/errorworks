@@ -4,7 +4,7 @@ All configuration models use Pydantic with `frozen=True` (immutable) and `extra=
 
 ## Shared Configuration
 
-These models are defined in `errorworks.engine.types` and used by ChaosLLM, ChaosWeb, and ChaosBlob.
+These models are defined in `errorworks.engine.types`. `MetricsConfig` and `LatencyConfig` are shared by all server types; `ServerConfig` is used by the HTTP-native ChaosLLM, ChaosWeb, and ChaosBlob servers.
 
 ### ServerConfig
 
@@ -33,6 +33,7 @@ Default database URIs:
 - ChaosLLM: `file:chaosllm-metrics?mode=memory&cache=shared`
 - ChaosWeb: `file:chaosweb-metrics?mode=memory&cache=shared`
 - ChaosBlob: `file:chaosblob-metrics?mode=memory&cache=shared`
+- ChaosSMTP: `file:chaossmtp-metrics?mode=memory&cache=shared`
 
 ### LatencyConfig
 
@@ -363,6 +364,118 @@ All percentage fields are floats in the range 0.0-100.0.
 |-------|------|---------|-------------|
 | `max_object_bytes` | `int` | `10485760` | Maximum accepted object body size. Must be > 0. |
 | `default_content_type` | `str` | `"application/octet-stream"` | Content-Type used when a PUT has no content-type header. |
+
+---
+
+## ChaosSMTP Configuration
+
+### ChaosSMTPConfig (top-level)
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `smtp` | `SMTPServerConfig` | See below | SMTP listener binding and protocol configuration. |
+| `admin` | `SMTPAdminConfig` | See below | HTTP admin sidecar configuration. |
+| `metrics` | `MetricsConfig` | `database="file:chaossmtp-metrics?mode=memory&cache=shared"` | Metrics storage configuration. |
+| `latency` | `LatencyConfig` | See above | Latency simulation configuration. |
+| `capture` | `SMTPCaptureConfig` | See below | Message capture configuration. |
+| `error_injection` | `SMTPErrorInjectionConfig` | See below | SMTP-stage error injection configuration. |
+| `preset_name` | `str \| None` | `None` | Preset name used to build this config (set automatically). |
+| `allow_external_bind` | `bool` | `false` | Allow SMTP or admin binding to all interfaces (`0.0.0.0`, `::`, or equivalent). |
+
+**Safety constraint:** Binding either `smtp.host` or `admin.host` to an unspecified/all-interface address is blocked by default. Set `allow_external_bind: true` to override for controlled local test environments.
+
+### SMTPServerConfig
+
+SMTP listener binding and protocol settings.
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `host` | `str` | `"127.0.0.1"` | SMTP listener bind address. Must match pattern `^[a-zA-Z0-9.:\[\]-]+$`. |
+| `port` | `int` | `2525` | SMTP listener port. Range: 0-65535. Use `0` for ephemeral test binding. |
+| `hostname` | `str` | `"chaossmtp.local"` | Hostname announced to SMTP clients. |
+| `data_size_limit` | `int` | `10485760` | Maximum SMTP DATA size in bytes. Must be > 0. |
+| `enable_smtputf8` | `bool` | `true` | Enable SMTPUTF8 support. |
+| `require_starttls` | `bool` | `false` | Reserved for future TLS context support. `true` is rejected. |
+
+### SMTPAdminConfig
+
+HTTP admin sidecar configuration.
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `enabled` | `bool` | `true` | Enable the HTTP admin sidecar. |
+| `host` | `str` | `"127.0.0.1"` | Admin sidecar bind address. Must match pattern `^[a-zA-Z0-9.:\[\]-]+$`. |
+| `port` | `int` | `8525` | Admin sidecar port. Range: 1-65535. |
+| `admin_token` | `str` | Auto-generated | Bearer token for `/admin/*` endpoints. Auto-generated via `secrets.token_urlsafe(32)` if not set. |
+
+`chaossmtp show-config` removes `admin_token` from JSON/YAML output. The running admin sidecar still requires `Authorization: Bearer <admin_token>`.
+
+### SMTPCaptureConfig
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `mode` | `"discard" \| "metadata" \| "full"` | `"metadata"` | Message capture mode. `discard` records metrics only; `metadata` stores envelope and safe headers; `full` stores message bytes. |
+| `max_message_bytes` | `int` | `1048576` | Maximum bytes stored in `full` mode. Must be >= 0. |
+| `max_messages` | `int` | `1000` | Maximum captured messages kept in memory. Oldest messages are dropped first. Must be >= 1. |
+
+### SMTPErrorInjectionConfig
+
+All percentage fields are floats in the range 0.0-100.0. A value of `5.0` means 5% for the SMTP stage where the field applies.
+
+#### SMTP Command and Delivery Errors
+
+Current server handling invokes MAIL, RCPT, DATA, and ACCEPT stage decisions. CONNECT/banner-stage injection is not exposed until the listener has a real banner hook.
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `rate_limit_pct` | `float` | `0.0` | 450 rate-limit temporary failure percentage on MAIL/RCPT stages. |
+| `mail_from_tempfail_pct` | `float` | `0.0` | MAIL FROM temporary failure percentage. |
+| `mail_from_reject_pct` | `float` | `0.0` | MAIL FROM permanent rejection percentage. |
+| `rcpt_to_tempfail_pct` | `float` | `0.0` | RCPT TO temporary failure percentage. |
+| `rcpt_to_reject_pct` | `float` | `0.0` | RCPT TO permanent rejection percentage. |
+| `data_tempfail_pct` | `float` | `0.0` | DATA temporary failure percentage. |
+| `data_reject_pct` | `float` | `0.0` | DATA permanent rejection percentage. |
+| `accept_then_drop_pct` | `float` | `0.0` | Accept message with `250` then drop it without capture. |
+
+#### Protocol and Connection Failures
+
+Protocol and connection percentage fields are evaluated on MAIL, RCPT, or DATA stages depending on the injector stage list. `malformed_reply_pct` and `wrong_reply_code_pct` are currently reached through DATA handling.
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `malformed_reply_pct` | `float` | `0.0` | Malformed SMTP reply percentage on DATA stages. |
+| `wrong_reply_code_pct` | `float` | `0.0` | Unexpected SMTP reply code percentage on DATA stages. |
+| `connection_reset_pct` | `float` | `0.0` | Close the SMTP transport percentage. |
+| `connection_stall_pct` | `float` | `0.0` | Stall then close percentage. |
+| `slow_response_pct` | `float` | `0.0` | Slow response percentage. Slow response delays but does not otherwise fail the transaction. |
+
+#### Range Fields
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `retry_after_sec` | `tuple[int, int]` | `(1, 30)` | Validated retry delay range config. Current SMTP replies do not emit a Retry-After header. |
+| `connection_stall_sec` | `tuple[int, int]` | `(30, 60)` | Stall duration range [min, max] seconds. |
+| `slow_response_sec` | `tuple[int, int]` | `(3, 15)` | Slow response delay range [min, max] seconds. |
+
+Range fields must satisfy `min <= max`. They accept both tuples and lists in YAML/JSON input.
+
+#### Selection Mode
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `selection_mode` | `"priority" \| "weighted"` | `"priority"` | `priority`: errors evaluated in stage order. `weighted`: errors selected proportionally by weight. |
+
+**Validation:** In weighted mode, if total SMTP error percentages reach or exceed 100%, a warning is emitted because no successful messages will be generated.
+
+#### SMTPBurstConfig
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `enabled` | `bool` | `false` | Enable burst pattern injection. |
+| `interval_sec` | `int` | `30` | Time between burst starts in seconds. Must be > 0. |
+| `duration_sec` | `int` | `5` | How long each burst lasts in seconds. Must be > 0 and < `interval_sec` when enabled. |
+| `rcpt_to_tempfail_pct` | `float` | `80.0` | RCPT TO temporary failure percentage during burst windows. (Renamed from `tempfail_pct` for clarity — only the RCPT TO tempfail weight is overridden.) |
+| `rate_limit_pct` | `float` | `50.0` | Rate-limit percentage during burst windows. |
 
 ---
 

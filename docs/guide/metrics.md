@@ -1,6 +1,6 @@
 # Metrics Guide
 
-Every request that passes through a ChaosLLM or ChaosWeb server is recorded in a SQLite database. You can query these metrics to understand error rates, latency distributions, and how your pipeline responds to injected faults.
+Every request or SMTP transaction that passes through an Errorworks server is recorded in a SQLite database. You can query these metrics to understand error rates, latency distributions, and how your pipeline responds to injected faults.
 
 ## What Gets Recorded
 
@@ -38,6 +38,37 @@ ChaosWeb additionally records:
 | `redirect_target` | SSRF redirect destination URL |
 | `redirect_hops` | Number of hops in redirect chain |
 
+ChaosSMTP additionally records:
+
+| Field | Description |
+|---|---|
+| `transaction_id` | Unique ID for the SMTP transaction |
+| `session_id` | Server-side SMTP session identifier |
+| `client_addr` | Remote SMTP client address |
+| `mail_from` | Envelope sender |
+| `rcpt_count` | Number of recipients |
+| `rcpt_domains` | JSON list of recipient domains |
+| `message_size_bytes` | SMTP DATA size in bytes |
+| `subject` | Captured Subject header when capture mode records metadata |
+| `smtp_stage` | Stage where the outcome happened: `mail`, `rcpt`, `data`, or `accept` |
+| `reply_code` | SMTP reply code, when one was sent |
+| `enhanced_status_code` | Enhanced status code parsed from the reply text, such as `4.3.0` |
+| `error_type` | Specific SMTP fault injected |
+| `capture_mode` | `discard`, `metadata`, or `full` |
+| `tls_used` | Whether the SMTP session used TLS |
+| `auth_username` | Authenticated username when supplied by the SMTP session |
+
+SMTP outcomes include:
+
+| Outcome | Meaning |
+|---|---|
+| `success` | Message was accepted and captured according to `capture.mode` |
+| `tempfailed` | A 4xx SMTP reply was injected |
+| `permfailed` | A 5xx SMTP reply was injected |
+| `connection_error` | The SMTP transport was closed or stalled |
+| `malformed_protocol` | A malformed reply or unexpected code was injected |
+| `accepted_then_dropped` | The server returned success but intentionally did not capture the message |
+
 ## Querying via Admin API
 
 All admin endpoints require authentication with `Authorization: Bearer <token>`.
@@ -48,6 +79,13 @@ Returns aggregated statistics for the current run:
 
 ```bash
 curl http://localhost:8000/admin/stats \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
+```
+
+For ChaosSMTP, use the admin sidecar port:
+
+```bash
+curl http://localhost:8525/admin/stats \
   -H "Authorization: Bearer $ADMIN_TOKEN"
 ```
 
@@ -153,6 +191,8 @@ Example response:
 
 The export includes the full server configuration used for this run, making it self-documenting for later analysis.
 
+ChaosSMTP exports also include a `messages` array. In `metadata` mode each item contains envelope sender, recipients, size, subject, and safe headers. In `full` mode each item also includes base64-encoded message bytes up to `capture.max_message_bytes`.
+
 ### POST /admin/reset -- Reset Metrics
 
 Clears all request and timeseries data and starts a new run:
@@ -185,6 +225,15 @@ Each bucket tracks:
 - `avg_latency_ms` -- Average latency for the bucket
 - `p99_latency_ms` -- Approximate 99th percentile latency
 
+ChaosSMTP buckets use SMTP-specific counters:
+
+- `messages_accepted`
+- `messages_tempfailed`
+- `messages_permfailed`
+- `messages_connection_error`
+- `messages_malformed_protocol`
+- `messages_accepted_then_dropped`
+
 Time-series data is included in the `/admin/export` response and is useful for observing how error rates and latency change over time, especially around burst windows.
 
 ## Storage Options
@@ -199,6 +248,12 @@ metrics:
 ```
 
 This is fast and requires no cleanup, but data is lost when the server stops. The `cache=shared` URI parameter allows multiple threads to access the same in-memory database.
+
+Default in-memory database URIs are service-specific:
+
+- ChaosLLM: `file:chaosllm-metrics?mode=memory&cache=shared`
+- ChaosWeb: `file:chaosweb-metrics?mode=memory&cache=shared`
+- ChaosSMTP: `file:chaossmtp-metrics?mode=memory&cache=shared`
 
 ### File-Backed
 
@@ -253,4 +308,5 @@ new_run_id = server.reset()
 - [Configuration](configuration.md) -- Metrics storage configuration options
 - [ChaosLLM](chaosllm.md) -- LLM-specific metrics fields
 - [ChaosWeb](chaosweb.md) -- Web-specific metrics fields
-- [Testing Fixtures](testing-fixtures.md) -- Accessing metrics in pytest
+- [ChaosSMTP](chaossmtp.md) -- SMTP-specific metrics and capture modes
+- [Testing Fixtures](testing-fixtures.md) -- Accessing metrics in repository fixture tests

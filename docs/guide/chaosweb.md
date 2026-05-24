@@ -240,4 +240,4 @@ stats = server.get_stats()
 - [Presets](presets.md) -- Full preset comparison and customization
 - [Configuration](configuration.md) -- YAML config file structure and precedence rules
 - [Metrics](metrics.md) -- Querying request statistics
-- [Testing Fixtures](testing-fixtures.md) -- In-process testing with pytest
+- [Testing Fixtures](testing-fixtures.md) -- Repository fixture helpers for contributors

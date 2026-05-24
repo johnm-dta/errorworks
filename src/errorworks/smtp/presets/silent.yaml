@@ -1,0 +1,8 @@
+# ChaosSMTP Preset: silent
+latency:
+  base_ms: 10
+  jitter_ms: 5
+capture:
+  mode: metadata
+error_injection:
+  selection_mode: priority

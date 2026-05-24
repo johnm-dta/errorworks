@@ -40,9 +40,7 @@ def _clear_env(monkeypatch: pytest.MonkeyPatch) -> None:
 class TestHappyPath:
     """Loader returns the expected payload under normal conditions."""
 
-    def test_file_env_var_returns_file_contents(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> None:
+    def test_file_env_var_returns_file_contents(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
         config_file = tmp_path / "config.json"
         config_file.write_text('{"hello": "world"}')
         monkeypatch.setenv(FILE_ENV, str(config_file))
@@ -58,9 +56,7 @@ class TestHappyPath:
 
         assert result == '{"legacy": true}'
 
-    def test_file_takes_precedence_over_env_var(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> None:
+    def test_file_takes_precedence_over_env_var(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
         config_file = tmp_path / "config.json"
         config_file.write_text('{"from": "file"}')
         monkeypatch.setenv(FILE_ENV, str(config_file))
@@ -79,9 +75,7 @@ class TestHappyPath:
 class TestFileMissingFallback:
     """When the file env var points at a missing file, fall back to env var."""
 
-    def test_missing_file_falls_back_to_env_var(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> None:
+    def test_missing_file_falls_back_to_env_var(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
         missing = tmp_path / "does-not-exist.json"
         monkeypatch.setenv(FILE_ENV, str(missing))
         monkeypatch.setenv(CONFIG_ENV, '{"fallback": "used"}')
@@ -90,9 +84,7 @@ class TestFileMissingFallback:
 
         assert result == '{"fallback": "used"}'
 
-    def test_missing_file_no_fallback_raises_diagnostic(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> None:
+    def test_missing_file_no_fallback_raises_diagnostic(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
         missing = tmp_path / "does-not-exist.json"
         monkeypatch.setenv(FILE_ENV, str(missing))
         # CONFIG_ENV intentionally not set.
@@ -107,9 +99,7 @@ class TestFileMissingFallback:
         # Should hint at parent CLI lifecycle as the cause.
         assert "parent" in message.lower() or "handoff" in message.lower()
 
-    def test_missing_file_no_fallback_chains_oserror(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> None:
+    def test_missing_file_no_fallback_chains_oserror(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
         """The underlying OSError must be chained for debugging."""
         missing = tmp_path / "does-not-exist.json"
         monkeypatch.setenv(FILE_ENV, str(missing))
@@ -128,9 +118,7 @@ class TestFileMissingFallback:
 class TestNeitherSet:
     """Both env vars absent — diagnostic error naming both."""
 
-    def test_neither_env_var_set_raises_diagnostic(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_neither_env_var_set_raises_diagnostic(self, monkeypatch: pytest.MonkeyPatch) -> None:
         # _clear_env autouse fixture already cleared both.
         with pytest.raises(ConfigHandoffError) as excinfo:
             load_handoff_config_json(file_env_var=FILE_ENV, config_env_var=CONFIG_ENV)
@@ -148,9 +136,7 @@ class TestNeitherSet:
 class TestLLMSiteUsesHandoff:
     """The LLM server factory uses the shared handoff loader."""
 
-    def test_llm_missing_file_falls_back_to_env(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> None:
+    def test_llm_missing_file_falls_back_to_env(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
         from starlette.applications import Starlette
 
         from errorworks.llm.config import ChaosLLMConfig
@@ -164,9 +150,7 @@ class TestLLMSiteUsesHandoff:
 
         assert isinstance(app, Starlette)
 
-    def test_llm_missing_both_raises_diagnostic(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> None:
+    def test_llm_missing_both_raises_diagnostic(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
         from errorworks.llm.server import _create_app_from_env
 
         missing = tmp_path / "missing.json"
@@ -180,9 +164,7 @@ class TestLLMSiteUsesHandoff:
 class TestWebSiteUsesHandoff:
     """The Web server factory uses the shared handoff loader."""
 
-    def test_web_missing_file_falls_back_to_env(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> None:
+    def test_web_missing_file_falls_back_to_env(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
         from starlette.applications import Starlette
 
         from errorworks.web.config import ChaosWebConfig
@@ -196,9 +178,7 @@ class TestWebSiteUsesHandoff:
 
         assert isinstance(app, Starlette)
 
-    def test_web_missing_both_raises_diagnostic(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> None:
+    def test_web_missing_both_raises_diagnostic(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
         from errorworks.web.server import _create_app_from_env
 
         missing = tmp_path / "missing.json"
@@ -212,9 +192,7 @@ class TestWebSiteUsesHandoff:
 class TestBlobSiteUsesHandoff:
     """The Blob CLI factory uses the shared handoff loader."""
 
-    def test_blob_missing_file_falls_back_to_env(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> None:
+    def test_blob_missing_file_falls_back_to_env(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
         from starlette.applications import Starlette
 
         from errorworks.blob.cli import _create_app_from_env
@@ -228,9 +206,7 @@ class TestBlobSiteUsesHandoff:
 
         assert isinstance(app, Starlette)
 
-    def test_blob_missing_both_raises_diagnostic(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> None:
+    def test_blob_missing_both_raises_diagnostic(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
         from errorworks.blob.cli import _create_app_from_env
 
         missing = tmp_path / "missing.json"

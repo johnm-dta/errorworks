@@ -1,0 +1,203 @@
+"""Tests for ChaosSMTP message capture."""
+
+import base64
+import json
+from dataclasses import asdict
+from email.message import EmailMessage
+from typing import Any, cast
+
+import pytest
+
+from errorworks.smtp.config import SMTPCaptureConfig
+from errorworks.smtp.message_capture import CapturedMessage, MessageCapture
+
+
+def _message_bytes() -> bytes:
+    message = EmailMessage()
+    message["From"] = "sender@example.com"
+    message["To"] = "recipient@example.com"
+    message["Subject"] = "Delivery test"
+    message.set_content("hello from chaossmtp")
+    return message.as_bytes()
+
+
+@pytest.mark.asyncio
+async def test_discard_mode_captures_only_counts() -> None:
+    capture = MessageCapture(SMTPCaptureConfig(mode="discard"))
+    record = await capture.capture(
+        transaction_id="tx-1",
+        mail_from="sender@example.com",
+        rcpt_tos=["recipient@example.com"],
+        data=_message_bytes(),
+    )
+    assert record.subject is None
+    assert record.headers == {}
+    assert record.body is None
+    assert record.message_size_bytes > 0
+    assert capture.list_messages() == []
+
+
+@pytest.mark.asyncio
+async def test_metadata_mode_stores_safe_headers() -> None:
+    capture = MessageCapture(SMTPCaptureConfig(mode="metadata"))
+    record = await capture.capture(
+        transaction_id="tx-1",
+        mail_from="sender@example.com",
+        rcpt_tos=["recipient@example.com"],
+        data=_message_bytes(),
+    )
+    assert record.subject == "Delivery test"
+    assert record.headers["from"] == "sender@example.com"
+    assert record.headers["to"] == "recipient@example.com"
+    assert record.body is None
+    assert capture.list_messages()[0].transaction_id == "tx-1"
+
+
+@pytest.mark.asyncio
+async def test_captured_record_asdict_exports_plain_headers() -> None:
+    capture = MessageCapture(SMTPCaptureConfig(mode="metadata"))
+    record = await capture.capture(
+        transaction_id="tx-1",
+        mail_from="sender@example.com",
+        rcpt_tos=["recipient@example.com"],
+        data=_message_bytes(),
+    )
+
+    exported = asdict(record)
+
+    assert exported["headers"] == {
+        "from": "sender@example.com",
+        "to": "recipient@example.com",
+        "subject": "Delivery test",
+    }
+    assert isinstance(exported["headers"], dict)
+
+
+@pytest.mark.asyncio
+async def test_listed_record_headers_cannot_mutate_stored_capture() -> None:
+    capture = MessageCapture(SMTPCaptureConfig(mode="metadata"))
+    await capture.capture(
+        transaction_id="tx-1",
+        mail_from="sender@example.com",
+        rcpt_tos=["recipient@example.com"],
+        data=_message_bytes(),
+    )
+
+    listed_record = capture.list_messages()[0]
+    with pytest.raises(TypeError):
+        listed_record.headers["from"] = "mutated@example.com"  # type: ignore[index]
+
+    assert capture.list_messages()[0].headers["from"] == "sender@example.com"
+
+
+@pytest.mark.asyncio
+async def test_listed_record_headers_reject_update_operator_mutation() -> None:
+    capture = MessageCapture(SMTPCaptureConfig(mode="metadata"))
+    await capture.capture(
+        transaction_id="tx-1",
+        mail_from="sender@example.com",
+        rcpt_tos=["recipient@example.com"],
+        data=_message_bytes(),
+    )
+
+    listed_record = capture.list_messages()[0]
+    headers = cast(Any, listed_record.headers)
+    with pytest.raises(TypeError):
+        headers |= {"from": "mutated@example.com"}
+
+    assert capture.list_messages()[0].headers["from"] == "sender@example.com"
+
+
+def test_direct_captured_message_headers_are_immutable() -> None:
+    record = CapturedMessage(
+        transaction_id="tx-1",
+        mail_from="sender@example.com",
+        rcpt_tos=("recipient@example.com",),
+        message_size_bytes=10,
+        subject="Delivery test",
+        headers={"subject": "Delivery test"},
+        body=None,
+        body_encoding=None,
+        truncated=False,
+    )
+
+    with pytest.raises(TypeError):
+        record.headers["subject"] = "mutated"  # type: ignore[index]
+
+
+@pytest.mark.asyncio
+async def test_capture_drops_oldest_message_when_buffer_is_full() -> None:
+    capture = MessageCapture(SMTPCaptureConfig(mode="metadata", max_messages=2))
+
+    for index in range(3):
+        await capture.capture(
+            transaction_id=f"tx-{index}",
+            mail_from="sender@example.com",
+            rcpt_tos=["recipient@example.com"],
+            data=_message_bytes(),
+        )
+
+    assert [message.transaction_id for message in capture.list_messages()] == ["tx-1", "tx-2"]
+
+
+@pytest.mark.asyncio
+async def test_full_mode_truncates_body_bytes() -> None:
+    data = _message_bytes()
+    capture = MessageCapture(SMTPCaptureConfig(mode="full", max_message_bytes=20))
+    record = await capture.capture(
+        transaction_id="tx-1",
+        mail_from="sender@example.com",
+        rcpt_tos=["recipient@example.com"],
+        data=data,
+    )
+    assert record.body is not None
+    assert record.body_encoding == "base64"
+    assert base64.b64decode(record.body) == data[:20]
+    assert record.truncated is True
+
+
+@pytest.mark.asyncio
+async def test_full_mode_asdict_exports_json_safe_encoded_body() -> None:
+    data = _message_bytes()
+    capture = MessageCapture(SMTPCaptureConfig(mode="full", max_message_bytes=20))
+    record = await capture.capture(
+        transaction_id="tx-1",
+        mail_from="sender@example.com",
+        rcpt_tos=["recipient@example.com"],
+        data=data,
+    )
+
+    exported = asdict(record)
+
+    json.dumps(exported)
+    assert exported["body_encoding"] == "base64"
+    assert exported["body"] == base64.b64encode(data[:20]).decode("ascii")
+    assert base64.b64decode(exported["body"]) == data[:20]
+
+
+@pytest.mark.asyncio
+async def test_reset_clears_captured_messages() -> None:
+    capture = MessageCapture(SMTPCaptureConfig(mode="metadata"))
+    await capture.capture(
+        transaction_id="tx-1",
+        mail_from="sender@example.com",
+        rcpt_tos=["recipient@example.com"],
+        data=_message_bytes(),
+    )
+    assert len(capture.list_messages()) == 1
+    capture.reset()
+    assert capture.list_messages() == []
+
+
+@pytest.mark.asyncio
+async def test_capture_handles_malformed_message_gracefully() -> None:
+    capture = MessageCapture(SMTPCaptureConfig(mode="metadata"))
+    record = await capture.capture(
+        transaction_id="tx-malformed",
+        mail_from="sender@example.com",
+        rcpt_tos=["recipient@example.com"],
+        data=b"\x00\x01garbage no headers\x00",
+    )
+    assert record.subject is None
+    assert dict(record.headers) == {}
+    assert capture.list_messages()[0].transaction_id == "tx-malformed"

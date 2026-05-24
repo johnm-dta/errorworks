@@ -1,6 +1,6 @@
 # errorworks
 
-Composable chaos-testing services for LLM, web scraping, and object storage pipelines.
+Composable chaos-testing services for LLM, web scraping, object storage, and outbound email pipelines.
 
 [![CI](https://github.com/johnm-dta/errorworks/actions/workflows/ci.yml/badge.svg)](https://github.com/johnm-dta/errorworks/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/errorworks)](https://pypi.org/project/errorworks/)
@@ -20,12 +20,18 @@ and surfaces clean errors on malformed JSON. Point your scraper at a ChaosWeb
 server to confirm it handles truncated HTML, encoding mismatches, and SSRF
 redirects. Point your blob pipeline at a ChaosBlob server to exercise
 S3-style throttling, stale listings, corrupted object reads, and metadata
-surprises. Fault rates, error distributions, and latency profiles are all
-configurable via CLI flags, YAML files, or built-in presets.
+surprises. Point your mail client at ChaosSMTP to test temporary recipient
+failures, DATA rejections, rate limits, slow replies, and accepted-but-dropped
+messages without relaying mail. Fault rates, error distributions, and latency
+profiles are all configurable via CLI flags, YAML files, or built-in presets.
 
-Everything runs in-process during CI via pytest fixtures (no sockets, no
-containers), records metrics to a thread-safe SQLite store, and supports live
-reconfiguration through admin endpoints.
+All packaged servers record metrics to a thread-safe SQLite store and support
+live reconfiguration through bearer-token admin endpoints. The repository test
+suite also includes maintainer fixtures under `tests/fixtures`: HTTP fixtures run
+through Starlette's `TestClient`, while the ChaosSMTP fixture uses an ephemeral
+loopback TCP socket so standard SMTP clients such as `smtplib` can exercise the
+real protocol. Those fixtures are source-tree test helpers, not installed package
+imports.
 
 ## Features
 
@@ -35,6 +41,7 @@ reconfiguration through admin endpoints.
 - Malformed responses: invalid JSON, truncated bodies, missing fields, wrong content-type
 - Web-specific: SSRF redirects (private IPs, cloud metadata), encoding mismatches, truncated HTML, charset confusion
 - Blob-specific: S3 `SlowDown`, `AccessDenied`, stale listings, malformed XML, truncated object bodies, ETag mismatch, metadata corruption
+- SMTP-specific: temporary and permanent MAIL/RCPT/DATA failures, malformed DATA replies, slow responses, accepted-but-dropped messages
 
 **Latency simulation**
 - Configurable base delay with jitter
@@ -45,19 +52,21 @@ reconfiguration through admin endpoints.
 - ChaosLLM returns OpenAI-compatible chat completion responses
 - ChaosWeb returns HTML pages
 - ChaosBlob stores and serves object bytes with S3-shaped XML list/error responses
+- ChaosSMTP captures mail as metadata by default, with discard and full-message capture modes
 
 **Presets**
 - LLM: `silent`, `gentle`, `realistic`, `chaos`, `stress_aimd`, `stress_extreme`
 - Web: `silent`, `gentle`, `realistic`, `stress_scraping`, `stress_extreme`
 - Blob: `silent`, `gentle`, `realistic`, `stress_storage`, `stress_extreme`
+- SMTP: `silent`, `gentle`, `realistic`, `stress_delivery`, `stress_extreme`
 
 **Metrics and admin**
 - SQLite-backed metrics with timeseries aggregation
 - Admin endpoints for stats, config, export, and reset (bearer-token auth)
 
-**Testing support**
-- In-process pytest fixtures with marker-based configuration
-- No sockets or containers required in CI
+**Repository test-suite helpers**
+- Contributor/maintainer pytest fixtures under `tests/fixtures` with marker-based configuration
+- No containers required in CI; the SMTP fixture binds an ephemeral loopback port
 
 ## Quick start
 
@@ -87,20 +96,28 @@ chaosweb serve --preset=stress_scraping --port=9000
 # Blob server
 chaosblob serve --preset=realistic --port=8300
 
+# SMTP server
+chaossmtp serve --preset=realistic --port=2525
+
 # Unified CLI
 chaosengine llm serve --preset=gentle
 chaosengine web serve --preset=stress_scraping
 chaosengine blob serve --preset=stress_storage
+chaosengine smtp serve --preset=stress_delivery
 ```
 
-### Pytest fixtures
+### Repository test-suite fixtures
+
+The pytest fixtures in `tests/fixtures` are for contributors running the
+repository test suite from a source checkout. They are not packaged in the
+installed wheel.
 
 ```python
 import pytest
 
 @pytest.mark.chaosllm(preset="realistic", rate_limit_pct=25.0)
-def test_retry_on_rate_limit(chaosllm):
-    response = chaosllm.post_completion(
+def test_retry_on_rate_limit(chaosllm_server):
+    response = chaosllm_server.post_completion(
         model="gpt-4",
         messages=[{"role": "user", "content": "test"}],
     )
@@ -136,13 +153,14 @@ Full documentation is available at [johnm-dta.github.io/errorworks](https://john
 
 ## Architecture
 
-errorworks uses a composition-based design: each server type (ChaosLLM, ChaosWeb, ChaosBlob)
-composes shared engine components rather than inheriting from base classes. The
-core engine provides an `InjectionEngine` for fault selection, a `MetricsStore`
-for recording, a `LatencySimulator` for delays, and a `ConfigLoader` for
-YAML/preset merging. All configuration models are frozen Pydantic instances;
-runtime updates create new model instances and atomically swap references under
-lock, ensuring thread-safe request handling without mid-request inconsistency.
+errorworks uses a composition-based design: each server type (ChaosLLM,
+ChaosWeb, ChaosBlob, ChaosSMTP) composes shared engine components rather than
+inheriting from base classes. The core engine provides an `InjectionEngine` for
+fault selection, a `MetricsStore` for recording, a `LatencySimulator` for
+delays, and a `ConfigLoader` for YAML/preset merging. All configuration models
+are frozen Pydantic instances; runtime updates create new model instances and
+atomically swap references under lock, ensuring thread-safe request handling
+without mid-request inconsistency.
 
 ---
 

@@ -7,11 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-05-25
+
 ### Added
 
 - **ChaosBlob**: S3-compatible-ish path-style object storage chaos server with
   PUT/GET/HEAD/DELETE/ListObjectsV2 support, blob-specific fault injection,
   metrics, CLI, presets, pytest fixture, and documentation.
+- **ChaosSMTP**: SMTP receiving server for outbound email resilience tests.
+  Stage-aware error injection across MAIL/RCPT/DATA, slow-reply latency,
+  accepted-but-dropped messages, three capture modes (`metadata`, `discard`,
+  `full`), admin app for runtime config/metrics, immutable captured-header
+  policy, SQLite metrics, CLI (`chaossmtp`), presets, pytest fixture, and
+  documentation. Mail is never relayed — all sessions stay local.
 
 ### Changed (breaking)
 
@@ -45,6 +53,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **MCP analyzer is now truly read-only**: the SQLite connection is opened via
   a `file:...?mode=ro` URI and no longer executes `PRAGMA journal_mode=WAL`,
   so it does not create WAL/SHM side files or mutate the on-disk database.
+- **Engine: malformed `Content-Length` now rejected explicitly.**
+  `read_limited_body()` previously relied on `except ValueError` plus
+  `isinstance` to distinguish a size-limit exception from an int-parse
+  failure, but because `RequestBodyTooLarge` subclasses `ValueError`, a
+  genuine parse failure was silently swallowed and the size guard was
+  effectively disabled for any client sending `Content-Length: abc`, `1.5`,
+  or `-1`. A new `MalformedContentLength(ValueError)` is now raised on bad
+  input; blob maps it to `S3 InvalidRequest`/HTTP 400, and admin/LLM inherit
+  the correct behaviour via their existing handlers.
+- **Engine: graceful fallback when config-handoff temp file is missing.**
+  Worker processes (uvicorn fork) previously died with a bare
+  `FileNotFoundError` when the handoff temp file was absent (shutdown race,
+  `/tmp` cleaner, mismatched cleanup). A shared `engine/config_handoff.py`
+  helper now falls back to the env-var-only form when the temp file is gone,
+  and raises a diagnostic `ConfigHandoffError` only when both mechanisms are
+  missing or unreadable. Used by all three HTTP servers (blob/llm/web).
+- **MCP `analyze_latency`: percentiles now computed over full population.**
+  The previous implementation ran `ORDER BY latency_ms LIMIT 100` and then
+  computed percentiles over the returned rows — the smallest-100 lower tail,
+  producing wildly low p95/p99 values. Replaced with the
+  `LIMIT 1 OFFSET k` per-percentile SQL pattern already used in
+  `engine/metrics_store.py` — exact, single-row per query, consistent across
+  the codebase.
 
 ### Removed (security)
 
@@ -62,6 +93,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ChaosWeb guide: fixed the template helper list to match what is actually
   registered (`random_choice`, `random_int`, `random_words`, `timestamp` —
   no `random_float`).
+- Added `docs/guide/chaosblob.md` and `docs/guide/chaossmtp.md`; updated
+  `docs/index.md` and the MkDocs nav to surface both new plugins.
 
 ## [0.1.3] - 2026-05-24
 

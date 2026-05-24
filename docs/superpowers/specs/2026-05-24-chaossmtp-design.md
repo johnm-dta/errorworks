@@ -13,6 +13,11 @@ copy of ChaosLLM or ChaosWeb. SMTP is a stateful TCP protocol, so the SMTP
 listener should use an SMTP protocol library and expose the existing HTTP admin
 surface through a sidecar admin app.
 
+Implementation note: the landed implementation intentionally defers
+CONNECT/banner-stage injection until there is a real listener hook for the SMTP
+banner. `require_starttls: true` is rejected until TLS context configuration is
+exposed. Message capture also includes a bounded `max_messages` buffer.
+
 ## Orientation Findings
 
 The current project shape supports this direction:
@@ -163,7 +168,7 @@ smtp:
   hostname: chaossmtp.local
   data_size_limit: 10485760
   enable_smtputf8: true
-  require_starttls: false
+  require_starttls: false  # true rejected until TLS context support exists
 
 admin:
   enabled: true
@@ -182,6 +187,7 @@ latency:
 capture:
   mode: metadata
   max_message_bytes: 1048576
+  max_messages: 1000
 
 error_injection:
   selection_mode: priority
@@ -193,7 +199,6 @@ error_injection:
   data_tempfail_pct: 0.0
   data_reject_pct: 0.0
   accept_then_drop_pct: 0.0
-  banner_reject_pct: 0.0
   malformed_reply_pct: 0.0
   connection_reset_pct: 0.0
   connection_stall_pct: 0.0
@@ -217,6 +222,7 @@ Instead, create `SMTPServerConfig` and `AdminConfig`. Reuse `MetricsConfig` and
 - `metadata`: store envelope metadata, recipient count, size, and selected safe
   headers. This is the default.
 - `full`: store full message bytes up to `max_message_bytes` for test fixtures.
+- `max_messages`: cap stored message records and drop oldest records first.
 
 ## Error Model
 
@@ -227,7 +233,6 @@ reuse HTTP labels like "server_error" directly.
 
 | Field | Behavior |
 | --- | --- |
-| `banner_reject_pct` | Return `421 Service not available` before normal EHLO flow. |
 | `connection_reset_pct` | Drop the connection during the selected SMTP stage. |
 | `connection_stall_pct` | Stall, then disconnect. |
 | `slow_response_pct` | Delay before returning an otherwise valid SMTP reply. |
