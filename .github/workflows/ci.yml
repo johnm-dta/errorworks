@@ -6,38 +6,258 @@ on:
   pull_request:
     branches: [main]
   workflow_call:
+    inputs:
+      ref:
+        description: "Git ref to check out when CI is called by another workflow"
+        required: false
+        type: string
+
+# Read-only by default. Individual jobs grant the minimum they need.
+permissions:
+  contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  UV_FROZEN: "1"
+  UV_NO_PROGRESS: "1"
+  PYTHONUNBUFFERED: "1"
 
 jobs:
-  lint:
+  # ---------------------------------------------------------------------------
+  # Pre-commit: enforce the same hooks contributors run locally so we don't
+  # drift between local and CI formatting/lint rules.
+  # ---------------------------------------------------------------------------
+  pre-commit:
+    name: pre-commit
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: "pyproject.toml"
+      - run: uv sync --all-extras
+      - uses: pre-commit/action@2c7b3805fd2a0fd8c1884dcaebf91fc102a13ecd  # v3.0.1
+
+  # ---------------------------------------------------------------------------
+  # Lint and format check. Redundant with pre-commit on contributor machines
+  # but cheap, and a fast independent signal if pre-commit drifts.
+  # ---------------------------------------------------------------------------
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: "pyproject.toml"
       - run: uv sync --all-extras
       - run: uv run ruff check src tests
       - run: uv run ruff format --check src tests
 
+  # ---------------------------------------------------------------------------
+  # Type checking. Currently src-only; tests/ are excluded because fixtures
+  # use dynamic Pydantic constructs that aren't worth annotating yet.
+  # ---------------------------------------------------------------------------
   typecheck:
+    name: typecheck
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: "pyproject.toml"
       - run: uv sync --all-extras
       - run: uv run mypy src
 
+  # ---------------------------------------------------------------------------
+  # Tests across the Python versions the package claims to support
+  # (matches the classifiers in pyproject.toml).
+  # ---------------------------------------------------------------------------
   test:
+    name: test (py${{ matrix.python-version }})
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
+      fail-fast: false
       matrix:
         python-version: ["3.12", "3.13"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6
         with:
           python-version: ${{ matrix.python-version }}
+          enable-cache: true
+          cache-dependency-glob: "pyproject.toml"
       - run: uv sync --all-extras
-      - run: uv run pytest --cov --cov-report=term-missing
+      - name: Run pytest
+        run: |
+          uv run pytest \
+            --cov \
+            --cov-report=xml \
+            --cov-report=term-missing \
+            --junitxml=junit-${{ matrix.python-version }}.xml
+      - name: Upload coverage XML
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: coverage-py${{ matrix.python-version }}
+          path: coverage.xml
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Upload JUnit
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: junit-py${{ matrix.python-version }}
+          path: junit-${{ matrix.python-version }}.xml
+          if-no-files-found: warn
+          retention-days: 14
+
+  # ---------------------------------------------------------------------------
+  # Build the wheel and sdist on every PR / push so packaging regressions
+  # surface immediately, not at release time. The same artifact is what
+  # the release workflow will publish, so we exercise it here.
+  # ---------------------------------------------------------------------------
+  build:
+    name: build & smoke-test wheel
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: "pyproject.toml"
+
+      - name: Build sdist and wheel
+        run: uv build
+
+      - name: Validate package metadata (twine check)
+        run: uvx --from twine twine check --strict dist/*
+
+      - name: Install wheel in a clean venv and import + run CLI
+        run: |
+          set -euxo pipefail
+          uv venv /tmp/smoke
+          # shellcheck disable=SC1091
+          source /tmp/smoke/bin/activate
+          uv pip install dist/*.whl
+          python -c "import errorworks; print('errorworks', errorworks.__version__)"
+          # Assert non-empty help output. Catches a broken entry point
+          # that exits 0 with nothing on stdout/stderr. Avoids matching
+          # on literal text because Typer/rich's pipe-mode rendering
+          # differs from TTY mode.
+          test -n "$(chaosengine --help 2>&1)"
+          test -n "$(chaosllm    --help 2>&1)"
+          test -n "$(chaosweb    --help 2>&1)"
+
+      - name: Upload built distribution
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
+
+  # ---------------------------------------------------------------------------
+  # Build the docs site under --strict on PRs that touch docs, so broken
+  # links and missing nav entries don't reach gh-pages.
+  # ---------------------------------------------------------------------------
+  docs-build:
+    name: docs build (strict)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: "pyproject.toml"
+      - run: uv sync --extra docs
+      - run: cp CHANGELOG.md docs/changelog.md
+      - run: uv run mkdocs build --strict
+
+  # ---------------------------------------------------------------------------
+  # Surface dependency-review on PRs — flags newly introduced vulnerable
+  # dependencies and license issues before they merge.
+  # Requires GitHub Advanced Security on private repos (free on public).
+  # ---------------------------------------------------------------------------
+  dependency-review:
+    name: dependency review
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+      - uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48  # v4
+        with:
+          fail-on-severity: high
+          comment-summary-in-pr: on-failure
+
+  # ---------------------------------------------------------------------------
+  # Aggregate required-check. Branch protection points at this single job
+  # so adding/removing leaf jobs above doesn't require updating the rules.
+  # ---------------------------------------------------------------------------
+  required:
+    name: required checks
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    needs:
+      - pre-commit
+      - lint
+      - typecheck
+      - test
+      - build
+      - docs-build
+      - dependency-review
+    steps:
+      - name: Fail if any required job failed or was skipped
+        env:
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          results='${{ toJSON(needs) }}'
+          echo "$results"
+          echo "$results" | python -c '
+          import json, os, sys
+          data = json.load(sys.stdin)
+          optional_on_non_pr = {"docs-build", "dependency-review"}
+          event_name = os.environ["GITHUB_EVENT_NAME"]
+          bad = {}
+          for name, value in data.items():
+              result = value["result"]
+              if result == "success":
+                  continue
+              if result == "skipped" and event_name != "pull_request" and name in optional_on_non_pr:
+                  continue
+              bad[name] = result
+          if bad:
+              print("Failing required jobs:", bad)
+              sys.exit(1)
+          '

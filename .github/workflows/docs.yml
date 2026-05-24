@@ -7,16 +7,38 @@ on:
       - "docs/**"
       - "mkdocs.yml"
       - "CHANGELOG.md"
+      - ".github/workflows/docs.yml"
 
 permissions:
-  contents: write
+  contents: read
+
+# Serialize gh-pages writes — concurrent `mkdocs gh-deploy --force`
+# invocations race the gh-pages branch and produce non-deterministic
+# state on the published site.
+concurrency:
+  group: docs-deploy
+  cancel-in-progress: false
+
+env:
+  UV_FROZEN: "1"
+  UV_NO_PROGRESS: "1"
 
 jobs:
   deploy:
+    name: deploy gh-pages
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # gh-deploy pushes to the gh-pages branch.
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        with:
+          fetch-depth: 0  # gh-deploy needs history to push to gh-pages
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: "pyproject.toml"
       - run: uv sync --extra docs
       - run: cp CHANGELOG.md docs/changelog.md
-      - run: uv run mkdocs gh-deploy --force
+      - run: uv run mkdocs gh-deploy --force --strict

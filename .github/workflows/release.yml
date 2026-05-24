@@ -1,0 +1,201 @@
+name: Release
+
+# Triggered by publishing a GitHub Release (the normal path) or manually
+# for a TestPyPI dry-run. The manual path requires a tag input so version
+# validation still has something to check against.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Publishing target"
+        required: true
+        default: testpypi
+        type: choice
+        options:
+          - testpypi
+          - pypi
+      ref:
+        description: "Tag or ref to build (e.g. v0.1.4)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  # Serialize all release activity. Two simultaneous publishes would race
+  # the version-bump assumption and produce surprising PyPI history.
+  group: release
+  cancel-in-progress: false
+
+env:
+  UV_FROZEN: "1"
+  UV_NO_PROGRESS: "1"
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Reuse the full CI gate. We do NOT trust that the release was cut from
+  # a green main — branch protection can be bypassed by admins, and the
+  # release author may not be the merge author.
+  # ---------------------------------------------------------------------------
+  # Run the cheap version-consistency check FIRST. The full CI matrix is
+  # the most expensive job in this workflow; making it wait on the 30-
+  # second tag check means a misconfigured release tag fails in seconds
+  # instead of burning ~15 minutes of runner time.
+  ci:
+    needs: verify-version
+    uses: ./.github/workflows/ci.yml
+    with:
+      ref: ${{ inputs.ref || github.event.release.tag_name }}
+    permissions:
+      contents: read
+
+  # ---------------------------------------------------------------------------
+  # Validate that the git tag matches pyproject.toml's version. Catches
+  # the common mistake of tagging vX.Y.Z without bumping the package
+  # version — which produces a confusingly-numbered PyPI artifact that
+  # can't be cleanly republished.
+  # ---------------------------------------------------------------------------
+  verify-version:
+    name: verify tag matches package version
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        with:
+          ref: ${{ inputs.ref || github.event.release.tag_name }}
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6
+      - name: Compare tag to pyproject version
+        env:
+          INPUT_REF: ${{ inputs.ref || github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          tag="${INPUT_REF}"
+          # Strip refs/tags/ prefix if a full git ref was supplied via
+          # workflow_dispatch with `ref: refs/tags/vX.Y.Z`.
+          tag="${tag##refs/tags/}"
+          # Enforce v-prefixed release tag. Without this, an unprefixed
+          # tag like `0.1.4` would silently match pyproject's `0.1.4`
+          # after a no-op `${tag#v}` strip — which violates the project's
+          # tag-naming convention even though the version numbers align.
+          if [[ ! "${tag}" =~ ^v[0-9] ]]; then
+            echo "::error::Release tag must be v-prefixed (e.g. v0.1.4). Got: '${tag}'"
+            exit 1
+          fi
+          tag_version="${tag#v}"
+          pkg_version=$(uv run --no-project --python 3.12 python -c \
+            "import tomllib, pathlib; print(tomllib.loads(pathlib.Path('pyproject.toml').read_text())['project']['version'])")
+          echo "tag=${tag}  tag_version=${tag_version}  pkg_version=${pkg_version}"
+          if [ "${tag_version}" != "${pkg_version}" ]; then
+            echo "::error::Tag '${tag}' (parsed as '${tag_version}') does not match pyproject.toml version '${pkg_version}'."
+            exit 1
+          fi
+
+  # ---------------------------------------------------------------------------
+  # Build the distribution. Same step as the CI build job — duplicated
+  # rather than reusing the CI artifact because release runs may be
+  # triggered manually from a different ref than the latest CI run.
+  # ---------------------------------------------------------------------------
+  build:
+    name: build distribution
+    # verify-version is transitively required via ci -> verify-version.
+    needs: ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        with:
+          ref: ${{ inputs.ref || github.event.release.tag_name }}
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: "pyproject.toml"
+
+      - name: Build sdist and wheel
+        run: uv build
+
+      - name: Validate package metadata (twine check)
+        run: uvx --from twine twine check --strict dist/*
+
+      - name: Install wheel in clean venv and exercise console scripts
+        run: |
+          set -euxo pipefail
+          uv venv /tmp/smoke
+          # shellcheck disable=SC1091
+          source /tmp/smoke/bin/activate
+          uv pip install dist/*.whl
+          python -c "import errorworks; print('errorworks', errorworks.__version__)"
+          # Assert non-empty help output. Catches a broken entry point
+          # that exits 0 with nothing on stdout/stderr. Avoids matching
+          # on literal text because Typer/rich's pipe-mode rendering
+          # differs from TTY mode.
+          test -n "$(chaosengine --help 2>&1)"
+          test -n "$(chaosllm    --help 2>&1)"
+          test -n "$(chaosweb    --help 2>&1)"
+
+      - name: Upload distribution
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: release-dist
+          path: dist/
+          if-no-files-found: error
+          retention-days: 30
+
+  # ---------------------------------------------------------------------------
+  # Publish to TestPyPI. Runs on workflow_dispatch with target=testpypi,
+  # to validate the wheel installs from an index before promoting to PyPI.
+  # Needs a Trusted Publisher configured on test.pypi.org for this repo.
+  # ---------------------------------------------------------------------------
+  publish-testpypi:
+    name: publish to TestPyPI
+    if: github.event_name == 'workflow_dispatch' && inputs.target == 'testpypi'
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/project/errorworks/
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
+        with:
+          name: release-dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b  # release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          attestations: true
+          print-hash: true
+
+  # ---------------------------------------------------------------------------
+  # Publish to PyPI. Runs on GitHub Release events (the normal path), or
+  # when manually dispatched with target=pypi (deliberate, rare).
+  # Trusted Publisher configured on pypi.org.
+  # ---------------------------------------------------------------------------
+  publish-pypi:
+    name: publish to PyPI
+    if: |
+      github.event_name == 'release' ||
+      (github.event_name == 'workflow_dispatch' && inputs.target == 'pypi')
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: pypi
+      url: https://pypi.org/project/errorworks/
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
+        with:
+          name: release-dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b  # release/v1
+        with:
+          attestations: true
+          print-hash: true
