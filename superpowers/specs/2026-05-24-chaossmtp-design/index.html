@@ -1,0 +1,1727 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Composable chaos-testing services for LLM and web scraping pipelines">
+      
+      
+      
+        <link rel="canonical" href="https://johnm-dta.github.io/errorworks/superpowers/specs/2026-05-24-chaossmtp-design/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.5">
+    
+    
+      
+        <title>ChaosSMTP Server - errorworks</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#chaossmtp-server" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="errorworks" class="md-header__button md-logo" aria-label="errorworks" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            errorworks
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              ChaosSMTP Server
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/johnm-dta/errorworks" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    johnm-dta/errorworks
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="errorworks" class="md-nav__button md-logo" aria-label="errorworks" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    errorworks
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/johnm-dta/errorworks" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    johnm-dta/errorworks
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../getting-started/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../getting-started/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guide/chaosllm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ChaosLLM
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guide/chaosweb/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ChaosWeb
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guide/presets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Presets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guide/configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guide/metrics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Metrics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guide/testing-fixtures/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing Fixtures
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HTTP API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/config-schema/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration Schema
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../changelog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Summary
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#orientation-findings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Orientation Findings
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#alternatives-considered" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Alternatives Considered
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Alternatives Considered">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#recommended-aiosmtpd-listener-plus-http-admin-sidecar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recommended: aiosmtpd Listener Plus HTTP Admin Sidecar
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lower-dependency-custom-asyncioprotocol-smtp-server" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lower Dependency: Custom asyncio.Protocol SMTP Server
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#simulated-email-over-http" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Simulated Email over HTTP
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#proposed-package-shape" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Proposed Package Shape
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration Model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#error-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Error Model
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Error Model">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#session-and-connection-failures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Session and Connection Failures
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#smtp-command-failures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SMTP Command Failures
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#protocol-malformations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Protocol Malformations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#runtime-data-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Runtime Data Flow
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#admin-surface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Admin Surface
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#metrics-schema" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Metrics Schema
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cli-surface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CLI Surface
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#presets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Presets
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#test-strategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test Strategy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#documentation-updates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Documentation Updates
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#security-and-safety" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Security and Safety
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#acceptance-criteria" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Acceptance Criteria
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#implementation-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implementation Notes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        References
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="chaossmtp-server">ChaosSMTP Server<a class="headerlink" href="#chaossmtp-server" title="Permanent link">&para;</a></h1>
+<p><strong>Date:</strong> 2026-05-24
+<strong>Status:</strong> Approved
+<strong>Author:</strong> Codex</p>
+<h2 id="summary">Summary<a class="headerlink" href="#summary" title="Permanent link">&para;</a></h2>
+<p>Add a third chaos domain, <code>ChaosSMTP</code>, for testing outbound email clients against
+a fake SMTP receiving server. The feature fits the existing errorworks
+composition model, but it should not be implemented as a direct Starlette/ASGI
+copy of ChaosLLM or ChaosWeb. SMTP is a stateful TCP protocol, so the SMTP
+listener should use an SMTP protocol library and expose the existing HTTP admin
+surface through a sidecar admin app.</p>
+<h2 id="orientation-findings">Orientation Findings<a class="headerlink" href="#orientation-findings" title="Permanent link">&para;</a></h2>
+<p>The current project shape supports this direction:</p>
+<ul>
+<li><code>docs/architecture.md</code> already describes new server types such as email,
+  gRPC, and GraphQL as expected extensions of the shared engine.</li>
+<li><code>docs/superpowers/specs/2026-03-16-professionalize-package-design.md</code>
+  explicitly planned the docs structure so future email-style domains could be
+  added without restructuring.</li>
+<li>ChaosLLM and ChaosWeb both compose the same shared engine components:
+  <code>InjectionEngine</code>, <code>MetricsStore</code>, <code>LatencySimulator</code>, and config loading via
+  Pydantic models and presets.</li>
+<li>Runtime admin behavior is shared through <code>engine.admin.ChaosServer</code>, but that
+  implementation is HTTP/Starlette-specific. SMTP has no natural <code>/admin/*</code>
+  route surface.</li>
+<li>The project targets Python 3.12+, where the old standard-library <code>smtpd</code>
+  module is not available. A new SMTP server should use <code>aiosmtpd</code> or a custom
+  asyncio protocol implementation, not <code>smtpd</code>.</li>
+<li>Filigree has no current SMTP/email issue. The closest future-facing tracker
+  item is <code>errorworks-b7c9325bcf</code>, "New Chaos Domains (Queue, Storage, Auth)".</li>
+</ul>
+<h2 id="decision">Decision<a class="headerlink" href="#decision" title="Permanent link">&para;</a></h2>
+<p>Proceed with a <code>ChaosSMTP</code> design, with these constraints:</p>
+<ol>
+<li>Use a domain-specific SMTP listener instead of trying to make SMTP look like
+   an HTTP ASGI app.</li>
+<li>Keep the shared engine composition pattern: domain-specific config, error
+   injector, metrics recorder, capture component, CLI, presets, docs, and tests.</li>
+<li>Keep runtime admin parity by running a small HTTP admin sidecar that delegates
+   to the existing <code>engine.admin</code> handlers.</li>
+<li>Treat real loopback sockets as acceptable for SMTP tests and document that
+   this is the exception to the existing "no sockets" fixture story.</li>
+<li>Do not build a production mail relay. ChaosSMTP accepts or rejects messages
+   for tests; it never relays mail externally.</li>
+</ol>
+<h2 id="alternatives-considered">Alternatives Considered<a class="headerlink" href="#alternatives-considered" title="Permanent link">&para;</a></h2>
+<h3 id="recommended-aiosmtpd-listener-plus-http-admin-sidecar">Recommended: <code>aiosmtpd</code> Listener Plus HTTP Admin Sidecar<a class="headerlink" href="#recommended-aiosmtpd-listener-plus-http-admin-sidecar" title="Permanent link">&para;</a></h3>
+<p>Use <code>aiosmtpd</code> for the SMTP protocol listener, implement domain behavior in a
+handler plus a small custom SMTP protocol subclass where handler hooks are not
+enough, and run an optional Starlette admin sidecar for <code>/health</code> and
+<code>/admin/*</code>.</p>
+<p>Pros:</p>
+<ul>
+<li>Matches Python 3.12 reality.</li>
+<li>Avoids hand-rolling SMTP parsing and multiline reply handling.</li>
+<li>Preserves the existing runtime admin/config/metrics ergonomics.</li>
+<li>Lets tests exercise real <code>smtplib</code> behavior over loopback sockets.</li>
+</ul>
+<p>Cons:</p>
+<ul>
+<li>Adds a new runtime dependency.</li>
+<li>The server is no longer a pure ASGI app.</li>
+<li>Some failure modes, such as malformed replies or banner-level disconnects,
+  may require custom protocol hooks rather than handler-only code.</li>
+</ul>
+<h3 id="lower-dependency-custom-asyncioprotocol-smtp-server">Lower Dependency: Custom <code>asyncio.Protocol</code> SMTP Server<a class="headerlink" href="#lower-dependency-custom-asyncioprotocol-smtp-server" title="Permanent link">&para;</a></h3>
+<p>Implement only the subset of SMTP needed for tests directly with asyncio.</p>
+<p>Pros:</p>
+<ul>
+<li>No new dependency.</li>
+<li>Full control over malformed protocol replies and connection-level failures.</li>
+</ul>
+<p>Cons:</p>
+<ul>
+<li>High protocol risk for low product value.</li>
+<li>Easy to accidentally build an incomplete or non-compliant SMTP server.</li>
+<li>More maintenance burden than the current web/LLM adapters.</li>
+</ul>
+<h3 id="simulated-email-over-http">Simulated Email over HTTP<a class="headerlink" href="#simulated-email-over-http" title="Permanent link">&para;</a></h3>
+<p>Expose an HTTP endpoint that accepts email-like payloads and injects email
+delivery errors.</p>
+<p>Pros:</p>
+<ul>
+<li>Reuses the current ASGI shape and fixtures exactly.</li>
+<li>Lowest implementation effort.</li>
+</ul>
+<p>Cons:</p>
+<ul>
+<li>Does not test real SMTP clients, SMTP reply codes, EHLO/MAIL/RCPT/DATA
+  behavior, or transport failures.</li>
+<li>Does not satisfy the requested "SMTP server" capability.</li>
+</ul>
+<h2 id="proposed-package-shape">Proposed Package Shape<a class="headerlink" href="#proposed-package-shape" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>src/errorworks/smtp/
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>├── __init__.py
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>├── cli.py
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>├── config.py
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>├── error_injector.py
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>├── metrics.py
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>├── message_capture.py
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>├── server.py
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>└── presets/
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    ├── silent.yaml
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    ├── gentle.yaml
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    ├── realistic.yaml
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    ├── stress_delivery.yaml
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    └── stress_extreme.yaml
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>tests/unit/smtp/
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>├── test_cli.py
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>├── test_config.py
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>├── test_error_injector.py
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>├── test_message_capture.py
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>├── test_metrics.py
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>└── test_server.py
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>
+<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>tests/integration/test_smtp_pipeline.py
+<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>tests/fixtures/chaossmtp.py
+<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>docs/guide/chaossmtp.md
+</code></pre></div>
+<p>Add console scripts and unified CLI mounting:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">chaossmtp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;errorworks.smtp.cli:main&quot;</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">app</span><span class="o">.</span><span class="n">add_typer</span><span class="p">(</span><span class="n">smtp_app</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;smtp&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;ChaosSMTP: Fake SMTP server for outbound email resilience testing.&quot;</span><span class="p">)</span>
+</code></pre></div>
+<h2 id="configuration-model">Configuration Model<a class="headerlink" href="#configuration-model" title="Permanent link">&para;</a></h2>
+<p><code>ChaosSMTPConfig</code> should follow the current Pydantic style:</p>
+<ul>
+<li><code>frozen=True</code></li>
+<li><code>extra="forbid"</code></li>
+<li>config precedence: CLI flags &gt; config file &gt; preset &gt; defaults</li>
+<li>runtime updates create new component instances and swap references under a
+  lock</li>
+</ul>
+<p>Top-level sections:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nt">smtp</span><span class="p">:</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">host</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">127.0.0.1</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2525</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="nt">hostname</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">chaossmtp.local</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">  </span><span class="nt">data_size_limit</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10485760</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">  </span><span class="nt">enable_smtputf8</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">  </span><span class="nt">require_starttls</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="nt">admin</span><span class="p">:</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="w">  </span><span class="nt">host</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">127.0.0.1</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="w">  </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8525</span>
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="w">  </span><span class="nt">admin_token</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">generated</span>
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="nt">metrics</span><span class="p">:</span>
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="w">  </span><span class="nt">database</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">file:chaossmtp-metrics?mode=memory&amp;cache=shared</span>
+<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="w">  </span><span class="nt">timeseries_bucket_sec</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>
+<a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="nt">latency</span><span class="p">:</span>
+<a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a><span class="w">  </span><span class="nt">base_ms</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">50</span>
+<a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a><span class="w">  </span><span class="nt">jitter_ms</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">30</span>
+<a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a>
+<a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a><span class="nt">capture</span><span class="p">:</span>
+<a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a><span class="w">  </span><span class="nt">mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">metadata</span>
+<a id="__codelineno-3-25" name="__codelineno-3-25" href="#__codelineno-3-25"></a><span class="w">  </span><span class="nt">max_message_bytes</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1048576</span>
+<a id="__codelineno-3-26" name="__codelineno-3-26" href="#__codelineno-3-26"></a>
+<a id="__codelineno-3-27" name="__codelineno-3-27" href="#__codelineno-3-27"></a><span class="nt">error_injection</span><span class="p">:</span>
+<a id="__codelineno-3-28" name="__codelineno-3-28" href="#__codelineno-3-28"></a><span class="w">  </span><span class="nt">selection_mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">priority</span>
+<a id="__codelineno-3-29" name="__codelineno-3-29" href="#__codelineno-3-29"></a><span class="w">  </span><span class="nt">rate_limit_pct</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.0</span>
+<a id="__codelineno-3-30" name="__codelineno-3-30" href="#__codelineno-3-30"></a><span class="w">  </span><span class="nt">mail_from_tempfail_pct</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.0</span>
+<a id="__codelineno-3-31" name="__codelineno-3-31" href="#__codelineno-3-31"></a><span class="w">  </span><span class="nt">mail_from_reject_pct</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.0</span>
+<a id="__codelineno-3-32" name="__codelineno-3-32" href="#__codelineno-3-32"></a><span class="w">  </span><span class="nt">rcpt_to_tempfail_pct</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.0</span>
+<a id="__codelineno-3-33" name="__codelineno-3-33" href="#__codelineno-3-33"></a><span class="w">  </span><span class="nt">rcpt_to_reject_pct</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.0</span>
+<a id="__codelineno-3-34" name="__codelineno-3-34" href="#__codelineno-3-34"></a><span class="w">  </span><span class="nt">data_tempfail_pct</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.0</span>
+<a id="__codelineno-3-35" name="__codelineno-3-35" href="#__codelineno-3-35"></a><span class="w">  </span><span class="nt">data_reject_pct</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.0</span>
+<a id="__codelineno-3-36" name="__codelineno-3-36" href="#__codelineno-3-36"></a><span class="w">  </span><span class="nt">accept_then_drop_pct</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.0</span>
+<a id="__codelineno-3-37" name="__codelineno-3-37" href="#__codelineno-3-37"></a><span class="w">  </span><span class="nt">banner_reject_pct</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.0</span>
+<a id="__codelineno-3-38" name="__codelineno-3-38" href="#__codelineno-3-38"></a><span class="w">  </span><span class="nt">malformed_reply_pct</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.0</span>
+<a id="__codelineno-3-39" name="__codelineno-3-39" href="#__codelineno-3-39"></a><span class="w">  </span><span class="nt">connection_reset_pct</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.0</span>
+<a id="__codelineno-3-40" name="__codelineno-3-40" href="#__codelineno-3-40"></a><span class="w">  </span><span class="nt">connection_stall_pct</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.0</span>
+<a id="__codelineno-3-41" name="__codelineno-3-41" href="#__codelineno-3-41"></a><span class="w">  </span><span class="nt">slow_response_pct</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.0</span>
+<a id="__codelineno-3-42" name="__codelineno-3-42" href="#__codelineno-3-42"></a><span class="w">  </span><span class="nt">burst</span><span class="p">:</span>
+<a id="__codelineno-3-43" name="__codelineno-3-43" href="#__codelineno-3-43"></a><span class="w">    </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<a id="__codelineno-3-44" name="__codelineno-3-44" href="#__codelineno-3-44"></a><span class="w">    </span><span class="nt">interval_sec</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">30</span>
+<a id="__codelineno-3-45" name="__codelineno-3-45" href="#__codelineno-3-45"></a><span class="w">    </span><span class="nt">duration_sec</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
+<a id="__codelineno-3-46" name="__codelineno-3-46" href="#__codelineno-3-46"></a><span class="w">    </span><span class="nt">tempfail_pct</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">80.0</span>
+<a id="__codelineno-3-47" name="__codelineno-3-47" href="#__codelineno-3-47"></a><span class="w">    </span><span class="nt">rate_limit_pct</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">50.0</span>
+</code></pre></div>
+<p>Do not reuse the existing <code>ServerConfig</code> unchanged for the SMTP listener. Its
+<code>workers</code> field and uvicorn-oriented validation are HTTP-server concerns.
+Instead, create <code>SMTPServerConfig</code> and <code>AdminConfig</code>. Reuse <code>MetricsConfig</code> and
+<code>LatencyConfig</code>.</p>
+<p><code>capture.mode</code> values:</p>
+<ul>
+<li><code>discard</code>: accept mail but store no envelope or body details beyond metrics.</li>
+<li><code>metadata</code>: store envelope metadata, recipient count, size, and selected safe
+  headers. This is the default.</li>
+<li><code>full</code>: store full message bytes up to <code>max_message_bytes</code> for test fixtures.</li>
+</ul>
+<h2 id="error-model">Error Model<a class="headerlink" href="#error-model" title="Permanent link">&para;</a></h2>
+<p>SMTP errors should be grouped by protocol stage. This is clearer than trying to
+reuse HTTP labels like "server_error" directly.</p>
+<h3 id="session-and-connection-failures">Session and Connection Failures<a class="headerlink" href="#session-and-connection-failures" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>banner_reject_pct</code></td>
+<td>Return <code>421 Service not available</code> before normal EHLO flow.</td>
+</tr>
+<tr>
+<td><code>connection_reset_pct</code></td>
+<td>Drop the connection during the selected SMTP stage.</td>
+</tr>
+<tr>
+<td><code>connection_stall_pct</code></td>
+<td>Stall, then disconnect.</td>
+</tr>
+<tr>
+<td><code>slow_response_pct</code></td>
+<td>Delay before returning an otherwise valid SMTP reply.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="smtp-command-failures">SMTP Command Failures<a class="headerlink" href="#smtp-command-failures" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Typical Reply</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>rate_limit_pct</code></td>
+<td><code>421</code> or <code>450</code></td>
+<td>Simulate provider throttling.</td>
+</tr>
+<tr>
+<td><code>mail_from_tempfail_pct</code></td>
+<td><code>451</code></td>
+<td>Temporary sender rejection.</td>
+</tr>
+<tr>
+<td><code>mail_from_reject_pct</code></td>
+<td><code>550</code></td>
+<td>Permanent sender rejection.</td>
+</tr>
+<tr>
+<td><code>rcpt_to_tempfail_pct</code></td>
+<td><code>450</code> or <code>451</code></td>
+<td>Temporary recipient rejection.</td>
+</tr>
+<tr>
+<td><code>rcpt_to_reject_pct</code></td>
+<td><code>550</code> or <code>553</code></td>
+<td>Permanent recipient rejection.</td>
+</tr>
+<tr>
+<td><code>data_tempfail_pct</code></td>
+<td><code>451</code></td>
+<td>Temporary failure after DATA.</td>
+</tr>
+<tr>
+<td><code>data_reject_pct</code></td>
+<td><code>554</code></td>
+<td>Permanent transaction failure after DATA.</td>
+</tr>
+<tr>
+<td><code>accept_then_drop_pct</code></td>
+<td><code>250</code>, then do not capture</td>
+<td>Simulate accepted-but-lost delivery.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="protocol-malformations">Protocol Malformations<a class="headerlink" href="#protocol-malformations" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>malformed_reply_pct</code></td>
+<td>Emit an invalid reply line or incomplete multiline reply.</td>
+</tr>
+<tr>
+<td><code>wrong_reply_code_pct</code></td>
+<td>Return a syntactically valid but semantically unexpected code.</td>
+</tr>
+</tbody>
+</table>
+<p>Some protocol malformations may require a custom <code>aiosmtpd.smtp.SMTP</code>
+subclass. Implementation should start with a spike proving the selected library
+can inject banner, command, and DATA-stage failures cleanly.</p>
+<h2 id="runtime-data-flow">Runtime Data Flow<a class="headerlink" href="#runtime-data-flow" title="Permanent link">&para;</a></h2>
+<ol>
+<li><code>chaossmtp serve</code> loads config using the shared config loader.</li>
+<li><code>ChaosSMTPServer</code> builds <code>SMTPErrorInjector</code>, <code>MessageCapture</code>,
+   <code>LatencySimulator</code>, and <code>SMTPMetricsRecorder</code>.</li>
+<li>The SMTP listener starts on <code>smtp.host:smtp.port</code>.</li>
+<li>If <code>admin.enabled</code> is true, an HTTP admin sidecar starts on
+   <code>admin.host:admin.port</code>.</li>
+<li>Each SMTP stage snapshots component references under <code>_config_lock</code>.</li>
+<li>The injector decides whether to inject a stage-appropriate behavior.</li>
+<li>The server applies latency or connection behavior, returns the SMTP reply,
+   captures message metadata/body when appropriate, and records metrics.</li>
+<li><code>POST /admin/config</code> deep-merges updates, validates new config sections,
+   builds new components outside the lock, and swaps them atomically.</li>
+</ol>
+<h2 id="admin-surface">Admin Surface<a class="headerlink" href="#admin-surface" title="Permanent link">&para;</a></h2>
+<p>Admin parity should match ChaosLLM and ChaosWeb:</p>
+<table>
+<thead>
+<tr>
+<th>Endpoint</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET /health</code></td>
+<td>Sidecar health, SMTP listener status, <code>run_id</code>, <code>started_utc</code>, <code>in_burst</code>.</td>
+</tr>
+<tr>
+<td><code>GET /admin/config</code></td>
+<td>Current <code>error_injection</code>, <code>capture</code>, and <code>latency</code> config.</td>
+</tr>
+<tr>
+<td><code>POST /admin/config</code></td>
+<td>Runtime update for those sections.</td>
+</tr>
+<tr>
+<td><code>GET /admin/stats</code></td>
+<td>Metrics summary.</td>
+</tr>
+<tr>
+<td><code>GET /admin/export</code></td>
+<td>Raw SMTP transactions, timeseries, and config.</td>
+</tr>
+<tr>
+<td><code>POST /admin/reset</code></td>
+<td>Reset metrics, capture state, and injector burst timing.</td>
+</tr>
+</tbody>
+</table>
+<p>The sidecar should reuse <code>engine.admin</code> handlers where possible. If the health
+handler needs to diverge, keep it local to <code>smtp.server</code>.</p>
+<h2 id="metrics-schema">Metrics Schema<a class="headerlink" href="#metrics-schema" title="Permanent link">&para;</a></h2>
+<p>Record one row per SMTP transaction attempt, plus aggregate timeseries rows.</p>
+<p>Recommended request columns:</p>
+<ul>
+<li><code>transaction_id</code></li>
+<li><code>session_id</code></li>
+<li><code>timestamp_utc</code></li>
+<li><code>client_addr</code></li>
+<li><code>mail_from</code></li>
+<li><code>rcpt_count</code></li>
+<li><code>rcpt_domains</code></li>
+<li><code>message_size_bytes</code></li>
+<li><code>subject</code></li>
+<li><code>outcome</code></li>
+<li><code>smtp_stage</code></li>
+<li><code>reply_code</code></li>
+<li><code>enhanced_status_code</code></li>
+<li><code>error_type</code></li>
+<li><code>injection_type</code></li>
+<li><code>latency_ms</code></li>
+<li><code>injected_delay_ms</code></li>
+<li><code>capture_mode</code></li>
+<li><code>tls_used</code></li>
+<li><code>auth_username</code></li>
+</ul>
+<p>Default capture must avoid storing full message bodies in metrics. Full body
+capture belongs behind <code>capture.mode: full</code>, with truncation enforced by
+<code>max_message_bytes</code>.</p>
+<p>Recommended timeseries counters:</p>
+<ul>
+<li><code>requests_total</code></li>
+<li><code>messages_accepted</code></li>
+<li><code>messages_tempfailed</code></li>
+<li><code>messages_permfailed</code></li>
+<li><code>messages_connection_error</code></li>
+<li><code>messages_malformed_protocol</code></li>
+<li><code>messages_accepted_then_dropped</code></li>
+<li><code>avg_latency_ms</code></li>
+<li><code>p99_latency_ms</code></li>
+</ul>
+<h2 id="cli-surface">CLI Surface<a class="headerlink" href="#cli-surface" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>chaossmtp<span class="w"> </span>serve<span class="w"> </span>--preset<span class="o">=</span>realistic
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>chaossmtp<span class="w"> </span>serve<span class="w"> </span>--port<span class="o">=</span><span class="m">2525</span><span class="w"> </span>--admin-port<span class="o">=</span><span class="m">8525</span><span class="w"> </span>--database<span class="o">=</span>./smtp-metrics.db
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>chaossmtp<span class="w"> </span>serve<span class="w"> </span>--rcpt-to-tempfail-pct<span class="o">=</span><span class="m">25</span><span class="w"> </span>--data-reject-pct<span class="o">=</span><span class="m">5</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>chaossmtp<span class="w"> </span>presets
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>chaossmtp<span class="w"> </span>show-config<span class="w"> </span>--preset<span class="o">=</span>stress_delivery
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>chaosengine<span class="w"> </span>smtp<span class="w"> </span>serve<span class="w"> </span>--preset<span class="o">=</span>realistic
+</code></pre></div>
+<p>The default SMTP port should be <code>2525</code>, not <code>25</code>, so local development does not
+require elevated privileges.</p>
+<h2 id="presets">Presets<a class="headerlink" href="#presets" title="Permanent link">&para;</a></h2>
+<p>Use the same naming pattern as the current servers:</p>
+<ul>
+<li><code>silent</code>: no failures, low latency, metadata capture.</li>
+<li><code>gentle</code>: low temporary failure rate, suitable for basic retry tests.</li>
+<li><code>realistic</code>: modest rate-limit and temporary DATA failures, mild latency,
+  periodic burst. If greylisting lands in the first implementation, include a
+  low greylisting rate here.</li>
+<li><code>stress_delivery</code>: high temporary and permanent recipient/DATA failures for
+  email queue retry and dead-letter behavior.</li>
+<li><code>stress_extreme</code>: every category active, including connection and malformed
+  protocol failures.</li>
+</ul>
+<p>Greylisting is valuable for SMTP but stateful. Include it only if the first
+implementation can store a stable envelope fingerprint and retry state without
+fighting the current request-aware/stateful work. Otherwise, defer greylisting
+to a follow-up requirement.</p>
+<h2 id="test-strategy">Test Strategy<a class="headerlink" href="#test-strategy" title="Permanent link">&para;</a></h2>
+<p>Unit tests:</p>
+<ul>
+<li>Config defaults, validation, serialization round-trip, and preset loading.</li>
+<li>Error injector deterministic decisions with seeded RNG.</li>
+<li>Metrics classification and timeseries aggregation.</li>
+<li>Message capture modes, truncation, and safe metadata extraction.</li>
+<li>CLI config override assembly and <code>show-config</code>.</li>
+</ul>
+<p>Integration tests:</p>
+<ul>
+<li>Start <code>ChaosSMTPServer</code> on an ephemeral loopback port and send mail with
+  <code>smtplib.SMTP</code>.</li>
+<li>Verify successful <code>send_message</code> captures metadata and updates stats.</li>
+<li>Verify 100% <code>rcpt_to_tempfail_pct</code> produces a temporary SMTP failure.</li>
+<li>Verify 100% <code>rcpt_to_reject_pct</code> produces a permanent SMTP failure.</li>
+<li>Verify 100% <code>data_reject_pct</code> rejects after DATA.</li>
+<li>Verify admin config updates affect subsequent SMTP transactions.</li>
+<li>Verify reset clears metrics and capture state.</li>
+</ul>
+<p>Fixture:</p>
+<ul>
+<li>Add <code>chaossmtp_server</code> with helper methods such as <code>send_message()</code>,
+  <code>update_config()</code>, <code>get_stats()</code>, <code>export_metrics()</code>, <code>reset()</code>, and
+  <code>wait_for_messages()</code>.</li>
+<li>Use an ephemeral loopback port by default. This is the explicit exception to
+  the current no-socket fixture model.</li>
+</ul>
+<h2 id="documentation-updates">Documentation Updates<a class="headerlink" href="#documentation-updates" title="Permanent link">&para;</a></h2>
+<p>Add:</p>
+<ul>
+<li>README feature bullet and quick usage mention.</li>
+<li><code>docs/guide/chaossmtp.md</code>.</li>
+<li>SMTP sections in <code>docs/reference/cli.md</code>, <code>docs/reference/api.md</code>, and
+  <code>docs/reference/config-schema.md</code>.</li>
+<li><code>docs/guide/presets.md</code> SMTP preset table.</li>
+<li><code>docs/guide/testing-fixtures.md</code> SMTP fixture section that explains the
+  loopback socket exception.</li>
+<li><code>docs/architecture.md</code> package tree and new-server example update.</li>
+</ul>
+<h2 id="security-and-safety">Security and Safety<a class="headerlink" href="#security-and-safety" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Bind SMTP and admin listeners to <code>127.0.0.1</code> by default.</li>
+<li>Block <code>0.0.0.0</code>, <code>::</code>, and equivalent all-interface binds unless
+  <code>allow_external_bind: true</code>.</li>
+<li>Never relay messages. Return SMTP replies and capture locally only.</li>
+<li>Do not store message bodies by default.</li>
+<li>Redact or omit auth secrets from metrics and exports.</li>
+<li>Keep admin token out of run-info exports, matching ChaosLLM/ChaosWeb.</li>
+<li>STARTTLS and SMTP AUTH can be added later, but the initial server should not
+  pretend to provide production-grade mail security.</li>
+</ul>
+<h2 id="acceptance-criteria">Acceptance Criteria<a class="headerlink" href="#acceptance-criteria" title="Permanent link">&para;</a></h2>
+<ul>
+<li><code>uv run chaossmtp serve --preset=realistic</code> starts an SMTP listener on
+  <code>127.0.0.1:2525</code> and an admin sidecar on <code>127.0.0.1:8525</code>.</li>
+<li>A standard Python <code>smtplib.SMTP</code> client can send a message to the silent
+  preset and receive successful SMTP replies.</li>
+<li>Config precedence matches existing servers.</li>
+<li>Runtime admin update, stats, export, and reset work for SMTP.</li>
+<li>Metrics record SMTP stage, reply code, outcome, error type, latency, and
+  capture mode.</li>
+<li>CLI, docs, presets, unit tests, and integration tests are present.</li>
+<li>No outbound SMTP relay behavior exists.</li>
+</ul>
+<h2 id="implementation-notes">Implementation Notes<a class="headerlink" href="#implementation-notes" title="Permanent link">&para;</a></h2>
+<p>Implementation should begin with a small spike against <code>aiosmtpd</code> to prove the
+failure hooks:</p>
+<ol>
+<li>Normal message acceptance and capture.</li>
+<li>RCPT-stage temporary and permanent rejection.</li>
+<li>DATA-stage rejection.</li>
+<li>Banner reject or connection close.</li>
+<li>Admin sidecar sharing the same <code>ChaosSMTPServer</code> instance.</li>
+</ol>
+<p>If the spike shows that malformed replies or banner-level behaviors require too
+much custom protocol code, keep those as phase-two work and ship the first
+server with command-stage failures, latency, capture, metrics, presets, CLI, and
+admin parity.</p>
+<h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Python 3.12 <code>smtpd</code> removal and <code>aiosmtpd</code> recommendation:
+  https://docs.python.org/3.12/library/smtpd.html</li>
+<li><code>aiosmtpd</code> project documentation:
+  https://aiosmtpd.aio-libs.org/</li>
+<li><code>aiosmtpd.smtp</code> API and controller customization:
+  https://aiosmtpd.aio-libs.org/en/latest/smtp.html</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      An open-source project by the <a href="https://www.dta.gov.au/">Digital Transformation Agency</a>.
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.sections", "navigation.expand", "navigation.top", "navigation.footer", "search.suggest", "search.highlight", "content.tabs.link", "content.code.copy"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
