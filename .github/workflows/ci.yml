@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [main]
   workflow_call:
+    inputs:
+      ref:
+        description: "Git ref to check out when CI is called by another workflow"
+        required: false
+        type: string
 
 # Read-only by default. Individual jobs grant the minimum they need.
 permissions:
@@ -31,6 +36,8 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
       - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6
         with:
           enable-cache: true
@@ -48,6 +55,8 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
       - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6
         with:
           enable-cache: true
@@ -66,6 +75,8 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
       - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6
         with:
           enable-cache: true
@@ -87,6 +98,8 @@ jobs:
         python-version: ["3.12", "3.13"]
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
       - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6
         with:
           python-version: ${{ matrix.python-version }}
@@ -128,6 +141,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
       - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6
         with:
           enable-cache: true
@@ -193,6 +208,8 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
       - uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48  # v4
         with:
           fail-on-severity: high
@@ -213,16 +230,29 @@ jobs:
       - typecheck
       - test
       - build
+      - docs-build
+      - dependency-review
     steps:
       - name: Fail if any required job failed or was skipped
+        env:
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
         run: |
           set -euo pipefail
           results='${{ toJSON(needs) }}'
           echo "$results"
           echo "$results" | python -c '
-          import json, sys
+          import json, os, sys
           data = json.load(sys.stdin)
-          bad = {k: v["result"] for k, v in data.items() if v["result"] not in ("success",)}
+          optional_on_non_pr = {"docs-build", "dependency-review"}
+          event_name = os.environ["GITHUB_EVENT_NAME"]
+          bad = {}
+          for name, value in data.items():
+              result = value["result"]
+              if result == "success":
+                  continue
+              if result == "skipped" and event_name != "pull_request" and name in optional_on_non_pr:
+                  continue
+              bad[name] = result
           if bad:
               print("Failing required jobs:", bad)
               sys.exit(1)
