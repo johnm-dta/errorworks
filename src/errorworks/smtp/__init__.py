@@ -14,6 +14,7 @@ from errorworks.smtp.config import (
 )
 from errorworks.smtp.error_injector import SMTPErrorCategory, SMTPErrorDecision, SMTPErrorInjector, SMTPStage
 from errorworks.smtp.message_capture import CapturedMessage, MessageCapture
+from errorworks.smtp.metrics import SMTPMetricsRecorder
 
 __all__ = [
     "DEFAULT_MEMORY_DB",
@@ -27,6 +28,7 @@ __all__ = [
     "SMTPErrorDecision",
     "SMTPErrorInjectionConfig",
     "SMTPErrorInjector",
+    "SMTPMetricsRecorder",
     "SMTPServerConfig",
     "SMTPStage",
     "list_presets",
