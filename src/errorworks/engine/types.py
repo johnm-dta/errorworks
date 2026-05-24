@@ -293,12 +293,12 @@ class MetricsSchema:
         request_columns: Column definitions for the requests table.
         timeseries_columns: Column definitions for the timeseries table.
         request_indexes: Additional indexes on the requests table.
-            Each entry is (index_name, column_name).
+            Each entry is (index_name, column_name, ...).
     """
 
     request_columns: tuple[ColumnDef, ...]
     timeseries_columns: tuple[ColumnDef, ...]
-    request_indexes: tuple[tuple[str, str], ...] = ()
+    request_indexes: tuple[tuple[str, ...], ...] = ()
 
     def __post_init__(self) -> None:
         if not self.request_columns:
@@ -318,19 +318,23 @@ class MetricsSchema:
             raise ValueError(f"Duplicate timeseries column names: {sorted(ts_dupes)}")
 
         # Check for duplicate index names
-        idx_names = [name for name, _col in self.request_indexes]
+        idx_names = [index[0] for index in self.request_indexes]
         idx_dupes = {n for n in idx_names if idx_names.count(n) > 1}
         if idx_dupes:
             raise ValueError(f"Duplicate index names: {sorted(idx_dupes)}")
 
         # Validate that index columns reference actual request columns
         req_name_set = set(req_names)
-        for index_name, col_name in self.request_indexes:
-            if col_name not in req_name_set:
-                raise ValueError(f"Index '{index_name}' references column '{col_name}' which does not exist in request_columns")
+        for index in self.request_indexes:
+            index_name, *col_names = index
+            if not col_names:
+                raise ValueError(f"Index '{index_name}' must reference at least one request column")
+            for col_name in col_names:
+                if col_name not in req_name_set:
+                    raise ValueError(f"Index '{index_name}' references column '{col_name}' which does not exist in request_columns")
 
         # Validate index names against _VALID_COLUMN_NAME to prevent DDL injection
-        for index_name, _col_name in self.request_indexes:
+        for index_name in idx_names:
             if not _VALID_COLUMN_NAME.match(index_name):
                 raise ValueError(f"Index name must be a valid SQL identifier (letters, digits, underscores), got {index_name!r}")
 

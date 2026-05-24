@@ -69,8 +69,10 @@ def _generate_ddl(schema: MetricsSchema) -> str:
     )
 
     # --- indexes ---
-    for index_name, column_name in schema.request_indexes:
-        parts.append(f"CREATE INDEX IF NOT EXISTS {index_name} ON requests({column_name});")
+    for index in schema.request_indexes:
+        index_name, *column_names = index
+        column_list = ", ".join(column_names)
+        parts.append(f"CREATE INDEX IF NOT EXISTS {index_name} ON requests({column_list});")
 
     return "\n\n".join(parts)
 
