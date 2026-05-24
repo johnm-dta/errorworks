@@ -61,13 +61,50 @@ class SMTPOutcomeClassification(NamedTuple):
 
 
 def _classify_outcome(outcome: str, reply_code: int | None, error_type: str | None) -> SMTPOutcomeClassification:
+    if outcome == "success":
+        return SMTPOutcomeClassification(
+            accepted=True,
+            tempfailed=False,
+            permfailed=False,
+            connection_error=False,
+            malformed_protocol=False,
+            accepted_then_dropped=False,
+        )
+    if outcome == "accepted_then_dropped":
+        return SMTPOutcomeClassification(
+            accepted=False,
+            tempfailed=False,
+            permfailed=False,
+            connection_error=False,
+            malformed_protocol=False,
+            accepted_then_dropped=True,
+        )
+    if outcome == "connection_error":
+        return SMTPOutcomeClassification(
+            accepted=False,
+            tempfailed=False,
+            permfailed=False,
+            connection_error=True,
+            malformed_protocol=False,
+            accepted_then_dropped=False,
+        )
+    if outcome == "malformed_protocol":
+        return SMTPOutcomeClassification(
+            accepted=False,
+            tempfailed=False,
+            permfailed=False,
+            connection_error=False,
+            malformed_protocol=True,
+            accepted_then_dropped=False,
+        )
+
     return SMTPOutcomeClassification(
-        accepted=outcome == "success",
+        accepted=False,
         tempfailed=reply_code is not None and 400 <= reply_code < 500 and error_type != "connection_stall",
         permfailed=reply_code is not None and 500 <= reply_code < 600,
-        connection_error=outcome == "connection_error",
-        malformed_protocol=outcome == "malformed_protocol",
-        accepted_then_dropped=outcome == "accepted_then_dropped",
+        connection_error=False,
+        malformed_protocol=False,
+        accepted_then_dropped=False,
     )
 
 
@@ -176,6 +213,15 @@ class SMTPMetricsRecorder:
 
     def get_timeseries(self, *, limit: int = 100, offset: int = 0) -> list[dict[str, Any]]:
         return self._store.get_timeseries(limit=limit, offset=offset)
+
+    def get_requests(
+        self,
+        *,
+        limit: int = 100,
+        offset: int = 0,
+        outcome: str | None = None,
+    ) -> list[dict[str, Any]]:
+        return self._store.get_requests(limit=limit, offset=offset, outcome=outcome)
 
     def close(self) -> None:
         self._store.close()
