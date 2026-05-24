@@ -2,6 +2,8 @@
 
 from email.message import EmailMessage
 
+import pytest
+
 from errorworks.smtp.config import SMTPCaptureConfig
 from errorworks.smtp.message_capture import MessageCapture
 
@@ -43,6 +45,22 @@ def test_metadata_mode_stores_safe_headers() -> None:
     assert record.headers["to"] == "recipient@example.com"
     assert record.body is None
     assert capture.list_messages()[0].transaction_id == "tx-1"
+
+
+def test_listed_record_headers_cannot_mutate_stored_capture() -> None:
+    capture = MessageCapture(SMTPCaptureConfig(mode="metadata"))
+    capture.capture(
+        transaction_id="tx-1",
+        mail_from="sender@example.com",
+        rcpt_tos=["recipient@example.com"],
+        data=_message_bytes(),
+    )
+
+    listed_record = capture.list_messages()[0]
+    with pytest.raises(TypeError):
+        listed_record.headers["from"] = "mutated@example.com"  # type: ignore[index]
+
+    assert capture.list_messages()[0].headers["from"] == "sender@example.com"
 
 
 def test_full_mode_truncates_body_bytes() -> None:

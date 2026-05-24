@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import threading
+from collections.abc import Mapping
 from dataclasses import dataclass
 from email import policy
 from email.parser import BytesParser
+from types import MappingProxyType
 
 from errorworks.smtp.config import SMTPCaptureConfig
 
@@ -21,7 +23,7 @@ class CapturedMessage:
     rcpt_tos: tuple[str, ...]
     message_size_bytes: int
     subject: str | None
-    headers: dict[str, str]
+    headers: Mapping[str, str]
     body: bytes | None
     truncated: bool
 
@@ -62,7 +64,7 @@ class MessageCapture:
             rcpt_tos=tuple(rcpt_tos),
             message_size_bytes=len(data),
             subject=subject if self._config.mode != "discard" else None,
-            headers=safe_headers if self._config.mode != "discard" else {},
+            headers=MappingProxyType(safe_headers if self._config.mode != "discard" else {}),
             body=body,
             truncated=truncated,
         )
