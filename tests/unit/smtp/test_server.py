@@ -9,7 +9,7 @@ import pytest
 from starlette.testclient import TestClient
 
 from errorworks.engine.types import LatencyConfig, MetricsConfig
-from errorworks.smtp.config import ChaosSMTPConfig, SMTPAdminConfig, SMTPErrorInjectionConfig, SMTPServerConfig
+from errorworks.smtp.config import ChaosSMTPConfig, SMTPAdminConfig, SMTPBurstConfig, SMTPErrorInjectionConfig, SMTPServerConfig
 from errorworks.smtp.server import ChaosSMTPServer, create_admin_app
 
 TEST_ADMIN_TOKEN = "test-admin-token"
@@ -217,7 +217,24 @@ def test_data_reject_returns_smtp_data_error(tmp_path) -> None:
 
 
 def test_admin_config_update_changes_subsequent_transaction(tmp_path) -> None:
-    server = ChaosSMTPServer(_config(tmp_path))
+    base = _config(tmp_path)
+    config = ChaosSMTPConfig(
+        **{
+            **base.model_dump(),
+            "error_injection": SMTPErrorInjectionConfig(
+                data_reject_pct=7.5,
+                accept_then_drop_pct=23.5,
+                burst=SMTPBurstConfig(
+                    enabled=True,
+                    interval_sec=37,
+                    duration_sec=11,
+                    tempfail_pct=0.0,
+                    rate_limit_pct=0.0,
+                ),
+            ).model_dump(),
+        }
+    )
+    server = ChaosSMTPServer(config)
     server.start()
     try:
         with TestClient(server.admin_app) as admin_client:
@@ -229,7 +246,11 @@ def test_admin_config_update_changes_subsequent_transaction(tmp_path) -> None:
         assert response.status_code == 200
         data = response.json()
         assert data["config"]["error_injection"]["rcpt_to_reject_pct"] == 100.0
-        assert data["config"]["error_injection"]["data_reject_pct"] == 0.0
+        assert data["config"]["error_injection"]["data_reject_pct"] == 7.5
+        assert data["config"]["error_injection"]["accept_then_drop_pct"] == 23.5
+        assert data["config"]["error_injection"]["burst"]["enabled"] is True
+        assert data["config"]["error_injection"]["burst"]["interval_sec"] == 37
+        assert data["config"]["error_injection"]["burst"]["duration_sec"] == 11
 
         with (
             smtplib.SMTP(server.smtp_host, server.smtp_port, timeout=5) as client,
