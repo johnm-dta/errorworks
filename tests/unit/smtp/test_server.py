@@ -327,3 +327,38 @@ def test_failed_rcpt_command_does_not_mutate_envelope_and_records_once(tmp_path)
         assert request["outcome"] == "permfailed"
     finally:
         server.stop()
+
+
+def test_connection_reset_disconnects_client(tmp_path) -> None:
+    server = ChaosSMTPServer(_config_with_error_injection(tmp_path, connection_reset_pct=100.0))
+    server.start()
+    try:
+        with smtplib.SMTP(server.smtp_host, server.smtp_port, timeout=5) as client, pytest.raises(smtplib.SMTPServerDisconnected):
+            client.send_message(_message())
+        assert server.get_stats()["total_requests"] >= 1
+    finally:
+        server.stop()
+
+
+def test_wrong_reply_code_is_recorded_as_malformed_protocol(tmp_path) -> None:
+    server = ChaosSMTPServer(_config_with_error_injection(tmp_path, wrong_reply_code_pct=100.0))
+    server.start()
+    try:
+        with smtplib.SMTP(server.smtp_host, server.smtp_port, timeout=5) as client, pytest.raises(smtplib.SMTPDataError):
+            client.send_message(_message())
+        stats = server.export_metrics()
+        assert stats["requests"][0]["outcome"] == "malformed_protocol"
+    finally:
+        server.stop()
+
+
+def test_malformed_reply_disconnects_client(tmp_path) -> None:
+    server = ChaosSMTPServer(_config_with_error_injection(tmp_path, malformed_reply_pct=100.0))
+    server.start()
+    try:
+        with smtplib.SMTP(server.smtp_host, server.smtp_port, timeout=5) as client, pytest.raises(smtplib.SMTPServerDisconnected):
+            client.send_message(_message())
+        stats = server.export_metrics()
+        assert stats["requests"][0]["outcome"] == "malformed_protocol"
+    finally:
+        server.stop()
