@@ -37,14 +37,13 @@ def _version_callback(value: bool) -> None:
 
 def _create_app_from_env() -> Starlette:
     """Factory for uvicorn multi-worker mode."""
-    import os
-
     from errorworks.blob.server import create_app
+    from errorworks.engine.config_handoff import load_handoff_config_json
 
-    if config_file := os.environ.get(_CONFIG_FILE_ENV_VAR):
-        config_json = Path(config_file).read_text()
-    else:
-        config_json = os.environ[_CONFIG_ENV_VAR]
+    config_json = load_handoff_config_json(
+        file_env_var=_CONFIG_FILE_ENV_VAR,
+        config_env_var=_CONFIG_ENV_VAR,
+    )
     config = ChaosBlobConfig.model_validate_json(config_json)
     return create_app(config)
 

@@ -946,15 +946,14 @@ def _create_app_from_env() -> Starlette:
 
     Reads serialized config from a private config file path in
     _ERRORWORKS_WEB_CONFIG_FILE. The legacy _ERRORWORKS_WEB_CONFIG variable is
-    still accepted for compatibility.
+    still accepted for compatibility and as a fallback when the temp file is
+    missing (race during shutdown, mismatched cleanup, /tmp cleaner).
     """
-    import os
+    from errorworks.engine.config_handoff import load_handoff_config_json
 
-    if config_file := os.environ.get("_ERRORWORKS_WEB_CONFIG_FILE"):
-        from pathlib import Path
-
-        config_json = Path(config_file).read_text()
-    else:
-        config_json = os.environ["_ERRORWORKS_WEB_CONFIG"]
+    config_json = load_handoff_config_json(
+        file_env_var="_ERRORWORKS_WEB_CONFIG_FILE",
+        config_env_var="_ERRORWORKS_WEB_CONFIG",
+    )
     config = ChaosWebConfig.model_validate_json(config_json)
     return create_app(config)
