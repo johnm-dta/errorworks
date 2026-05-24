@@ -6,14 +6,14 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Composable chaos-testing services for LLM and web scraping pipelines">
+        <meta name="description" content="Composable chaos-testing services for LLM, web scraping, and object storage pipelines">
       
       
       
         <link rel="canonical" href="https://johnm-dta.github.io/errorworks/guide/presets/">
       
       
-        <link rel="prev" href="../chaosweb/">
+        <link rel="prev" href="../chaosblob/">
       
       
         <link rel="next" href="../configuration/">
@@ -515,6 +515,34 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../chaosblob/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ChaosBlob
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -652,6 +680,45 @@
         
           <li class="md-nav__item">
   <a href="#when-to-use-each_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When to Use Each
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#chaosblob-presets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ChaosBlob Presets
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ChaosBlob Presets">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#comparison-table_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Comparison Table
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#when-to-use-each_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         When to Use Each
@@ -1153,6 +1220,45 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#chaosblob-presets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ChaosBlob Presets
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ChaosBlob Presets">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#comparison-table_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Comparison Table
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#when-to-use-each_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When to Use Each
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#combining-presets-with-overrides" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1250,10 +1356,11 @@
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># CLI</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>uv<span class="w"> </span>run<span class="w"> </span>chaosllm<span class="w"> </span>serve<span class="w"> </span>--preset<span class="o">=</span>realistic
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>uv<span class="w"> </span>run<span class="w"> </span>chaosweb<span class="w"> </span>serve<span class="w"> </span>--preset<span class="o">=</span>stress_scraping
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="c1"># Python</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>from<span class="w"> </span>errorworks.llm.config<span class="w"> </span>import<span class="w"> </span>load_config
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="nv">config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>load_config<span class="o">(</span><span class="nv">preset</span><span class="o">=</span><span class="s2">&quot;realistic&quot;</span><span class="o">)</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>uv<span class="w"> </span>run<span class="w"> </span>chaosblob<span class="w"> </span>serve<span class="w"> </span>--preset<span class="o">=</span>stress_storage
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="c1"># Python</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>from<span class="w"> </span>errorworks.llm.config<span class="w"> </span>import<span class="w"> </span>load_config
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="nv">config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>load_config<span class="o">(</span><span class="nv">preset</span><span class="o">=</span><span class="s2">&quot;realistic&quot;</span><span class="o">)</span>
 </code></pre></div>
 <h2 id="chaosllm-presets">ChaosLLM Presets<a class="headerlink" href="#chaosllm-presets" title="Permanent link">&para;</a></h2>
 <h3 id="comparison-table">Comparison Table<a class="headerlink" href="#comparison-table" title="Permanent link">&para;</a></h3>
@@ -1473,6 +1580,105 @@
 </tr>
 </tbody>
 </table>
+<h2 id="chaosblob-presets">ChaosBlob Presets<a class="headerlink" href="#chaosblob-presets" title="Permanent link">&para;</a></h2>
+<h3 id="comparison-table_2">Comparison Table<a class="headerlink" href="#comparison-table_2" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Preset</th>
+<th>SlowDown</th>
+<th>HTTP Errors</th>
+<th>Connection Failures</th>
+<th>Object Corruption</th>
+<th>List Corruption</th>
+<th>Burst</th>
+<th>Latency</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>silent</code></td>
+<td>0%</td>
+<td>0%</td>
+<td>0%</td>
+<td>0%</td>
+<td>0%</td>
+<td>Off</td>
+<td>50 +/- 25ms</td>
+</tr>
+<tr>
+<td><code>gentle</code></td>
+<td>1%</td>
+<td>0.5% not found</td>
+<td>0%</td>
+<td>0%</td>
+<td>0%</td>
+<td>Off</td>
+<td>100 +/- 50ms</td>
+</tr>
+<tr>
+<td><code>realistic</code></td>
+<td>4%</td>
+<td>0.5% access denied, 1% not found, 0.8% svc, 0.2% internal, 0.2% bad gw, 0.3% gw timeout</td>
+<td>0.3% timeout, 0.2% reset, 3% slow</td>
+<td>0.5% truncated, 0.3% wrong length, 0.5% checksum, 0.3% metadata</td>
+<td>3% stale, 0.2% malformed XML</td>
+<td>90s/10s (35% slow, 10% svc)</td>
+<td>150 +/- 75ms</td>
+</tr>
+<tr>
+<td><code>stress_storage</code></td>
+<td>8%</td>
+<td>4% not found</td>
+<td>8% slow</td>
+<td>8% truncated, 6% wrong length, 8% checksum, 6% metadata</td>
+<td>12% stale, 4% malformed XML</td>
+<td>60s/12s (60% slow, 20% svc)</td>
+<td>250 +/- 150ms</td>
+</tr>
+<tr>
+<td><code>stress_extreme</code></td>
+<td>20%</td>
+<td>5% access denied, 5% not found, 8% svc, 4% internal, 3% bad gw, 5% gw timeout</td>
+<td>8% timeout, 5% reset, 4% stall, 8% slow</td>
+<td>6% truncated, 5% wrong length, 6% checksum, 4% metadata</td>
+<td>8% stale, 4% malformed XML</td>
+<td>30s/8s (90% slow, 60% svc)</td>
+<td>600 +/- 300ms</td>
+</tr>
+</tbody>
+</table>
+<h3 id="when-to-use-each_2">When to Use Each<a class="headerlink" href="#when-to-use-each_2" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Preset</th>
+<th>Use When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>silent</code></td>
+<td>Measuring object workflow throughput without injected failures</td>
+</tr>
+<tr>
+<td><code>gentle</code></td>
+<td>Verifying happy-path PUT/GET/list behavior with light throttling</td>
+</tr>
+<tr>
+<td><code>realistic</code></td>
+<td>Testing common object-store throttling, stale list, and rare read faults</td>
+</tr>
+<tr>
+<td><code>stress_storage</code></td>
+<td>Exercising body integrity, metadata validation, and stale listing recovery</td>
+</tr>
+<tr>
+<td><code>stress_extreme</code></td>
+<td>Finding retry, timeout, and corruption handling breakpoints</td>
+</tr>
+</tbody>
+</table>
 <h2 id="combining-presets-with-overrides">Combining Presets with Overrides<a class="headerlink" href="#combining-presets-with-overrides" title="Permanent link">&para;</a></h2>
 <p>Presets provide the base configuration, but you can override any setting on top. Configuration precedence (highest to lowest):</p>
 <ol>
@@ -1512,15 +1718,18 @@
 </div>
 <h2 id="listing-available-presets">Listing Available Presets<a class="headerlink" href="#listing-available-presets" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">errorworks.llm.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">list_presets</span> <span class="k">as</span> <span class="n">list_llm_presets</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">errorworks.web.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">list_presets</span> <span class="k">as</span> <span class="n">list_web_presets</span>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="nb">print</span><span class="p">(</span><span class="n">list_llm_presets</span><span class="p">())</span>  <span class="c1"># [&#39;chaos&#39;, &#39;gentle&#39;, &#39;realistic&#39;, &#39;silent&#39;, &#39;stress_aimd&#39;, &#39;stress_extreme&#39;]</span>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="nb">print</span><span class="p">(</span><span class="n">list_web_presets</span><span class="p">())</span>  <span class="c1"># [&#39;gentle&#39;, &#39;realistic&#39;, &#39;silent&#39;, &#39;stress_extreme&#39;, &#39;stress_scraping&#39;]</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">errorworks.blob.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">list_presets</span> <span class="k">as</span> <span class="n">list_blob_presets</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">errorworks.web.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">list_presets</span> <span class="k">as</span> <span class="n">list_web_presets</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="nb">print</span><span class="p">(</span><span class="n">list_llm_presets</span><span class="p">())</span>  <span class="c1"># [&#39;chaos&#39;, &#39;gentle&#39;, &#39;realistic&#39;, &#39;silent&#39;, &#39;stress_aimd&#39;, &#39;stress_extreme&#39;]</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="nb">print</span><span class="p">(</span><span class="n">list_web_presets</span><span class="p">())</span>  <span class="c1"># [&#39;gentle&#39;, &#39;realistic&#39;, &#39;silent&#39;, &#39;stress_extreme&#39;, &#39;stress_scraping&#39;]</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="nb">print</span><span class="p">(</span><span class="n">list_blob_presets</span><span class="p">())</span>  <span class="c1"># [&#39;gentle&#39;, &#39;realistic&#39;, &#39;silent&#39;, &#39;stress_extreme&#39;, &#39;stress_storage&#39;]</span>
 </code></pre></div>
 <h2 id="related-pages">Related Pages<a class="headerlink" href="#related-pages" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="../chaosllm/">ChaosLLM</a> -- Full ChaosLLM endpoint and error injection reference</li>
 <li><a href="../chaosweb/">ChaosWeb</a> -- Full ChaosWeb endpoint and error injection reference</li>
+<li><a href="../chaosblob/">ChaosBlob</a> -- Full ChaosBlob endpoint and error injection reference</li>
 <li><a href="../configuration/">Configuration</a> -- YAML config file structure and precedence details</li>
 </ul>
 
@@ -1560,7 +1769,7 @@
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../chaosweb/" class="md-footer__link md-footer__link--prev" aria-label="Previous: ChaosWeb">
+          <a href="../chaosblob/" class="md-footer__link md-footer__link--prev" aria-label="Previous: ChaosBlob">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -1570,7 +1779,7 @@
                 Previous
               </span>
               <div class="md-ellipsis">
-                ChaosWeb
+                ChaosBlob
               </div>
             </div>
           </a>

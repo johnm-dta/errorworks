@@ -10,13 +10,13 @@
       
       
       
-        <link rel="canonical" href="https://johnm-dta.github.io/errorworks/guide/chaosllm/">
+        <link rel="canonical" href="https://johnm-dta.github.io/errorworks/guide/chaosblob/">
       
       
-        <link rel="prev" href="../../getting-started/quickstart/">
+        <link rel="prev" href="../chaosweb/">
       
       
-        <link rel="next" href="../chaosweb/">
+        <link rel="next" href="../presets/">
       
       
         
@@ -27,7 +27,7 @@
     
     
       
-        <title>ChaosLLM - errorworks</title>
+        <title>ChaosBlob - errorworks</title>
       
     
     
@@ -80,7 +80,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#chaosllm-guide" class="md-skip">
+        <a href="#chaosblob-guide" class="md-skip">
           Skip to content
         </a>
       
@@ -116,7 +116,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              ChaosLLM
+              ChaosBlob
             
           </span>
         </div>
@@ -459,37 +459,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    ChaosLLM
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../chaosllm/" class="md-nav__link">
         
   
   
@@ -505,298 +478,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#quick-start" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Quick Start
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#endpoints" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Endpoints
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Endpoints">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#chat-completions" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Chat Completions
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#health-and-admin" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Health and Admin
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#error-injection" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Error Injection
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Error Injection">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#http-errors" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        HTTP Errors
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#connection-failures" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Connection Failures
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#malformed-responses" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Malformed Responses
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#selection-mode" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Selection Mode
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#response-modes" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Response Modes
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Response Modes">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#random-default" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Random (default)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#template" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Template
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#echo" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Echo
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#preset" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Preset
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#per-request-overrides" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Per-Request Overrides
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#burst-patterns" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Burst Patterns
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#available-presets" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Available Presets
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Available Presets">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#preset-details" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Preset Details
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#usage-examples" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Usage Examples
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Usage Examples">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#cli" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        CLI
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#python" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Python
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#related-pages" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Related Pages
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -834,10 +515,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../chaosblob/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ChaosBlob
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -853,6 +561,253 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#quick-start" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick Start
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scope
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#endpoints" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Endpoints
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Endpoints">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#object-operations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Object Operations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#health-and-admin" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Health and Admin
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#error-injection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Error Injection
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Error Injection">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#s3-http-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        S3 HTTP Errors
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#connection-failures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Connection Failures
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#object-corruption" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Object Corruption
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#list-corruption" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        List Corruption
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#burst-patterns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Burst Patterns
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#selection-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Selection Mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#storage-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Storage Settings
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#available-presets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Available Presets
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#usage-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Usage Examples
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Usage Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cli" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CLI
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#python" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Python
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pytest-fixture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pytest Fixture
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#related-pages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Related Pages
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1214,6 +1169,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scope
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#endpoints" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1226,10 +1192,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#chat-completions" class="md-nav__link">
+  <a href="#object-operations" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Chat Completions
+        Object Operations
       
     </span>
   </a>
@@ -1265,10 +1231,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#http-errors" class="md-nav__link">
+  <a href="#s3-http-errors" class="md-nav__link">
     <span class="md-ellipsis">
       
-        HTTP Errors
+        S3 HTTP Errors
       
     </span>
   </a>
@@ -1287,10 +1253,32 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#malformed-responses" class="md-nav__link">
+  <a href="#object-corruption" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Malformed Responses
+        Object Corruption
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#list-corruption" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        List Corruption
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#burst-patterns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Burst Patterns
       
     </span>
   </a>
@@ -1314,82 +1302,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#response-modes" class="md-nav__link">
+  <a href="#storage-settings" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Response Modes
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Response Modes">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#random-default" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Random (default)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#template" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Template
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#echo" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Echo
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#preset" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Preset
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#per-request-overrides" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Per-Request Overrides
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#burst-patterns" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Burst Patterns
+        Storage Settings
       
     </span>
   </a>
@@ -1404,23 +1320,6 @@
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="Available Presets">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#preset-details" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Preset Details
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -1452,6 +1351,17 @@
     <span class="md-ellipsis">
       
         Python
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pytest-fixture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pytest Fixture
       
     </span>
   </a>
@@ -1494,18 +1404,44 @@
   
 
 
-<h1 id="chaosllm-guide">ChaosLLM Guide<a class="headerlink" href="#chaosllm-guide" title="Permanent link">&para;</a></h1>
-<p>ChaosLLM is a fake OpenAI-compatible chat completions server that injects configurable faults into LLM API responses. Point your LLM client at ChaosLLM instead of the real API, and it will return a mix of successful responses and realistic failures -- rate limits, timeouts, malformed JSON, and more.</p>
-<p>Use ChaosLLM to verify that your LLM pipeline handles every failure mode before it hits production.</p>
+<h1 id="chaosblob-guide">ChaosBlob Guide<a class="headerlink" href="#chaosblob-guide" title="Permanent link">&para;</a></h1>
+<p>ChaosBlob is a fake object storage server that injects configurable faults into S3-style blob workflows. Point an object-storage client at ChaosBlob to test throttling, stale listings, corrupted object reads, metadata surprises, and retry behavior before those failures show up in production.</p>
+<p>ChaosBlob is intentionally S3-compatible-ish, not a complete S3 implementation. It supports path-style object operations and S3-shaped XML responses for the core workflows that pipelines usually depend on.</p>
 <h2 id="quick-start">Quick Start<a class="headerlink" href="#quick-start" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># Start with a realistic error profile</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>uv<span class="w"> </span>run<span class="w"> </span>chaosllm<span class="w"> </span>serve<span class="w"> </span>--preset<span class="o">=</span>realistic
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># Start with a realistic object-store failure profile</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>uv<span class="w"> </span>run<span class="w"> </span>chaosblob<span class="w"> </span>serve<span class="w"> </span>--preset<span class="o">=</span>realistic
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># Your client talks to localhost:8000 instead of api.openai.com</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="nb">export</span><span class="w"> </span><span class="nv">OPENAI_BASE_URL</span><span class="o">=</span>http://127.0.0.1:8000/v1
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># Store an object</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>curl<span class="w"> </span>-X<span class="w"> </span>PUT<span class="w"> </span>http://127.0.0.1:8300/my-bucket/logs/1.json<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;id&quot;: 1}&#39;</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="c1"># Read it back</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>curl<span class="w"> </span>http://127.0.0.1:8300/my-bucket/logs/1.json
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="c1"># List objects with the S3 ListObjectsV2 shape</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>curl<span class="w"> </span><span class="s2">&quot;http://127.0.0.1:8300/my-bucket?list-type=2&amp;prefix=logs/&quot;</span>
 </code></pre></div>
+<h2 id="scope">Scope<a class="headerlink" href="#scope" title="Permanent link">&para;</a></h2>
+<p>ChaosBlob focuses on object workflow resilience, not full AWS compatibility.</p>
+<p>Supported:</p>
+<ul>
+<li>Path-style object URLs: <code>/{bucket}/{key}</code></li>
+<li><code>PUT</code>, <code>GET</code>, <code>HEAD</code>, and <code>DELETE</code> object operations</li>
+<li><code>ListObjectsV2</code> style listing with <code>list-type=2</code>, <code>prefix</code>, <code>max-keys</code>, and <code>continuation-token</code></li>
+<li>S3-shaped XML errors and list responses</li>
+<li>ETag, content type, object metadata, and object size handling</li>
+<li>Runtime config updates, metrics, presets, CLI, and pytest fixture support</li>
+</ul>
+<p>Not implemented:</p>
+<ul>
+<li>Virtual-hosted bucket addressing</li>
+<li>SigV4 authentication or authorization policies</li>
+<li>Multipart upload, versioning, lifecycle rules, ACLs, or bucket policies</li>
+<li>Durable object persistence</li>
+</ul>
 <h2 id="endpoints">Endpoints<a class="headerlink" href="#endpoints" title="Permanent link">&para;</a></h2>
-<h3 id="chat-completions">Chat Completions<a class="headerlink" href="#chat-completions" title="Permanent link">&para;</a></h3>
+<h3 id="object-operations">Object Operations<a class="headerlink" href="#object-operations" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
 <tr>
@@ -1516,25 +1452,34 @@
 </thead>
 <tbody>
 <tr>
-<td><code>/v1/chat/completions</code></td>
-<td>POST</td>
-<td>OpenAI-compatible chat completions</td>
+<td><code>/{bucket}/{key:path}</code></td>
+<td>PUT</td>
+<td>Store an object body and headers</td>
 </tr>
 <tr>
-<td><code>/openai/deployments/{deployment}/chat/completions</code></td>
-<td>POST</td>
-<td>Azure OpenAI-compatible chat completions</td>
+<td><code>/{bucket}/{key:path}</code></td>
+<td>GET</td>
+<td>Return object bytes and metadata</td>
+</tr>
+<tr>
+<td><code>/{bucket}/{key:path}</code></td>
+<td>HEAD</td>
+<td>Return object metadata without a body</td>
+</tr>
+<tr>
+<td><code>/{bucket}/{key:path}</code></td>
+<td>DELETE</td>
+<td>Delete an object, returning 204 whether or not it existed</td>
+</tr>
+<tr>
+<td><code>/{bucket}?list-type=2</code></td>
+<td>GET</td>
+<td>List objects in key order</td>
 </tr>
 </tbody>
 </table>
-<p>Both endpoints accept the standard OpenAI request body:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="p">{</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">&quot;model&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;gpt-4&quot;</span><span class="p">,</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="nt">&quot;messages&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">    </span><span class="p">{</span><span class="nt">&quot;role&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;user&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;content&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Hello&quot;</span><span class="p">}</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span><span class="p">]</span>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="p">}</span>
-</code></pre></div>
+<p><code>PUT</code> stores <code>Content-Type</code> and any <code>x-amz-meta-*</code> headers. The server returns quoted MD5 ETags for stored objects. Objects live in memory and are cleared by <code>/admin/reset</code> or process restart.</p>
+<p>List pagination uses opaque continuation tokens that resume after the last key returned on the previous page. <code>max-keys</code> must be at least <code>1</code>; values above S3's <code>1000</code> key page limit are capped to <code>1000</code>.</p>
 <h3 id="health-and-admin">Health and Admin<a class="headerlink" href="#health-and-admin" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -1550,7 +1495,7 @@
 <td><code>/health</code></td>
 <td>GET</td>
 <td>None</td>
-<td>Server health check (includes <code>run_id</code>, <code>started_utc</code>, <code>in_burst</code>)</td>
+<td>Server health check with <code>run_id</code>, <code>started_utc</code>, and <code>in_burst</code></td>
 </tr>
 <tr>
 <td><code>/admin/config</code></td>
@@ -1574,84 +1519,85 @@
 <td><code>/admin/export</code></td>
 <td>GET</td>
 <td>Bearer token</td>
-<td>Export raw metrics data</td>
+<td>Export raw metrics and config</td>
 </tr>
 <tr>
 <td><code>/admin/reset</code></td>
 <td>POST</td>
 <td>Bearer token</td>
-<td>Reset metrics and start new run</td>
+<td>Reset metrics, stored objects, and burst state</td>
 </tr>
 </tbody>
 </table>
-<p>Admin endpoints require an <code>Authorization: Bearer &lt;token&gt;</code> header. The token is auto-generated at startup and printed to the console, or you can set it in your config file.</p>
+<p>Admin endpoints require an <code>Authorization: Bearer &lt;token&gt;</code> header. The token is auto-generated if omitted, but generated tokens are not printed. Set <code>server.admin_token</code> explicitly in config when you need to call the admin API.</p>
 <h2 id="error-injection">Error Injection<a class="headerlink" href="#error-injection" title="Permanent link">&para;</a></h2>
-<p>ChaosLLM injects three categories of errors, each controlled by percentage fields (0-100) in the configuration.</p>
-<h3 id="http-errors">HTTP Errors<a class="headerlink" href="#http-errors" title="Permanent link">&para;</a></h3>
-<p>These return proper HTTP error responses with OpenAI-formatted error bodies:</p>
+<p>ChaosBlob injects object-storage failures with percentage fields from <code>0.0</code> to <code>100.0</code>.</p>
+<h3 id="s3-http-errors">S3 HTTP Errors<a class="headerlink" href="#s3-http-errors" title="Permanent link">&para;</a></h3>
+<p>These return XML error bodies with S3-style <code>Code</code>, <code>Message</code>, <code>Resource</code>, and <code>RequestId</code> fields.</p>
 <table>
 <thead>
 <tr>
 <th>Error Type</th>
-<th>Status Code</th>
+<th style="text-align: right;">Status</th>
 <th>Config Field</th>
+<th>S3 Code</th>
 <th>Description</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Rate Limit</td>
-<td>429</td>
-<td><code>rate_limit_pct</code></td>
-<td>Includes <code>Retry-After</code> header</td>
+<td>Slow Down</td>
+<td style="text-align: right;">503</td>
+<td><code>slow_down_pct</code></td>
+<td><code>SlowDown</code></td>
+<td>Throttling response with <code>Retry-After</code></td>
 </tr>
 <tr>
-<td>Capacity</td>
-<td>529</td>
-<td><code>capacity_529_pct</code></td>
-<td>Azure-specific "model overloaded"</td>
+<td>Access Denied</td>
+<td style="text-align: right;">403</td>
+<td><code>access_denied_pct</code></td>
+<td><code>AccessDenied</code></td>
+<td>Permission-style failure</td>
+</tr>
+<tr>
+<td>Not Found</td>
+<td style="text-align: right;">404</td>
+<td><code>not_found_pct</code></td>
+<td><code>NoSuchKey</code></td>
+<td>Missing object response</td>
 </tr>
 <tr>
 <td>Service Unavailable</td>
-<td>503</td>
+<td style="text-align: right;">503</td>
 <td><code>service_unavailable_pct</code></td>
-<td>Temporary outage</td>
+<td><code>ServiceUnavailable</code></td>
+<td>Temporary service outage</td>
+</tr>
+<tr>
+<td>Internal Error</td>
+<td style="text-align: right;">500</td>
+<td><code>internal_error_pct</code></td>
+<td><code>InternalError</code></td>
+<td>Server-side failure</td>
 </tr>
 <tr>
 <td>Bad Gateway</td>
-<td>502</td>
+<td style="text-align: right;">502</td>
 <td><code>bad_gateway_pct</code></td>
+<td><code>BadGateway</code></td>
 <td>Upstream failure</td>
 </tr>
 <tr>
 <td>Gateway Timeout</td>
-<td>504</td>
+<td style="text-align: right;">504</td>
 <td><code>gateway_timeout_pct</code></td>
+<td><code>GatewayTimeout</code></td>
 <td>Upstream timeout</td>
-</tr>
-<tr>
-<td>Internal Error</td>
-<td>500</td>
-<td><code>internal_error_pct</code></td>
-<td>Server-side failure</td>
-</tr>
-<tr>
-<td>Forbidden</td>
-<td>403</td>
-<td><code>forbidden_pct</code></td>
-<td>Permission denied</td>
-</tr>
-<tr>
-<td>Not Found</td>
-<td>404</td>
-<td><code>not_found_pct</code></td>
-<td>Resource missing</td>
 </tr>
 </tbody>
 </table>
-<p>Rate limit and capacity errors include a <code>Retry-After</code> header with a random value in the configured range (default <code>[1, 5]</code> seconds).</p>
+<p><code>slow_down_pct</code> uses <code>retry_after_sec</code> to choose the <code>Retry-After</code> header value.</p>
 <h3 id="connection-failures">Connection Failures<a class="headerlink" href="#connection-failures" title="Permanent link">&para;</a></h3>
-<p>These simulate network-level problems that your HTTP client must handle:</p>
 <table>
 <thead>
 <tr>
@@ -1664,135 +1610,135 @@
 <tr>
 <td>Timeout</td>
 <td><code>timeout_pct</code></td>
-<td>Hangs for <code>timeout_sec</code> range, then returns 504 or drops</td>
+<td>Waits for <code>timeout_sec</code>, records a timeout, then returns 504 XML</td>
 </tr>
 <tr>
 <td>Connection Reset</td>
 <td><code>connection_reset_pct</code></td>
-<td>Immediately drops the TCP connection</td>
-</tr>
-<tr>
-<td>Connection Failed</td>
-<td><code>connection_failed_pct</code></td>
-<td>Short delay (<code>connection_failed_lead_sec</code>), then drops</td>
+<td>Starts a response and then disconnects</td>
 </tr>
 <tr>
 <td>Connection Stall</td>
 <td><code>connection_stall_pct</code></td>
-<td>Optional start delay, then stalls for <code>connection_stall_sec</code>, then drops</td>
+<td>Delays, stalls for <code>connection_stall_sec</code>, then disconnects</td>
 </tr>
 <tr>
 <td>Slow Response</td>
 <td><code>slow_response_pct</code></td>
-<td>Delays <code>slow_response_sec</code> then returns a successful response</td>
+<td>Delays <code>slow_response_sec</code>, then returns a 503 SlowDown-style response</td>
 </tr>
 </tbody>
 </table>
-<h3 id="malformed-responses">Malformed Responses<a class="headerlink" href="#malformed-responses" title="Permanent link">&para;</a></h3>
-<p>These return HTTP 200 with corrupted content -- the hardest failures to detect:</p>
+<h3 id="object-corruption">Object Corruption<a class="headerlink" href="#object-corruption" title="Permanent link">&para;</a></h3>
+<p>These failures return HTTP 200, so clients need to validate bodies, metadata, and checksums instead of relying only on status codes.</p>
 <table>
 <thead>
 <tr>
 <th>Error Type</th>
 <th>Config Field</th>
-<th>What Goes Wrong</th>
+<th>Applies To</th>
+<th>Behavior</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Invalid JSON</td>
-<td><code>invalid_json_pct</code></td>
-<td>Response body is not parseable JSON</td>
+<td>Truncated Body</td>
+<td><code>truncated_body_pct</code></td>
+<td>GET</td>
+<td>Returns half the object body and matching shorter <code>Content-Length</code></td>
 </tr>
 <tr>
-<td>Truncated</td>
-<td><code>truncated_pct</code></td>
-<td>JSON cuts off mid-stream</td>
+<td>Wrong Content-Length</td>
+<td><code>wrong_content_length_pct</code></td>
+<td>GET</td>
+<td>Declares the full length, sends a partial body, then disconnects</td>
 </tr>
 <tr>
-<td>Empty Body</td>
-<td><code>empty_body_pct</code></td>
-<td>200 OK with zero-length body</td>
+<td>Checksum Mismatch</td>
+<td><code>checksum_mismatch_pct</code></td>
+<td>GET</td>
+<td>Returns the object body with a corrupted ETag</td>
 </tr>
 <tr>
-<td>Missing Fields</td>
-<td><code>missing_fields_pct</code></td>
-<td>Valid JSON but missing <code>choices</code>, <code>message</code>, etc.</td>
-</tr>
-<tr>
-<td>Wrong Content-Type</td>
-<td><code>wrong_content_type_pct</code></td>
-<td>Returns <code>text/html</code> instead of <code>application/json</code></td>
+<td>Metadata Corruption</td>
+<td><code>metadata_corruption_pct</code></td>
+<td>GET, HEAD</td>
+<td>Drops one stored <code>x-amz-meta-*</code> header</td>
 </tr>
 </tbody>
 </table>
+<h3 id="list-corruption">List Corruption<a class="headerlink" href="#list-corruption" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Error Type</th>
+<th>Config Field</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Stale List</td>
+<td><code>stale_list_pct</code></td>
+<td>Omits the newest object from a list page</td>
+</tr>
+<tr>
+<td>Malformed XML</td>
+<td><code>malformed_xml_pct</code></td>
+<td>Returns a broken <code>ListBucketResult</code> document</td>
+</tr>
+</tbody>
+</table>
+<h3 id="burst-patterns">Burst Patterns<a class="headerlink" href="#burst-patterns" title="Permanent link">&para;</a></h3>
+<p>Bursts simulate short windows where an object store starts throttling or returning service errors.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nt">error_injection</span><span class="p">:</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">burst</span><span class="p">:</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">    </span><span class="nt">interval_sec</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">90</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">    </span><span class="nt">duration_sec</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">    </span><span class="nt">slow_down_pct</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">35.0</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">    </span><span class="nt">service_unavailable_pct</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10.0</span>
+</code></pre></div>
+<p>During a burst, the burst <code>slow_down_pct</code> and <code>service_unavailable_pct</code> temporarily override the baseline values. <code>/health</code> exposes <code>in_burst</code> for test harnesses that need to observe the current window.</p>
 <h3 id="selection-mode">Selection Mode<a class="headerlink" href="#selection-mode" title="Permanent link">&para;</a></h3>
-<p>The <code>selection_mode</code> field controls how errors are chosen when multiple types are configured:</p>
 <ul>
-<li><strong><code>priority</code></strong> (default): Errors are evaluated in a fixed order. The first one whose random check passes wins. This gives predictable behavior -- higher-priority errors (connection failures) fire before lower-priority ones (malformed responses).</li>
-<li><strong><code>weighted</code></strong>: All configured error percentages are treated as proportional weights. A single random roll selects the error type. This gives a more uniform distribution.</li>
+<li><strong><code>priority</code></strong> (default): Errors are evaluated in a fixed order and the first triggered error wins.</li>
+<li><strong><code>weighted</code></strong>: Configured percentages are treated as proportional weights and one error type is selected from the weighted set.</li>
 </ul>
-<h2 id="response-modes">Response Modes<a class="headerlink" href="#response-modes" title="Permanent link">&para;</a></h2>
-<p>When a request is not selected for error injection, ChaosLLM generates a successful response using one of four modes:</p>
-<h3 id="random-default">Random (default)<a class="headerlink" href="#random-default" title="Permanent link">&para;</a></h3>
-<p>Generates responses with random words from a configurable vocabulary:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nt">response</span><span class="p">:</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nt">mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">random</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="nt">random</span><span class="p">:</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span><span class="nt">min_words</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">20</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">    </span><span class="nt">max_words</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">100</span>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">    </span><span class="nt">vocabulary</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">english</span><span class="w">  </span><span class="c1"># or &quot;lorem&quot; for Lorem Ipsum</span>
-</code></pre></div>
-<h3 id="template">Template<a class="headerlink" href="#template" title="Permanent link">&para;</a></h3>
-<p>Renders responses through a Jinja2 <code>SandboxedEnvironment</code> with built-in helpers:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nt">response</span><span class="p">:</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">template</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="nt">template</span><span class="p">:</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">    </span><span class="nt">body</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;{&quot;result&quot;:</span><span class="nv"> </span><span class="s">&quot;processed</span><span class="nv"> </span><span class="s">at</span><span class="nv"> </span><span class="s">{{</span><span class="nv"> </span><span class="s">timestamp()</span><span class="nv"> </span><span class="s">}}&quot;}&#39;</span>
-</code></pre></div>
-<p>Available template helpers include <code>random_choice</code>, <code>random_float</code>, <code>timestamp</code>, and others.</p>
-<h3 id="echo">Echo<a class="headerlink" href="#echo" title="Permanent link">&para;</a></h3>
-<p>Reflects the user's input back in the response. Useful for verifying your client sends the right data:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nt">response</span><span class="p">:</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nt">mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">echo</span>
-</code></pre></div>
-<h3 id="preset">Preset<a class="headerlink" href="#preset" title="Permanent link">&para;</a></h3>
-<p>Loads canned responses from a JSONL file:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nt">response</span><span class="p">:</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="nt">mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">preset</span>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">  </span><span class="nt">preset</span><span class="p">:</span>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">    </span><span class="nt">file</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./responses.jsonl</span>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">    </span><span class="nt">selection</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">random</span><span class="w">  </span><span class="c1"># or &quot;sequential&quot;</span>
-</code></pre></div>
-<h3 id="per-request-overrides">Per-Request Overrides<a class="headerlink" href="#per-request-overrides" title="Permanent link">&para;</a></h3>
-<p>When <code>allow_header_overrides</code> is <code>true</code> (the default), clients can override the response mode per-request:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>curl<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;X-Fake-Response-Mode: echo&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">     </span>-H<span class="w"> </span><span class="s2">&quot;X-Fake-Template: {\&quot;echo\&quot;: \&quot;{{ messages[-1].content }}\&quot;}&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">     </span>http://localhost:8000/v1/chat/completions<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">     </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;model&quot;: &quot;gpt-4&quot;, &quot;messages&quot;: [{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: &quot;test&quot;}]}&#39;</span>
-</code></pre></div>
-<h2 id="burst-patterns">Burst Patterns<a class="headerlink" href="#burst-patterns" title="Permanent link">&para;</a></h2>
-<p>Bursts simulate periodic provider stress -- a wave of rate limits and capacity errors that comes and goes:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nt">error_injection</span><span class="p">:</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span><span class="nt">burst</span><span class="p">:</span>
-<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">    </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">    </span><span class="nt">interval_sec</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">60</span><span class="w">    </span><span class="c1"># A burst starts every 60 seconds</span>
-<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">    </span><span class="nt">duration_sec</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span><span class="w">     </span><span class="c1"># Each burst lasts 5 seconds</span>
-<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w">    </span><span class="nt">rate_limit_pct</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">50</span><span class="w">  </span><span class="c1"># During burst: 50% rate limits</span>
-<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="w">    </span><span class="nt">capacity_pct</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">30</span><span class="w">    </span><span class="c1"># During burst: 30% capacity errors</span>
-</code></pre></div>
-<p>Outside burst windows, normal error percentages apply. During a burst, the burst percentages temporarily override the baseline rates for rate limits and capacity errors.</p>
-<div class="admonition tip">
-<p class="admonition-title">Tip</p>
-<p>The <code>/health</code> endpoint includes an <code>in_burst</code> field so you can observe burst timing from your test harness.</p>
-</div>
+<h2 id="storage-settings">Storage Settings<a class="headerlink" href="#storage-settings" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th style="text-align: right;">Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>max_object_bytes</code></td>
+<td style="text-align: right;"><code>10485760</code></td>
+<td>Maximum accepted object body size</td>
+</tr>
+<tr>
+<td><code>default_content_type</code></td>
+<td style="text-align: right;"><code>application/octet-stream</code></td>
+<td>Content type used when a PUT has no <code>Content-Type</code> header</td>
+</tr>
+<tr>
+<td><code>expose_s3_xml</code></td>
+<td style="text-align: right;"><code>true</code></td>
+<td>Reserved setting for S3-shaped XML responses</td>
+</tr>
+</tbody>
+</table>
+<p>Objects are stored in memory. If you update <code>storage</code> at runtime, ChaosBlob rebuilds the store with the new limits and clears existing objects.</p>
 <h2 id="available-presets">Available Presets<a class="headerlink" href="#available-presets" title="Permanent link">&para;</a></h2>
-<p>ChaosLLM ships with six presets. Use them with <code>--preset=&lt;name&gt;</code>:</p>
 <table>
 <thead>
 <tr>
 <th>Preset</th>
-<th>Error Rate</th>
+<th style="text-align: right;">Error Rate</th>
 <th>Latency</th>
 <th>Burst</th>
 <th>Best For</th>
@@ -1801,81 +1747,80 @@
 <tbody>
 <tr>
 <td><code>silent</code></td>
-<td>0%</td>
-<td>10ms +/- 5ms</td>
+<td style="text-align: right;">0%</td>
+<td>50ms +/- 25ms</td>
 <td>Off</td>
-<td>Baseline measurements, throughput testing</td>
+<td>Baseline object workflow measurement</td>
 </tr>
 <tr>
 <td><code>gentle</code></td>
-<td>~2%</td>
-<td>50ms +/- 20ms</td>
+<td style="text-align: right;">~1.5%</td>
+<td>100ms +/- 50ms</td>
 <td>Off</td>
-<td>Basic functionality testing, debugging</td>
+<td>Happy-path tests with light throttling</td>
 </tr>
 <tr>
 <td><code>realistic</code></td>
-<td>~10%</td>
-<td>100ms +/- 50ms</td>
-<td>60s/5s</td>
-<td>Production-like conditions</td>
+<td style="text-align: right;">~15%</td>
+<td>150ms +/- 75ms</td>
+<td>90s/10s</td>
+<td>Production-like object-store behavior</td>
 </tr>
 <tr>
-<td><code>stress_aimd</code></td>
-<td>~23%</td>
-<td>30ms +/- 15ms</td>
-<td>30s/5s</td>
-<td>AIMD throttle and backoff testing</td>
+<td><code>stress_storage</code></td>
+<td style="text-align: right;">~64%</td>
+<td>250ms +/- 150ms</td>
+<td>60s/12s</td>
+<td>Body, metadata, and stale-list resilience</td>
 </tr>
 <tr>
 <td><code>stress_extreme</code></td>
-<td>~45%</td>
-<td>10ms +/- 5ms</td>
-<td>15s/5s</td>
-<td>Survival under harsh conditions</td>
-</tr>
-<tr>
-<td><code>chaos</code></td>
-<td>~25%</td>
-<td>100ms +/- 100ms</td>
-<td>20s/8s</td>
-<td>Error handling coverage, every failure type</td>
+<td style="text-align: right;">~108% configured weights</td>
+<td>600ms +/- 300ms</td>
+<td>30s/8s</td>
+<td>Breaking-point retry and corruption testing</td>
 </tr>
 </tbody>
 </table>
-<h3 id="preset-details">Preset Details<a class="headerlink" href="#preset-details" title="Permanent link">&para;</a></h3>
-<p><strong><code>silent</code></strong> -- Zero errors. Every request succeeds. Use this to establish baseline throughput before adding chaos.</p>
-<p><strong><code>gentle</code></strong> -- Minimal error injection (1% rate limit, 0.5% capacity, 0.5% service unavailable). No connection failures or malformed responses. Good for verifying your pipeline works at all.</p>
-<p><strong><code>realistic</code></strong> -- Mimics typical Azure OpenAI behavior. Moderate rate limiting (5%), occasional capacity errors (2%), rare connection issues, and very rare malformed responses. Bursts every 60 seconds elevate rate limits to 50%.</p>
-<p><strong><code>stress_aimd</code></strong> -- Specifically targets AIMD throttle testing. High rate limits (15%) and capacity errors (5%) with frequent 30-second burst cycles. Connection failures are disabled to focus on HTTP-level retry behavior.</p>
-<p><strong><code>stress_extreme</code></strong> -- Maximum HTTP stress. 20% rate limits, 10% capacity errors, 5% internal errors. Aggressive 15-second burst cycles with 90% rate limiting during bursts. Includes malformed responses (3% invalid JSON, 2% truncated).</p>
-<p><strong><code>chaos</code></strong> -- Every error type is active. HTTP errors, connection failures, malformed responses, and aggressive bursts. Not suitable for performance measurements due to the wide variance, but excellent for error handling coverage.</p>
 <h2 id="usage-examples">Usage Examples<a class="headerlink" href="#usage-examples" title="Permanent link">&para;</a></h2>
 <h3 id="cli">CLI<a class="headerlink" href="#cli" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># Start with a preset</span>
-<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>uv<span class="w"> </span>run<span class="w"> </span>chaosllm<span class="w"> </span>serve<span class="w"> </span>--preset<span class="o">=</span>realistic
-<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>
-<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="c1"># Start with a custom config file</span>
-<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>uv<span class="w"> </span>run<span class="w"> </span>chaosllm<span class="w"> </span>serve<span class="w"> </span>--config<span class="o">=</span>my-config.yaml
-<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>
-<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="c1"># Preset + overrides</span>
-<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>uv<span class="w"> </span>run<span class="w"> </span>chaosllm<span class="w"> </span>serve<span class="w"> </span>--preset<span class="o">=</span>gentle<span class="w"> </span>--rate-limit-pct<span class="o">=</span><span class="m">10</span>.0
-<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>
-<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="c1"># Via the unified CLI</span>
-<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>uv<span class="w"> </span>run<span class="w"> </span>chaosengine<span class="w"> </span>llm<span class="w"> </span>serve<span class="w"> </span>--preset<span class="o">=</span>realistic
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># Start with a preset</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>uv<span class="w"> </span>run<span class="w"> </span>chaosblob<span class="w"> </span>serve<span class="w"> </span>--preset<span class="o">=</span>realistic
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c1"># Stress storage corruption and stale listings</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>uv<span class="w"> </span>run<span class="w"> </span>chaosblob<span class="w"> </span>serve<span class="w"> </span>--preset<span class="o">=</span>stress_storage
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="c1"># Custom object limit and metrics database</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>uv<span class="w"> </span>run<span class="w"> </span>chaosblob<span class="w"> </span>serve<span class="w"> </span>--max-object-bytes<span class="o">=</span><span class="m">1048576</span><span class="w"> </span>--database<span class="o">=</span>./blob-metrics.db
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="c1"># Via the unified CLI</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>uv<span class="w"> </span>run<span class="w"> </span>chaosengine<span class="w"> </span>blob<span class="w"> </span>serve<span class="w"> </span>--preset<span class="o">=</span>realistic
 </code></pre></div>
 <h3 id="python">Python<a class="headerlink" href="#python" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">errorworks.llm.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChaosLLMConfig</span><span class="p">,</span> <span class="n">load_config</span>
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">errorworks.llm.server</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChaosLLMServer</span><span class="p">,</span> <span class="n">create_app</span>
-<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
-<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="c1"># Quick start</span>
-<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="n">config</span> <span class="o">=</span> <span class="n">load_config</span><span class="p">(</span><span class="n">preset</span><span class="o">=</span><span class="s2">&quot;realistic&quot;</span><span class="p">)</span>
-<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="n">app</span> <span class="o">=</span> <span class="n">create_app</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
-<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>
-<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="c1"># With full control</span>
-<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="n">server</span> <span class="o">=</span> <span class="n">ChaosLLMServer</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
-<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="n">server</span><span class="o">.</span><span class="n">update_config</span><span class="p">({</span><span class="s2">&quot;error_injection&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;rate_limit_pct&quot;</span><span class="p">:</span> <span class="mf">25.0</span><span class="p">}})</span>
-<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a><span class="n">stats</span> <span class="o">=</span> <span class="n">server</span><span class="o">.</span><span class="n">get_stats</span><span class="p">()</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">errorworks.blob.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_config</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">errorworks.blob.server</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChaosBlobServer</span><span class="p">,</span> <span class="n">create_app</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">config</span> <span class="o">=</span> <span class="n">load_config</span><span class="p">(</span><span class="n">preset</span><span class="o">=</span><span class="s2">&quot;realistic&quot;</span><span class="p">)</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="n">app</span> <span class="o">=</span> <span class="n">create_app</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="n">server</span> <span class="o">=</span> <span class="n">ChaosBlobServer</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="n">server</span><span class="o">.</span><span class="n">update_config</span><span class="p">({</span><span class="s2">&quot;error_injection&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;slow_down_pct&quot;</span><span class="p">:</span> <span class="mf">25.0</span><span class="p">}})</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="n">stats</span> <span class="o">=</span> <span class="n">server</span><span class="o">.</span><span class="n">get_stats</span><span class="p">()</span>
+</code></pre></div>
+<h3 id="pytest-fixture">Pytest Fixture<a class="headerlink" href="#pytest-fixture" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">tests.fixtures.chaosblob</span><span class="w"> </span><span class="kn">import</span> <span class="n">chaosblob</span>  <span class="c1"># noqa: F401</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">chaosblob</span><span class="p">(</span><span class="n">preset</span><span class="o">=</span><span class="s2">&quot;silent&quot;</span><span class="p">,</span> <span class="n">slow_down_pct</span><span class="o">=</span><span class="mf">100.0</span><span class="p">)</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_pipeline_retries_slow_down</span><span class="p">(</span><span class="n">chaosblob</span><span class="p">):</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>    <span class="n">response</span> <span class="o">=</span> <span class="n">chaosblob</span><span class="o">.</span><span class="n">put_object</span><span class="p">(</span><span class="s2">&quot;bucket&quot;</span><span class="p">,</span> <span class="s2">&quot;incoming/item.json&quot;</span><span class="p">,</span> <span class="sa">b</span><span class="s1">&#39;{&quot;id&quot;: 1}&#39;</span><span class="p">)</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>    <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">503</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>    <span class="k">assert</span> <span class="s2">&quot;retry-after&quot;</span> <span class="ow">in</span> <span class="n">response</span><span class="o">.</span><span class="n">headers</span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>    <span class="n">chaosblob</span><span class="o">.</span><span class="n">update_config</span><span class="p">(</span><span class="n">slow_down_pct</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>    <span class="k">assert</span> <span class="n">chaosblob</span><span class="o">.</span><span class="n">put_object</span><span class="p">(</span><span class="s2">&quot;bucket&quot;</span><span class="p">,</span> <span class="s2">&quot;incoming/item.json&quot;</span><span class="p">,</span> <span class="sa">b</span><span class="s1">&#39;{&quot;id&quot;: 1}&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span>
 </code></pre></div>
 <h2 id="related-pages">Related Pages<a class="headerlink" href="#related-pages" title="Permanent link">&para;</a></h2>
 <ul>
@@ -1921,7 +1866,7 @@
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../../getting-started/quickstart/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Quick Start">
+          <a href="../chaosweb/" class="md-footer__link md-footer__link--prev" aria-label="Previous: ChaosWeb">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -1931,20 +1876,20 @@
                 Previous
               </span>
               <div class="md-ellipsis">
-                Quick Start
+                ChaosWeb
               </div>
             </div>
           </a>
         
         
           
-          <a href="../chaosweb/" class="md-footer__link md-footer__link--next" aria-label="Next: ChaosWeb">
+          <a href="../presets/" class="md-footer__link md-footer__link--next" aria-label="Next: Presets">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                ChaosWeb
+                Presets
               </div>
             </div>
             <div class="md-footer__button md-icon">

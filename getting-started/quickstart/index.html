@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Composable chaos-testing services for LLM and web scraping pipelines">
+        <meta name="description" content="Composable chaos-testing services for LLM, web scraping, and object storage pipelines">
       
       
       
@@ -642,6 +642,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../guide/chaosblob/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ChaosBlob
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../guide/presets/" class="md-nav__link">
         
   
@@ -1113,9 +1141,9 @@ happened:</p>
 </code></pre></div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>The admin token is randomly generated at startup and printed to the server
-log. You can also set it explicitly via the <code>server.admin_token</code> config
-field or the <code>--admin-token</code> CLI flag.</p>
+<p>The admin token is randomly generated if omitted, but generated tokens are
+not printed. Set <code>server.admin_token</code> explicitly in your YAML config when
+you need to call <code>/admin/*</code> endpoints.</p>
 </div>
 <p>The response includes counts of each status code returned, latency percentiles,
 and error category breakdowns.</p>

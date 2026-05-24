@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Composable chaos-testing services for LLM and web scraping pipelines">
+        <meta name="description" content="Composable chaos-testing services for LLM, web scraping, and object storage pipelines">
       
       
       
@@ -498,6 +498,34 @@
     
   
     ChaosWeb
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/chaosblob/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ChaosBlob
   
 
     
@@ -1201,6 +1229,117 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#chaosblob-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ChaosBlob Configuration
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ChaosBlob Configuration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#chaosblobconfig-top-level" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ChaosBlobConfig (top-level)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bloberrorinjectionconfig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BlobErrorInjectionConfig
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="BlobErrorInjectionConfig">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#s3-http-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        S3 HTTP Errors
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#connection-failures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Connection Failures
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#object-and-list-corruption" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Object and List Corruption
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#selection-and-burst" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Selection and Burst
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#blobburstconfig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BlobBurstConfig
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#blobstorageconfig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BlobStorageConfig
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#yaml-configuration-example" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1702,6 +1841,117 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#chaosblob-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ChaosBlob Configuration
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ChaosBlob Configuration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#chaosblobconfig-top-level" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ChaosBlobConfig (top-level)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bloberrorinjectionconfig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BlobErrorInjectionConfig
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="BlobErrorInjectionConfig">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#s3-http-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        S3 HTTP Errors
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#connection-failures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Connection Failures
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#object-and-list-corruption" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Object and List Corruption
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#selection-and-burst" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Selection and Burst
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#blobburstconfig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BlobBurstConfig
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#blobstorageconfig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BlobStorageConfig
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#yaml-configuration-example" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1735,7 +1985,7 @@
 <h1 id="configuration-schema-reference">Configuration Schema Reference<a class="headerlink" href="#configuration-schema-reference" title="Permanent link">&para;</a></h1>
 <p>All configuration models use Pydantic with <code>frozen=True</code> (immutable) and <code>extra="forbid"</code> (no unknown fields). Runtime updates go through the admin API's <code>POST /admin/config</code> endpoint, which creates new model instances rather than mutating existing ones.</p>
 <h2 id="shared-configuration">Shared Configuration<a class="headerlink" href="#shared-configuration" title="Permanent link">&para;</a></h2>
-<p>These models are defined in <code>errorworks.engine.types</code> and used by both ChaosLLM and ChaosWeb.</p>
+<p>These models are defined in <code>errorworks.engine.types</code> and used by ChaosLLM, ChaosWeb, and ChaosBlob.</p>
 <h3 id="serverconfig">ServerConfig<a class="headerlink" href="#serverconfig" title="Permanent link">&para;</a></h3>
 <p>Server binding and worker configuration.</p>
 <table>
@@ -1757,14 +2007,14 @@
 <tr>
 <td><code>port</code></td>
 <td><code>int</code></td>
-<td><code>8000</code> (LLM) / <code>8200</code> (Web)</td>
+<td><code>8000</code> (LLM) / <code>8200</code> (Web) / <code>8300</code> (Blob)</td>
 <td>Port to listen on. Range: 1-65535.</td>
 </tr>
 <tr>
 <td><code>workers</code></td>
 <td><code>int</code></td>
-<td><code>4</code></td>
-<td>Number of uvicorn workers. Must be &gt; 0.</td>
+<td><code>1</code></td>
+<td>Number of uvicorn workers. Must be &gt; 0. Workers &gt; 1 require a file-backed metrics database.</td>
 </tr>
 <tr>
 <td><code>admin_token</code></td>
@@ -1805,6 +2055,7 @@
 <ul>
 <li>ChaosLLM: <code>file:chaosllm-metrics?mode=memory&amp;cache=shared</code></li>
 <li>ChaosWeb: <code>file:chaosweb-metrics?mode=memory&amp;cache=shared</code></li>
+<li>ChaosBlob: <code>file:chaosblob-metrics?mode=memory&amp;cache=shared</code></li>
 </ul>
 <h3 id="latencyconfig">LatencyConfig<a class="headerlink" href="#latencyconfig" title="Permanent link">&para;</a></h3>
 <p>Latency simulation configuration. The simulated delay is <code>(base_ms + uniform(-jitter_ms, +jitter_ms)) / 1000</code> seconds, clamped to a minimum of 0.</p>
@@ -2772,11 +3023,340 @@
 </tbody>
 </table>
 <hr />
+<h2 id="chaosblob-configuration">ChaosBlob Configuration<a class="headerlink" href="#chaosblob-configuration" title="Permanent link">&para;</a></h2>
+<h3 id="chaosblobconfig-top-level">ChaosBlobConfig (top-level)<a class="headerlink" href="#chaosblobconfig-top-level" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>server</code></td>
+<td><code>BlobServerConfig</code></td>
+<td>Port defaults to <code>8300</code></td>
+<td>Server binding configuration.</td>
+</tr>
+<tr>
+<td><code>metrics</code></td>
+<td><code>MetricsConfig</code></td>
+<td>See above</td>
+<td>Metrics storage configuration.</td>
+</tr>
+<tr>
+<td><code>storage</code></td>
+<td><code>BlobStorageConfig</code></td>
+<td>See below</td>
+<td>Object storage limits and response defaults.</td>
+</tr>
+<tr>
+<td><code>latency</code></td>
+<td><code>LatencyConfig</code></td>
+<td>See above</td>
+<td>Latency simulation configuration.</td>
+</tr>
+<tr>
+<td><code>error_injection</code></td>
+<td><code>BlobErrorInjectionConfig</code></td>
+<td>See below</td>
+<td>Error injection configuration.</td>
+</tr>
+<tr>
+<td><code>allow_external_bind</code></td>
+<td><code>bool</code></td>
+<td><code>false</code></td>
+<td>Allow binding to all interfaces (<code>0.0.0.0</code>).</td>
+</tr>
+<tr>
+<td><code>preset_name</code></td>
+<td><code>str \| None</code></td>
+<td><code>None</code></td>
+<td>Preset name used to build this config (set automatically).</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bloberrorinjectionconfig">BlobErrorInjectionConfig<a class="headerlink" href="#bloberrorinjectionconfig" title="Permanent link">&para;</a></h3>
+<p>All percentage fields are floats in the range 0.0-100.0.</p>
+<h4 id="s3-http-errors">S3 HTTP Errors<a class="headerlink" href="#s3-http-errors" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>slow_down_pct</code></td>
+<td><code>float</code></td>
+<td><code>0.0</code></td>
+<td>S3 SlowDown percentage. Includes <code>Retry-After</code>.</td>
+</tr>
+<tr>
+<td><code>access_denied_pct</code></td>
+<td><code>float</code></td>
+<td><code>0.0</code></td>
+<td>403 AccessDenied percentage.</td>
+</tr>
+<tr>
+<td><code>not_found_pct</code></td>
+<td><code>float</code></td>
+<td><code>0.0</code></td>
+<td>404 NoSuchKey percentage.</td>
+</tr>
+<tr>
+<td><code>service_unavailable_pct</code></td>
+<td><code>float</code></td>
+<td><code>0.0</code></td>
+<td>503 ServiceUnavailable percentage.</td>
+</tr>
+<tr>
+<td><code>internal_error_pct</code></td>
+<td><code>float</code></td>
+<td><code>0.0</code></td>
+<td>500 InternalError percentage.</td>
+</tr>
+<tr>
+<td><code>bad_gateway_pct</code></td>
+<td><code>float</code></td>
+<td><code>0.0</code></td>
+<td>502 BadGateway percentage.</td>
+</tr>
+<tr>
+<td><code>gateway_timeout_pct</code></td>
+<td><code>float</code></td>
+<td><code>0.0</code></td>
+<td>504 GatewayTimeout percentage.</td>
+</tr>
+<tr>
+<td><code>retry_after_sec</code></td>
+<td><code>tuple[int, int]</code></td>
+<td><code>(1, 30)</code></td>
+<td>Retry-After header value range [min, max] seconds.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="connection-failures">Connection Failures<a class="headerlink" href="#connection-failures" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>timeout_pct</code></td>
+<td><code>float</code></td>
+<td><code>0.0</code></td>
+<td>Percentage of requests that hang before a timeout response.</td>
+</tr>
+<tr>
+<td><code>timeout_sec</code></td>
+<td><code>tuple[int, int]</code></td>
+<td><code>(30, 60)</code></td>
+<td>How long to hang [min, max] seconds.</td>
+</tr>
+<tr>
+<td><code>connection_reset_pct</code></td>
+<td><code>float</code></td>
+<td><code>0.0</code></td>
+<td>Percentage of requests that disconnect mid-response.</td>
+</tr>
+<tr>
+<td><code>connection_stall_pct</code></td>
+<td><code>float</code></td>
+<td><code>0.0</code></td>
+<td>Percentage of requests that stall then disconnect.</td>
+</tr>
+<tr>
+<td><code>connection_stall_start_sec</code></td>
+<td><code>tuple[int, int]</code></td>
+<td><code>(0, 2)</code></td>
+<td>Initial delay before stalling [min, max].</td>
+</tr>
+<tr>
+<td><code>connection_stall_sec</code></td>
+<td><code>tuple[int, int]</code></td>
+<td><code>(30, 60)</code></td>
+<td>Stall duration [min, max] seconds.</td>
+</tr>
+<tr>
+<td><code>slow_response_pct</code></td>
+<td><code>float</code></td>
+<td><code>0.0</code></td>
+<td>Percentage of artificially slow responses.</td>
+</tr>
+<tr>
+<td><code>slow_response_sec</code></td>
+<td><code>tuple[int, int]</code></td>
+<td><code>(3, 15)</code></td>
+<td>Slow response delay range [min, max] seconds.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="object-and-list-corruption">Object and List Corruption<a class="headerlink" href="#object-and-list-corruption" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>truncated_body_pct</code></td>
+<td><code>float</code></td>
+<td><code>0.0</code></td>
+<td>Percentage of GET responses with truncated object bodies.</td>
+</tr>
+<tr>
+<td><code>wrong_content_length_pct</code></td>
+<td><code>float</code></td>
+<td><code>0.0</code></td>
+<td>Percentage of GET responses that declare the full length and disconnect early.</td>
+</tr>
+<tr>
+<td><code>checksum_mismatch_pct</code></td>
+<td><code>float</code></td>
+<td><code>0.0</code></td>
+<td>Percentage of GET responses with corrupted ETags.</td>
+</tr>
+<tr>
+<td><code>metadata_corruption_pct</code></td>
+<td><code>float</code></td>
+<td><code>0.0</code></td>
+<td>Percentage of GET/HEAD responses with missing metadata.</td>
+</tr>
+<tr>
+<td><code>stale_list_pct</code></td>
+<td><code>float</code></td>
+<td><code>0.0</code></td>
+<td>Percentage of list responses that omit the newest object.</td>
+</tr>
+<tr>
+<td><code>malformed_xml_pct</code></td>
+<td><code>float</code></td>
+<td><code>0.0</code></td>
+<td>Percentage of list responses with malformed XML.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="selection-and-burst">Selection and Burst<a class="headerlink" href="#selection-and-burst" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>selection_mode</code></td>
+<td><code>"priority" \| "weighted"</code></td>
+<td><code>"priority"</code></td>
+<td>Error selection strategy. Same semantics as ChaosLLM.</td>
+</tr>
+<tr>
+<td><code>burst</code></td>
+<td><code>BlobBurstConfig</code></td>
+<td>See below</td>
+<td>Burst pattern configuration.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="blobburstconfig">BlobBurstConfig<a class="headerlink" href="#blobburstconfig" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>enabled</code></td>
+<td><code>bool</code></td>
+<td><code>false</code></td>
+<td>Enable burst pattern injection.</td>
+</tr>
+<tr>
+<td><code>interval_sec</code></td>
+<td><code>int</code></td>
+<td><code>60</code></td>
+<td>Time between burst starts in seconds. Must be &gt; 0.</td>
+</tr>
+<tr>
+<td><code>duration_sec</code></td>
+<td><code>int</code></td>
+<td><code>10</code></td>
+<td>How long each burst lasts in seconds. Must be &gt; 0 and &lt; <code>interval_sec</code> when enabled.</td>
+</tr>
+<tr>
+<td><code>slow_down_pct</code></td>
+<td><code>float</code></td>
+<td><code>80.0</code></td>
+<td>SlowDown percentage during burst.</td>
+</tr>
+<tr>
+<td><code>service_unavailable_pct</code></td>
+<td><code>float</code></td>
+<td><code>40.0</code></td>
+<td>ServiceUnavailable percentage during burst.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="blobstorageconfig">BlobStorageConfig<a class="headerlink" href="#blobstorageconfig" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>max_object_bytes</code></td>
+<td><code>int</code></td>
+<td><code>10485760</code></td>
+<td>Maximum accepted object body size. Must be &gt; 0.</td>
+</tr>
+<tr>
+<td><code>default_content_type</code></td>
+<td><code>str</code></td>
+<td><code>"application/octet-stream"</code></td>
+<td>Content-Type used when a PUT has no content-type header.</td>
+</tr>
+<tr>
+<td><code>expose_s3_xml</code></td>
+<td><code>bool</code></td>
+<td><code>true</code></td>
+<td>Reserved setting for S3-shaped XML list/error responses.</td>
+</tr>
+</tbody>
+</table>
+<hr />
 <h2 id="yaml-configuration-example">YAML Configuration Example<a class="headerlink" href="#yaml-configuration-example" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">server</span><span class="p">:</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">host</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">127.0.0.1</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8000</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span><span class="nt">workers</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span><span class="nt">workers</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span><span class="nt">admin_token</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-secret-token</span>
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
 <a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="nt">metrics</span><span class="p">:</span>

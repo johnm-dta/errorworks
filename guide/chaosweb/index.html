@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Composable chaos-testing services for LLM and web scraping pipelines">
+        <meta name="description" content="Composable chaos-testing services for LLM, web scraping, and object storage pipelines">
       
       
       
@@ -16,7 +16,7 @@
         <link rel="prev" href="../chaosllm/">
       
       
-        <link rel="next" href="../presets/">
+        <link rel="next" href="../chaosblob/">
       
       
         
@@ -836,6 +836,34 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../chaosblob/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ChaosBlob
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -1796,7 +1824,7 @@
 <a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">      </span><span class="no">&lt;body&gt;&lt;h1&gt;{{ path }}&lt;/h1&gt;</span>
 <a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">      </span><span class="no">&lt;p&gt;{{ random_words(100, 300) }}&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</span>
 </code></pre></div>
-<p>Template helpers include <code>random_words</code>, <code>random_choice</code>, <code>random_float</code>, <code>timestamp</code>, and more. The <code>path</code> variable contains the requested URL path.</p>
+<p>Template helpers: <code>random_choice</code>, <code>random_int</code>, <code>random_words</code>, <code>timestamp</code>. The <code>path</code> variable contains the requested URL path.</p>
 <h3 id="echo">Echo<a class="headerlink" href="#echo" title="Permanent link">&para;</a></h3>
 <p>Reflects request information as HTML. Content is HTML-escaped to prevent XSS when rendering in a browser:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nt">content</span><span class="p">:</span>
@@ -1955,13 +1983,13 @@
         
         
           
-          <a href="../presets/" class="md-footer__link md-footer__link--next" aria-label="Next: Presets">
+          <a href="../chaosblob/" class="md-footer__link md-footer__link--next" aria-label="Next: ChaosBlob">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Presets
+                ChaosBlob
               </div>
             </div>
             <div class="md-footer__button md-icon">

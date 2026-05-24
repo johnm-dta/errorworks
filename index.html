@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Composable chaos-testing services for LLM and web scraping pipelines">
+        <meta name="description" content="Composable chaos-testing services for LLM, web scraping, and object storage pipelines">
       
       
       
@@ -366,6 +366,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#chaosblob" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ChaosBlob
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -604,6 +615,34 @@
     
   
     ChaosWeb
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="guide/chaosblob/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ChaosBlob
   
 
     
@@ -1006,6 +1045,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#chaosblob" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ChaosBlob
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1043,7 +1093,7 @@
 
 
 <h1 id="errorworks">errorworks<a class="headerlink" href="#errorworks" title="Permanent link">&para;</a></h1>
-<p><strong>Composable chaos-testing services for LLM and web scraping pipelines.</strong></p>
+<p><strong>Composable chaos-testing services for LLM, web scraping, and object storage pipelines.</strong></p>
 <p>errorworks gives you drop-in fake servers that inject faults, simulate latency,
 generate realistic responses, and record metrics -- so you can test how your
 client code behaves when things go wrong, before they go wrong in production.</p>
@@ -1074,6 +1124,10 @@ timeouts, truncated streams, invalid JSON, and more.</p>
 <p>A fake web server for scraping resilience tests. Serves HTML pages that
 intermittently break with encoding mismatches, truncated content, SSRF redirects,
 and other real-world failure modes that trip up web scrapers.</p>
+<h3 id="chaosblob">ChaosBlob<a class="headerlink" href="#chaosblob" title="Permanent link">&para;</a></h3>
+<p>A fake object-storage server for blob pipeline resilience tests. Stores objects
+in memory and injects S3-style throttling, stale listings, corrupted object
+bodies, metadata loss, malformed XML, and connection failures.</p>
 <h2 id="next-steps">Next steps<a class="headerlink" href="#next-steps" title="Permanent link">&para;</a></h2>
 <div class="grid cards">
 <ul>
@@ -1084,7 +1138,7 @@ and other real-world failure modes that trip up web scrapers.</p>
 </li>
 <li>
 <p><strong>Quick Start</strong></p>
-<p>Walk through a complete scenario with ChaosLLM, ChaosWeb, and pytest fixtures.</p>
+<p>Walk through a complete scenario with ChaosLLM, ChaosWeb, ChaosBlob, and pytest fixtures.</p>
 <p><a href="getting-started/quickstart/">:octicons-arrow-right-24: Quick Start</a></p>
 </li>
 <li>

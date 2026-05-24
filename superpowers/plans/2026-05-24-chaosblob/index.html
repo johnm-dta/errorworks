@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Composable chaos-testing services for LLM and web scraping pipelines">
+        <meta name="description" content="Composable chaos-testing services for LLM, web scraping, and object storage pipelines">
       
       
       
@@ -494,6 +494,34 @@
     
   
     ChaosWeb
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guide/chaosblob/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ChaosBlob
   
 
     
@@ -1029,7 +1057,7 @@
 <li><code>GET /{bucket}/{key:path}</code> returns an object body or an injected object/read failure.</li>
 <li><code>HEAD /{bucket}/{key:path}</code> returns object metadata without a body.</li>
 <li><code>DELETE /{bucket}/{key:path}</code> deletes an object and returns a success response.</li>
-<li><code>GET /{bucket}?list-type=2&amp;prefix=logs/&amp;continuation-token=2&amp;max-keys=1000</code> returns S3-style ListObjectsV2 XML.</li>
+<li><code>GET /{bucket}?list-type=2&amp;prefix=logs/&amp;continuation-token=&lt;opaque-token&gt;&amp;max-keys=1000</code> returns S3-style ListObjectsV2 XML.</li>
 <li>Shared <code>/health</code> and <code>/admin/*</code> endpoints match existing server families.</li>
 </ul>
 <p>Do not implement full AWS Signature V4 validation, multipart upload, bucket creation, bucket policies, object versioning, ACLs, presigned URL validation, or cloud-specific SDK quirks in this first plan. The server must accept signed requests as ordinary HTTP requests so clients can point path-style S3-compatible clients at it.</p>
