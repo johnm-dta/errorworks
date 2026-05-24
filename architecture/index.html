@@ -1,0 +1,1476 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Composable chaos-testing services for LLM and web scraping pipelines">
+      
+      
+      
+        <link rel="canonical" href="https://johnm-dta.github.io/errorworks/architecture/">
+      
+      
+        <link rel="prev" href="../reference/config-schema/">
+      
+      
+        <link rel="next" href="../changelog/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.5">
+    
+    
+      
+        <title>Architecture - errorworks</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#architecture-overview" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="errorworks" class="md-header__button md-logo" aria-label="errorworks" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            errorworks
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Architecture
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/johnm-dta/errorworks" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    johnm-dta/errorworks
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="errorworks" class="md-nav__button md-logo" aria-label="errorworks" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    errorworks
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/johnm-dta/errorworks" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    johnm-dta/errorworks
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/chaosllm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ChaosLLM
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/chaosweb/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ChaosWeb
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/presets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Presets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/metrics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Metrics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/testing-fixtures/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing Fixtures
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HTTP API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/config-schema/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration Schema
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#composition-over-inheritance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Composition Over Inheritance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#package-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Package Structure
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#key-engine-components" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Engine Components
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Key Engine Components">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#injectionengine" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        InjectionEngine
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#metricsstore" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MetricsStore
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#latencysimulator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LatencySimulator
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configloader" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ConfigLoader
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#config-snapshot-pattern" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Config Snapshot Pattern
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#immutable-config-update-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Immutable Config Update Flow
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#thread-safety-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Thread Safety Model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adding-a-new-server-type" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding a New Server Type
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../changelog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#composition-over-inheritance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Composition Over Inheritance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#package-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Package Structure
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#key-engine-components" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Engine Components
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Key Engine Components">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#injectionengine" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        InjectionEngine
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#metricsstore" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MetricsStore
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#latencysimulator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LatencySimulator
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configloader" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ConfigLoader
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#config-snapshot-pattern" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Config Snapshot Pattern
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#immutable-config-update-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Immutable Config Update Flow
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#thread-safety-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Thread Safety Model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adding-a-new-server-type" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding a New Server Type
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="architecture-overview">Architecture Overview<a class="headerlink" href="#architecture-overview" title="Permanent link">&para;</a></h1>
+<p>Errorworks is a composable chaos-testing service framework. Each server type (LLM, Web) is built from shared engine components rather than inheriting from a base class. This document explains the design rationale, key components, and extension points.</p>
+<h2 id="composition-over-inheritance">Composition Over Inheritance<a class="headerlink" href="#composition-over-inheritance" title="Permanent link">&para;</a></h2>
+<p>The central design principle is that <strong>HTTP concerns stay out of domain logic</strong>. Each chaos plugin (ChaosLLM, ChaosWeb) creates instances of shared engine utilities and delegates specific responsibilities to them:</p>
+<ul>
+<li><strong>InjectionEngine</strong> handles burst state and error selection algorithms</li>
+<li><strong>MetricsStore</strong> handles SQLite persistence and timeseries aggregation</li>
+<li><strong>LatencySimulator</strong> handles delay calculation</li>
+<li><strong>ConfigLoader</strong> handles YAML loading and config precedence</li>
+</ul>
+<p>The server classes (<code>ChaosLLMServer</code>, <code>ChaosWebServer</code>) own the HTTP routing, request parsing, and response formatting. They compose engine components but never extend them. This means a new server type (e.g., email, gRPC) can reuse the same engine components without inheriting HTTP-specific behavior it does not need.</p>
+<h2 id="package-structure">Package Structure<a class="headerlink" href="#package-structure" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>src/errorworks/
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>├── engine/                  # Shared core utilities
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>│   ├── types.py             # ServerConfig, MetricsConfig, LatencyConfig,
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>│   │                        # BurstConfig, ErrorSpec, SelectionMode,
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>│   │                        # MetricsSchema, ColumnDef
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>│   ├── injection_engine.py  # Burst state machine + selection algorithms
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>│   ├── metrics_store.py     # Thread-safe SQLite with schema-driven DDL
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>│   ├── latency.py           # Latency simulation (base +/- jitter)
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>│   ├── config_loader.py     # YAML preset loading + deep merge
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>│   ├── admin.py             # Shared admin endpoint handlers
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>│   ├── validators.py        # Shared Pydantic validators (range parsing)
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>│   └── cli.py               # Unified chaosengine CLI
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>│
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>├── llm/                     # ChaosLLM: Fake OpenAI-compatible server
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>│   ├── config.py            # ChaosLLMConfig, ErrorInjectionConfig, ResponseConfig
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>│   ├── server.py            # ChaosLLMServer (Starlette ASGI app)
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>│   ├── error_injector.py    # LLM-specific error decision logic
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>│   ├── response_generator.py# OpenAI-format response generation
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>│   ├── metrics.py           # LLM-specific MetricsRecorder wrapper
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>│   ├── cli.py               # chaosllm CLI
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>│   └── presets/             # YAML preset files
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>│
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>├── web/                     # ChaosWeb: Fake web server for scraping tests
+<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>│   ├── config.py            # ChaosWebConfig, WebErrorInjectionConfig, WebContentConfig
+<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>│   ├── server.py            # ChaosWebServer (Starlette ASGI app)
+<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>│   ├── error_injector.py    # Web-specific error decision logic
+<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>│   ├── content_generator.py # HTML content generation + corruption functions
+<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>│   ├── metrics.py           # Web-specific MetricsRecorder wrapper
+<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>│   ├── cli.py               # chaosweb CLI
+<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>│   └── presets/             # YAML preset files
+<a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>│
+<a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a>├── llm_mcp/                 # MCP server for ChaosLLM metrics analysis
+<a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a>│   └── server.py            # Claude-optimized metrics tools via MCP protocol
+<a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a>│
+<a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a>└── testing/                 # Pytest fixture support
+<a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a>    └── ...                  # In-process test fixtures using Starlette TestClient
+</code></pre></div>
+<h2 id="key-engine-components">Key Engine Components<a class="headerlink" href="#key-engine-components" title="Permanent link">&para;</a></h2>
+<h3 id="injectionengine">InjectionEngine<a class="headerlink" href="#injectionengine" title="Permanent link">&para;</a></h3>
+<p><strong>File:</strong> <code>engine/injection_engine.py</code></p>
+<p>The InjectionEngine is the decision-making core for error injection. It handles two concerns:</p>
+<ol>
+<li>
+<p><strong>Burst state machine</strong> -- Periodic burst windows where error rates are elevated. Bursts occur every <code>interval_sec</code> seconds and last for <code>duration_sec</code> seconds. The state is computed from elapsed time using modular arithmetic (<code>elapsed % interval &lt; duration</code>), making it stateless beyond the start timestamp.</p>
+</li>
+<li>
+<p><strong>Error selection</strong> -- Two algorithms:</p>
+</li>
+<li><strong>Priority mode:</strong> Specs are evaluated in order. The first one that triggers (based on a random roll against its weight) wins. This gives deterministic precedence to high-priority errors.</li>
+<li><strong>Weighted mode:</strong> A single error is selected proportionally from all active specs. Success probability is implicitly <code>max(0, 100 - total_weight)</code>.</li>
+</ol>
+<p>The engine is deliberately domain-agnostic. It works with <code>ErrorSpec(tag, weight)</code> objects where <code>tag</code> is an opaque string. The calling plugin builds the spec list (with domain-specific tags like <code>"rate_limit"</code> or <code>"ssrf_redirect"</code>) and interprets the selected tag to produce a response.</p>
+<p><strong>Thread safety:</strong> The burst start time is protected by a lock. The RNG is not thread-safe, but this is handled by the config snapshot pattern (each request snapshots the engine reference, so concurrent requests use different engine instances after a config update).</p>
+<p><strong>Testability:</strong> Both <code>time_func</code> and <code>rng</code> are injectable. Tests pass <code>time.monotonic</code> replacements and seeded <code>random.Random</code> instances for deterministic behavior.</p>
+<h3 id="metricsstore">MetricsStore<a class="headerlink" href="#metricsstore" title="Permanent link">&para;</a></h3>
+<p><strong>File:</strong> <code>engine/metrics_store.py</code></p>
+<p>Thread-safe SQLite storage with several notable design choices:</p>
+<ul>
+<li>
+<p><strong>Thread-local connections:</strong> Each thread gets its own <code>sqlite3.Connection</code> via <code>threading.local()</code>. This avoids SQLite's thread-safety limitations while allowing concurrent access from uvicorn workers.</p>
+</li>
+<li>
+<p><strong>WAL mode for file databases:</strong> File-backed databases use Write-Ahead Logging (<code>PRAGMA journal_mode=WAL</code>) with <code>PRAGMA synchronous=NORMAL</code> for better concurrent read/write performance. In-memory databases use <code>PRAGMA journal_mode=MEMORY</code> with <code>PRAGMA synchronous=OFF</code> for maximum speed.</p>
+</li>
+<li>
+<p><strong>Schema-driven DDL:</strong> Table structures are defined declaratively via <code>MetricsSchema</code> dataclasses containing <code>ColumnDef</code> tuples. The store generates <code>CREATE TABLE IF NOT EXISTS</code> statements from the schema at initialization. This means each plugin defines its own schema (LLM requests have <code>model</code> and <code>deployment</code> columns; Web requests have <code>path</code> and <code>redirect_hops</code> columns) without modifying the store.</p>
+</li>
+<li>
+<p><strong>Timeseries UPSERT:</strong> The <code>update_timeseries()</code> method uses SQLite's <code>INSERT ... ON CONFLICT(bucket_utc) DO UPDATE SET</code> to atomically increment counters per time bucket. Latency statistics (avg, p99) are computed via SQL aggregation rather than loading all values into Python.</p>
+</li>
+<li>
+<p><strong>Stale connection cleanup:</strong> When a new connection is created, connections from dead threads are detected and closed. Thread ID reuse is an acknowledged edge case that is acceptable for a testing tool.</p>
+</li>
+</ul>
+<h3 id="latencysimulator">LatencySimulator<a class="headerlink" href="#latencysimulator" title="Permanent link">&para;</a></h3>
+<p><strong>File:</strong> <code>engine/latency.py</code></p>
+<p>Adds artificial delays to simulate real service latency. The formula is:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>delay_seconds = max(0, (base_ms + uniform(-jitter_ms, +jitter_ms))) / 1000
+</code></pre></div>
+<p>The result is always non-negative (clamped to 0). The simulator also provides <code>simulate_slow_response(min_sec, max_sec)</code> for slow response error injection where delays are specified as second-level ranges.</p>
+<p>Like the InjectionEngine, the RNG is injectable for deterministic testing.</p>
+<h3 id="configloader">ConfigLoader<a class="headerlink" href="#configloader" title="Permanent link">&para;</a></h3>
+<p><strong>File:</strong> <code>engine/config_loader.py</code></p>
+<p>Handles configuration loading with a four-layer precedence model:</p>
+<ol>
+<li><strong>CLI flags</strong> (highest) -- Only explicitly provided values; <code>None</code> values are excluded so they do not override lower layers.</li>
+<li><strong>Config file</strong> -- YAML file specified by <code>--config</code>.</li>
+<li><strong>Preset</strong> -- Named YAML file from the plugin's <code>presets/</code> directory.</li>
+<li><strong>Built-in defaults</strong> (lowest) -- Pydantic field defaults.</li>
+</ol>
+<p>The <code>deep_merge(base, override)</code> function recursively merges dicts so that nested updates (e.g., changing only <code>burst.enabled</code> within <code>error_injection</code>) preserve sibling fields rather than resetting them to defaults. The function returns a new dict and never mutates its inputs.</p>
+<p><strong>Preset safety:</strong> Preset names are validated against <code>^[a-zA-Z0-9][a-zA-Z0-9_-]*$</code> to prevent path traversal attacks.</p>
+<h2 id="config-snapshot-pattern">Config Snapshot Pattern<a class="headerlink" href="#config-snapshot-pattern" title="Permanent link">&para;</a></h2>
+<p>Request handlers in both <code>ChaosLLMServer</code> and <code>ChaosWebServer</code> snapshot component references at the start of each request:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_config_lock</span><span class="p">:</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="n">error_injector</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_error_injector</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="n">response_generator</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_response_generator</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="n">latency_simulator</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_latency_simulator</span>
+</code></pre></div>
+<p>This snapshot is taken under <code>_config_lock</code> and produces local references that the handler uses for the remainder of the request. If a concurrent <code>update_config()</code> call swaps in new components while the request is in progress, the request continues using the old components, guaranteeing a consistent configuration view throughout its lifetime.</p>
+<p>This pattern is critical because the alternative -- reading <code>self._error_injector</code> at error check time and <code>self._response_generator</code> later at response time -- could produce a half-updated view where the error rates come from the new config but the response settings come from the old one.</p>
+<h2 id="immutable-config-update-flow">Immutable Config Update Flow<a class="headerlink" href="#immutable-config-update-flow" title="Permanent link">&para;</a></h2>
+<p>All Pydantic config models use <code>frozen=True</code> and <code>extra="forbid"</code>. This means fields cannot be mutated after construction and unknown fields cause validation errors.</p>
+<p>Runtime configuration updates through <code>POST /admin/config</code> follow this sequence:</p>
+<ol>
+<li><strong>Receive</strong> the partial update dict from the HTTP request body.</li>
+<li><strong>Deep-merge</strong> the update with the current config (preserving unspecified nested fields).</li>
+<li><strong>Construct</strong> new Pydantic model instances from the merged dict (validation happens here).</li>
+<li><strong>Create</strong> new component instances (e.g., new <code>ErrorInjector</code>, new <code>ResponseGenerator</code>) from the new config. This happens outside the lock because construction and validation may be expensive.</li>
+<li><strong>Swap</strong> the new components atomically under <code>_config_lock</code>.</li>
+</ol>
+<p>If validation fails at step 3, no changes are applied and a 422 error is returned. If construction succeeds, the swap in step 5 is an atomic pointer replacement -- there is no intermediate state where some components are updated and others are not.</p>
+<h2 id="thread-safety-model">Thread Safety Model<a class="headerlink" href="#thread-safety-model" title="Permanent link">&para;</a></h2>
+<p>Errorworks is designed for multi-worker uvicorn deployments. The thread safety strategy has several layers:</p>
+<ul>
+<li>
+<p><strong><code>_config_lock</code></strong> (per-server instance): Protects reads and writes of component references (<code>_error_injector</code>, <code>_response_generator</code>, etc.). The lock is held briefly for pointer reads (snapshot) and pointer swaps (update), never for request processing.</p>
+</li>
+<li>
+<p><strong>InjectionEngine lock</strong>: Protects the burst start timestamp. Held only for the time calculation.</p>
+</li>
+<li>
+<p><strong>MetricsStore thread-local connections</strong>: Each thread gets its own SQLite connection, avoiding cross-thread connection sharing entirely.</p>
+</li>
+<li>
+<p><strong>Immutable config models</strong>: Frozen Pydantic models cannot be accidentally mutated by concurrent readers.</p>
+</li>
+<li>
+<p><strong>Best-effort metrics recording</strong>: Metrics writes that fail (SQLite errors) are logged but never propagated to the caller. A metrics side-effect must not replace an intended chaos response with an unintended real 500 error.</p>
+</li>
+</ul>
+<h2 id="adding-a-new-server-type">Adding a New Server Type<a class="headerlink" href="#adding-a-new-server-type" title="Permanent link">&para;</a></h2>
+<p>To add a new chaos server type (e.g., email, gRPC, GraphQL), follow this pattern:</p>
+<ol>
+<li>
+<p><strong>Create a new package</strong> under <code>src/errorworks/</code> (e.g., <code>src/errorworks/email/</code>).</p>
+</li>
+<li>
+<p><strong>Define config models</strong> in <code>config.py</code>:</p>
+</li>
+<li>Create an error injection config with domain-specific <code>_pct</code> fields</li>
+<li>Create a content/response config appropriate to the protocol</li>
+<li>Create a top-level config composing <code>ServerConfig</code>, <code>MetricsConfig</code>, <code>LatencyConfig</code>, and your domain configs</li>
+<li>
+<p>Wire up <code>load_config()</code> using the shared <code>config_loader.load_config()</code> generic function</p>
+</li>
+<li>
+<p><strong>Define a metrics schema</strong> using <code>MetricsSchema</code> and <code>ColumnDef</code> with domain-specific columns for the requests and timeseries tables.</p>
+</li>
+<li>
+<p><strong>Create an error injector</strong> that:</p>
+</li>
+<li>Composes an <code>InjectionEngine</code> instance</li>
+<li>Builds <code>ErrorSpec</code> lists from your config (with burst-aware adjustments)</li>
+<li>
+<p>Calls <code>engine.select(specs)</code> and maps the selected tag to a domain-specific decision dataclass</p>
+</li>
+<li>
+<p><strong>Create a server class</strong> that:</p>
+</li>
+<li>Composes all components (error injector, content generator, latency simulator, metrics recorder)</li>
+<li>Implements the <code>ChaosServer</code> protocol from <code>engine/admin.py</code> (<code>get_admin_token</code>, <code>get_current_config</code>, <code>update_config</code>, <code>reset</code>, <code>export_metrics</code>, <code>get_stats</code>)</li>
+<li>Uses the config snapshot pattern in request handlers</li>
+<li>
+<p>Uses the immutable config update flow in <code>update_config()</code></p>
+</li>
+<li>
+<p><strong>Register routes</strong> including <code>/health</code>, <code>/admin/*</code> (delegating to <code>engine.admin</code> handlers), and your domain-specific endpoints.</p>
+</li>
+<li>
+<p><strong>Add a CLI</strong> using Typer, with a <code>serve</code> command and a <code>presets</code> command. Register it as a console script in <code>pyproject.toml</code> and add it as a subcommand to <code>chaosengine</code>.</p>
+</li>
+<li>
+<p><strong>Add presets</strong> as YAML files in a <code>presets/</code> directory within your package.</p>
+</li>
+</ol>
+<p>The shared engine layer handles all the infrastructure: burst timing, selection algorithms, SQLite management, config loading, admin authentication, and deep merge. Your plugin only needs to define what errors look like in your domain and how to render responses.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../reference/config-schema/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Configuration Schema">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Configuration Schema
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../changelog/" class="md-footer__link md-footer__link--next" aria-label="Next: Changelog">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Changelog
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      An open-source project by the <a href="https://www.dta.gov.au/">Digital Transformation Agency</a>.
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.expand", "navigation.top", "navigation.footer", "search.suggest", "search.highlight", "content.tabs.link", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
