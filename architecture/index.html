@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Composable chaos-testing services for LLM, web scraping, and object storage pipelines">
+        <meta name="description" content="Composable chaos-testing services for LLM, web scraping, object storage, and outbound email pipelines">
       
       
       
@@ -15,8 +15,6 @@
       
         <link rel="prev" href="../reference/config-schema/">
       
-      
-        <link rel="next" href="../changelog/">
       
       
         
@@ -546,6 +544,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../guide/chaossmtp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ChaosSMTP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../guide/presets/" class="md-nav__link">
         
   
@@ -986,6 +1012,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#chaossmtp-protocol-adapter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ChaosSMTP Protocol Adapter
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#adding-a-new-server-type" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1011,7 +1048,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../changelog/" class="md-nav__link">
+      <a href="https://github.com/johnm-dta/errorworks/blob/main/CHANGELOG.md" class="md-nav__link">
         
   
   
@@ -1174,6 +1211,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#chaossmtp-protocol-adapter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ChaosSMTP Protocol Adapter
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#adding-a-new-server-type" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1205,16 +1253,16 @@
 
 
 <h1 id="architecture-overview">Architecture Overview<a class="headerlink" href="#architecture-overview" title="Permanent link">&para;</a></h1>
-<p>Errorworks is a composable chaos-testing service framework. Each server type (LLM, Web) is built from shared engine components rather than inheriting from a base class. This document explains the design rationale, key components, and extension points.</p>
+<p>Errorworks is a composable chaos-testing service framework. Each server type (LLM, Web, SMTP) is built from shared engine components rather than inheriting from a base class. This document explains the design rationale, key components, and extension points.</p>
 <h2 id="composition-over-inheritance">Composition Over Inheritance<a class="headerlink" href="#composition-over-inheritance" title="Permanent link">&para;</a></h2>
-<p>The central design principle is that <strong>HTTP concerns stay out of domain logic</strong>. Each chaos plugin (ChaosLLM, ChaosWeb) creates instances of shared engine utilities and delegates specific responsibilities to them:</p>
+<p>The central design principle is that <strong>transport concerns stay out of shared engine logic</strong>. Each chaos plugin (ChaosLLM, ChaosWeb, ChaosSMTP) creates instances of shared engine utilities and delegates specific responsibilities to them:</p>
 <ul>
 <li><strong>InjectionEngine</strong> handles burst state and error selection algorithms</li>
 <li><strong>MetricsStore</strong> handles SQLite persistence and timeseries aggregation</li>
 <li><strong>LatencySimulator</strong> handles delay calculation</li>
 <li><strong>ConfigLoader</strong> handles YAML loading and config precedence</li>
 </ul>
-<p>The server classes (<code>ChaosLLMServer</code>, <code>ChaosWebServer</code>) own the HTTP routing, request parsing, and response formatting. They compose engine components but never extend them. This means a new server type (e.g., email, gRPC) can reuse the same engine components without inheriting HTTP-specific behavior it does not need.</p>
+<p>The server classes (<code>ChaosLLMServer</code>, <code>ChaosWebServer</code>, <code>ChaosSMTPServer</code>) own their protocol routing, request parsing, and response formatting. They compose engine components but never extend them. This means a new server type (e.g., gRPC or message queues) can reuse the same engine components without inheriting HTTP-specific behavior it does not need.</p>
 <h2 id="package-structure">Package Structure<a class="headerlink" href="#package-structure" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>src/errorworks/
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>├── engine/                  # Shared core utilities
@@ -1247,11 +1295,20 @@
 <a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>│   ├── cli.py               # chaosweb CLI
 <a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>│   └── presets/             # YAML preset files
 <a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>│
-<a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a>├── llm_mcp/                 # MCP server for ChaosLLM metrics analysis
-<a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a>│   └── server.py            # Claude-optimized metrics tools via MCP protocol
-<a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a>│
-<a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a>└── testing/                 # Pytest fixture support
-<a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a>    └── ...                  # In-process test fixtures using Starlette TestClient
+<a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a>├── smtp/                    # ChaosSMTP: Fake SMTP receiving server
+<a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a>│   ├── config.py            # ChaosSMTPConfig, SMTP listener/admin/capture config
+<a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a>│   ├── server.py            # ChaosSMTPServer (aiosmtpd listener + HTTP admin sidecar)
+<a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a>│   ├── error_injector.py    # SMTP-stage error decision logic
+<a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a>│   ├── message_capture.py   # Discard, metadata, and full-message capture
+<a id="__codelineno-0-37" name="__codelineno-0-37" href="#__codelineno-0-37"></a>│   ├── metrics.py           # SMTP-specific MetricsRecorder wrapper
+<a id="__codelineno-0-38" name="__codelineno-0-38" href="#__codelineno-0-38"></a>│   ├── cli.py               # chaossmtp CLI
+<a id="__codelineno-0-39" name="__codelineno-0-39" href="#__codelineno-0-39"></a>│   └── presets/             # YAML preset files
+<a id="__codelineno-0-40" name="__codelineno-0-40" href="#__codelineno-0-40"></a>│
+<a id="__codelineno-0-41" name="__codelineno-0-41" href="#__codelineno-0-41"></a>├── llm_mcp/                 # MCP server for ChaosLLM metrics analysis
+<a id="__codelineno-0-42" name="__codelineno-0-42" href="#__codelineno-0-42"></a>│   └── server.py            # Claude-optimized metrics tools via MCP protocol
+<a id="__codelineno-0-43" name="__codelineno-0-43" href="#__codelineno-0-43"></a>│
+<a id="__codelineno-0-44" name="__codelineno-0-44" href="#__codelineno-0-44"></a>└── testing/                 # Pytest fixture support
+<a id="__codelineno-0-45" name="__codelineno-0-45" href="#__codelineno-0-45"></a>    └── ...                  # In-process test fixtures using Starlette TestClient
 </code></pre></div>
 <h2 id="key-engine-components">Key Engine Components<a class="headerlink" href="#key-engine-components" title="Permanent link">&para;</a></h2>
 <h3 id="injectionengine">InjectionEngine<a class="headerlink" href="#injectionengine" title="Permanent link">&para;</a></h3>
@@ -1309,7 +1366,7 @@
 <p>The <code>deep_merge(base, override)</code> function recursively merges dicts so that nested updates (e.g., changing only <code>burst.enabled</code> within <code>error_injection</code>) preserve sibling fields rather than resetting them to defaults. The function returns a new dict and never mutates its inputs.</p>
 <p><strong>Preset safety:</strong> Preset names are validated against <code>^[a-zA-Z0-9][a-zA-Z0-9_-]*$</code> to prevent path traversal attacks.</p>
 <h2 id="config-snapshot-pattern">Config Snapshot Pattern<a class="headerlink" href="#config-snapshot-pattern" title="Permanent link">&para;</a></h2>
-<p>Request handlers in both <code>ChaosLLMServer</code> and <code>ChaosWebServer</code> snapshot component references at the start of each request:</p>
+<p>Request handlers in <code>ChaosLLMServer</code>, <code>ChaosWebServer</code>, and <code>ChaosSMTPServer</code> snapshot component references at the start of each request or SMTP stage:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_config_lock</span><span class="p">:</span>
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="n">error_injector</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_error_injector</span>
 <a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="n">response_generator</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_response_generator</span>
@@ -1347,8 +1404,18 @@
 <p><strong>Best-effort metrics recording</strong>: Metrics writes that fail (SQLite errors) are logged but never propagated to the caller. A metrics side-effect must not replace an intended chaos response with an unintended real 500 error.</p>
 </li>
 </ul>
+<h2 id="chaossmtp-protocol-adapter">ChaosSMTP Protocol Adapter<a class="headerlink" href="#chaossmtp-protocol-adapter" title="Permanent link">&para;</a></h2>
+<p>ChaosSMTP follows the same composition model as the HTTP servers but adapts it to SMTP:</p>
+<ul>
+<li><code>aiosmtpd</code> owns the real SMTP protocol listener and calls handler methods for MAIL, RCPT, and DATA stages.</li>
+<li><code>ChaosSMTPServer</code> snapshots <code>SMTPErrorInjector</code>, <code>MessageCapture</code>, and <code>LatencySimulator</code> references under <code>_config_lock</code> before stage handling.</li>
+<li>SMTP-stage decisions map engine tags to protocol replies such as <code>451</code>, <code>550</code>, or transport-level close/stall behavior.</li>
+<li>The HTTP admin surface is a sidecar Starlette app owned by the same <code>ChaosSMTPServer</code>, so metrics, reset, export, and runtime config update behavior stay consistent with ChaosLLM and ChaosWeb.</li>
+<li>ChaosSMTP never relays mail. It accepts, rejects, drops, or captures messages locally for test assertions.</li>
+</ul>
+<p>This split keeps SMTP protocol handling in <code>smtp/</code> while reusing the shared admin handlers, metrics store, latency simulator, config loader, and injection engine.</p>
 <h2 id="adding-a-new-server-type">Adding a New Server Type<a class="headerlink" href="#adding-a-new-server-type" title="Permanent link">&para;</a></h2>
-<p>To add a new chaos server type (e.g., email, gRPC, GraphQL), follow this pattern:</p>
+<p>To add a new chaos server type (e.g., gRPC, GraphQL, or a queue protocol), follow this pattern:</p>
 <ol>
 <li>
 <p><strong>Create a new package</strong> under <code>src/errorworks/</code> (e.g., <code>src/errorworks/email/</code>).</p>
@@ -1376,14 +1443,18 @@
 <li>
 <p><strong>Create a server class</strong> that:</p>
 </li>
-<li>Composes all components (error injector, content generator, latency simulator, metrics recorder)</li>
+<li>Composes all components (error injector, content/capture component, latency simulator, metrics recorder)</li>
 <li>Implements the <code>ChaosServer</code> protocol from <code>engine/admin.py</code> (<code>get_admin_token</code>, <code>get_current_config</code>, <code>update_config</code>, <code>reset</code>, <code>export_metrics</code>, <code>get_stats</code>)</li>
 <li>Uses the config snapshot pattern in request handlers</li>
 <li>
 <p>Uses the immutable config update flow in <code>update_config()</code></p>
 </li>
 <li>
-<p><strong>Register routes</strong> including <code>/health</code>, <code>/admin/*</code> (delegating to <code>engine.admin</code> handlers), and your domain-specific endpoints.</p>
+<p><strong>Expose protocol surfaces</strong>:</p>
+</li>
+<li>For HTTP-native services, register routes including <code>/health</code>, <code>/admin/*</code> (delegating to <code>engine.admin</code> handlers), and domain-specific endpoints.</li>
+<li>
+<p>For non-HTTP services, build a protocol adapter and pair it with an HTTP admin sidecar for <code>/health</code> and <code>/admin/*</code>.</p>
 </li>
 <li>
 <p><strong>Add a CLI</strong> using Typer, with a <code>serve</code> command and a <code>presets</code> command. Register it as a console script in <code>pyproject.toml</code> and add it as a subcommand to <code>chaosengine</code>.</p>
@@ -1445,22 +1516,6 @@
             </div>
           </a>
         
-        
-          
-          <a href="../changelog/" class="md-footer__link md-footer__link--next" aria-label="Next: Changelog">
-            <div class="md-footer__title">
-              <span class="md-footer__direction">
-                Next
-              </span>
-              <div class="md-ellipsis">
-                Changelog
-              </div>
-            </div>
-            <div class="md-footer__button md-icon">
-              
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
-            </div>
-          </a>
         
       </nav>
     

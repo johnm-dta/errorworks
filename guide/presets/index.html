@@ -6,14 +6,14 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Composable chaos-testing services for LLM, web scraping, and object storage pipelines">
+        <meta name="description" content="Composable chaos-testing services for LLM, web scraping, object storage, and outbound email pipelines">
       
       
       
         <link rel="canonical" href="https://johnm-dta.github.io/errorworks/guide/presets/">
       
       
-        <link rel="prev" href="../chaosblob/">
+        <link rel="prev" href="../chaossmtp/">
       
       
         <link rel="next" href="../configuration/">
@@ -543,6 +543,34 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../chaossmtp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ChaosSMTP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -717,11 +745,50 @@
   
 </li>
         
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#chaossmtp-presets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ChaosSMTP Presets
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ChaosSMTP Presets">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#comparison-table_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Comparison Table
+      
+    </span>
+  </a>
+  
+</li>
+        
           <li class="md-nav__item">
   <a href="#when-to-use-each_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         When to Use Each
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#when-to-use-each-smtp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When to Use Each (SMTP)
       
     </span>
   </a>
@@ -1084,7 +1151,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../changelog/" class="md-nav__link">
+      <a href="https://github.com/johnm-dta/errorworks/blob/main/CHANGELOG.md" class="md-nav__link">
         
   
   
@@ -1242,11 +1309,50 @@
   
 </li>
         
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#chaossmtp-presets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ChaosSMTP Presets
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ChaosSMTP Presets">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#comparison-table_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Comparison Table
+      
+    </span>
+  </a>
+  
+</li>
+        
           <li class="md-nav__item">
   <a href="#when-to-use-each_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         When to Use Each
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#when-to-use-each-smtp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When to Use Each (SMTP)
       
     </span>
   </a>
@@ -1357,10 +1463,11 @@
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>uv<span class="w"> </span>run<span class="w"> </span>chaosllm<span class="w"> </span>serve<span class="w"> </span>--preset<span class="o">=</span>realistic
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>uv<span class="w"> </span>run<span class="w"> </span>chaosweb<span class="w"> </span>serve<span class="w"> </span>--preset<span class="o">=</span>stress_scraping
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>uv<span class="w"> </span>run<span class="w"> </span>chaosblob<span class="w"> </span>serve<span class="w"> </span>--preset<span class="o">=</span>stress_storage
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="c1"># Python</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>from<span class="w"> </span>errorworks.llm.config<span class="w"> </span>import<span class="w"> </span>load_config
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="nv">config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>load_config<span class="o">(</span><span class="nv">preset</span><span class="o">=</span><span class="s2">&quot;realistic&quot;</span><span class="o">)</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>uv<span class="w"> </span>run<span class="w"> </span>chaossmtp<span class="w"> </span>serve<span class="w"> </span>--preset<span class="o">=</span>stress_delivery
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="c1"># Python</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>from<span class="w"> </span>errorworks.llm.config<span class="w"> </span>import<span class="w"> </span>load_config
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="nv">config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>load_config<span class="o">(</span><span class="nv">preset</span><span class="o">=</span><span class="s2">&quot;realistic&quot;</span><span class="o">)</span>
 </code></pre></div>
 <h2 id="chaosllm-presets">ChaosLLM Presets<a class="headerlink" href="#chaosllm-presets" title="Permanent link">&para;</a></h2>
 <h3 id="comparison-table">Comparison Table<a class="headerlink" href="#comparison-table" title="Permanent link">&para;</a></h3>
@@ -1648,6 +1755,68 @@
 </tr>
 </tbody>
 </table>
+<h2 id="chaossmtp-presets">ChaosSMTP Presets<a class="headerlink" href="#chaossmtp-presets" title="Permanent link">&para;</a></h2>
+<h3 id="comparison-table_3">Comparison Table<a class="headerlink" href="#comparison-table_3" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Preset</th>
+<th>MAIL/RCPT Failures</th>
+<th>DATA Failures</th>
+<th>Protocol/Connection</th>
+<th>Burst</th>
+<th>Latency</th>
+<th>Capture</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>silent</code></td>
+<td>0%</td>
+<td>0%</td>
+<td>0%</td>
+<td>Off</td>
+<td>10 +/- 5ms</td>
+<td><code>metadata</code></td>
+</tr>
+<tr>
+<td><code>gentle</code></td>
+<td>1% RCPT tempfail</td>
+<td>1% tempfail</td>
+<td>0%</td>
+<td>Off</td>
+<td>50 +/- 20ms</td>
+<td><code>metadata</code></td>
+</tr>
+<tr>
+<td><code>realistic</code></td>
+<td>3% rate limit, 4% RCPT tempfail</td>
+<td>3% tempfail, 1% reject</td>
+<td>2% slow response</td>
+<td>60s/8s (50% tempfail, 40% rate limit)</td>
+<td>120 +/- 60ms</td>
+<td><code>metadata</code></td>
+</tr>
+<tr>
+<td><code>stress_delivery</code></td>
+<td>10% rate limit, 5% MAIL tempfail, 15% RCPT tempfail, 8% RCPT reject</td>
+<td>12% tempfail, 8% reject, 2% accept/drop</td>
+<td>5% slow response</td>
+<td>45s/10s (80% tempfail, 70% rate limit)</td>
+<td>200 +/- 100ms</td>
+<td><code>metadata</code></td>
+</tr>
+<tr>
+<td><code>stress_extreme</code></td>
+<td>15% rate limit, 8% MAIL tempfail, 5% MAIL reject, 15% RCPT tempfail, 10% RCPT reject</td>
+<td>12% tempfail, 10% reject, 5% accept/drop</td>
+<td>4% reset, 3% stall, 8% slow, 2% malformed, 2% wrong code</td>
+<td>30s/8s (90% tempfail, 85% rate limit)</td>
+<td>300 +/- 200ms</td>
+<td><code>metadata</code></td>
+</tr>
+</tbody>
+</table>
 <h3 id="when-to-use-each_2">When to Use Each<a class="headerlink" href="#when-to-use-each_2" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -1679,6 +1848,41 @@
 </tr>
 </tbody>
 </table>
+<h3 id="when-to-use-each-smtp">When to Use Each (SMTP)<a class="headerlink" href="#when-to-use-each-smtp" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Preset</th>
+<th>Use When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>silent</code></td>
+<td>Verifying SMTP client wiring and baseline throughput with no delivery faults</td>
+</tr>
+<tr>
+<td><code>gentle</code></td>
+<td>Checking basic retry paths without making tests noisy</td>
+</tr>
+<tr>
+<td><code>realistic</code></td>
+<td>Simulating common transient delivery pressure and occasional DATA rejection</td>
+</tr>
+<tr>
+<td><code>stress_delivery</code></td>
+<td>Exercising retry, bounce, and alerting behavior under heavy delivery pressure</td>
+</tr>
+<tr>
+<td><code>stress_extreme</code></td>
+<td>Finding SMTP client failure modes across protocol, connection, and delivery errors</td>
+</tr>
+</tbody>
+</table>
+<p>Use SMTP presets from either CLI entry point:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>uv<span class="w"> </span>run<span class="w"> </span>chaossmtp<span class="w"> </span>serve<span class="w"> </span>--preset<span class="o">=</span>realistic
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>uv<span class="w"> </span>run<span class="w"> </span>chaosengine<span class="w"> </span>smtp<span class="w"> </span>serve<span class="w"> </span>--preset<span class="o">=</span>stress_delivery
+</code></pre></div>
 <h2 id="combining-presets-with-overrides">Combining Presets with Overrides<a class="headerlink" href="#combining-presets-with-overrides" title="Permanent link">&para;</a></h2>
 <p>Presets provide the base configuration, but you can override any setting on top. Configuration precedence (highest to lowest):</p>
 <ol>
@@ -1688,48 +1892,51 @@
 <li><strong>Defaults</strong> -- Built-in Pydantic defaults</li>
 </ol>
 <h3 id="example-preset-with-cli-override">Example: Preset with CLI Override<a class="headerlink" href="#example-preset-with-cli-override" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Start with realistic, but increase rate limiting</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>uv<span class="w"> </span>run<span class="w"> </span>chaosllm<span class="w"> </span>serve<span class="w"> </span>--preset<span class="o">=</span>realistic<span class="w"> </span>--rate-limit-pct<span class="o">=</span><span class="m">20</span>.0
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># Start with realistic, but increase rate limiting</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>uv<span class="w"> </span>run<span class="w"> </span>chaosllm<span class="w"> </span>serve<span class="w"> </span>--preset<span class="o">=</span>realistic<span class="w"> </span>--rate-limit-pct<span class="o">=</span><span class="m">20</span>.0
 </code></pre></div>
 <h3 id="example-preset-with-config-file-override">Example: Preset with Config File Override<a class="headerlink" href="#example-preset-with-config-file-override" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># my-overrides.yaml</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="nt">error_injection</span><span class="p">:</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="nt">rate_limit_pct</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">20.0</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span><span class="nt">burst</span><span class="p">:</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">    </span><span class="nt">interval_sec</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">30</span><span class="w">  </span><span class="c1"># More frequent bursts</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># my-overrides.yaml</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nt">error_injection</span><span class="p">:</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="nt">rate_limit_pct</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">20.0</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="nt">burst</span><span class="p">:</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">    </span><span class="nt">interval_sec</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">30</span><span class="w">  </span><span class="c1"># More frequent bursts</span>
 </code></pre></div>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>uv<span class="w"> </span>run<span class="w"> </span>chaosllm<span class="w"> </span>serve<span class="w"> </span>--preset<span class="o">=</span>realistic<span class="w"> </span>--config<span class="o">=</span>my-overrides.yaml
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>uv<span class="w"> </span>run<span class="w"> </span>chaosllm<span class="w"> </span>serve<span class="w"> </span>--preset<span class="o">=</span>realistic<span class="w"> </span>--config<span class="o">=</span>my-overrides.yaml
 </code></pre></div>
 <p>The config file's <code>rate_limit_pct: 20.0</code> overrides the preset's <code>5.0</code>, and the burst <code>interval_sec: 30</code> overrides the preset's <code>60</code>. All other preset values are preserved.</p>
 <h3 id="example-python-with-overrides">Example: Python with Overrides<a class="headerlink" href="#example-python-with-overrides" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">errorworks.llm.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_config</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">config</span> <span class="o">=</span> <span class="n">load_config</span><span class="p">(</span>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="n">preset</span><span class="o">=</span><span class="s2">&quot;realistic&quot;</span><span class="p">,</span>
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="n">cli_overrides</span><span class="o">=</span><span class="p">{</span>
-<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>        <span class="s2">&quot;error_injection&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;rate_limit_pct&quot;</span><span class="p">:</span> <span class="mf">20.0</span><span class="p">},</span>
-<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>        <span class="s2">&quot;latency&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;base_ms&quot;</span><span class="p">:</span> <span class="mi">200</span><span class="p">},</span>
-<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>    <span class="p">},</span>
-<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">errorworks.llm.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_config</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">config</span> <span class="o">=</span> <span class="n">load_config</span><span class="p">(</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="n">preset</span><span class="o">=</span><span class="s2">&quot;realistic&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    <span class="n">cli_overrides</span><span class="o">=</span><span class="p">{</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>        <span class="s2">&quot;error_injection&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;rate_limit_pct&quot;</span><span class="p">:</span> <span class="mf">20.0</span><span class="p">},</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>        <span class="s2">&quot;latency&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;base_ms&quot;</span><span class="p">:</span> <span class="mi">200</span><span class="p">},</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>    <span class="p">},</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="p">)</span>
 </code></pre></div>
 <div class="admonition tip">
 <p class="admonition-title">Tip</p>
 <p>Deep merge means you only need to specify the fields you want to change. Nested objects are merged recursively -- you do not need to repeat the entire <code>burst</code> section just to change <code>interval_sec</code>.</p>
 </div>
 <h2 id="listing-available-presets">Listing Available Presets<a class="headerlink" href="#listing-available-presets" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">errorworks.llm.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">list_presets</span> <span class="k">as</span> <span class="n">list_llm_presets</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">errorworks.blob.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">list_presets</span> <span class="k">as</span> <span class="n">list_blob_presets</span>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">errorworks.web.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">list_presets</span> <span class="k">as</span> <span class="n">list_web_presets</span>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="nb">print</span><span class="p">(</span><span class="n">list_llm_presets</span><span class="p">())</span>  <span class="c1"># [&#39;chaos&#39;, &#39;gentle&#39;, &#39;realistic&#39;, &#39;silent&#39;, &#39;stress_aimd&#39;, &#39;stress_extreme&#39;]</span>
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="nb">print</span><span class="p">(</span><span class="n">list_web_presets</span><span class="p">())</span>  <span class="c1"># [&#39;gentle&#39;, &#39;realistic&#39;, &#39;silent&#39;, &#39;stress_extreme&#39;, &#39;stress_scraping&#39;]</span>
-<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="nb">print</span><span class="p">(</span><span class="n">list_blob_presets</span><span class="p">())</span>  <span class="c1"># [&#39;gentle&#39;, &#39;realistic&#39;, &#39;silent&#39;, &#39;stress_extreme&#39;, &#39;stress_storage&#39;]</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">errorworks.llm.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">list_presets</span> <span class="k">as</span> <span class="n">list_llm_presets</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">errorworks.blob.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">list_presets</span> <span class="k">as</span> <span class="n">list_blob_presets</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">errorworks.smtp.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">list_presets</span> <span class="k">as</span> <span class="n">list_smtp_presets</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">errorworks.web.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">list_presets</span> <span class="k">as</span> <span class="n">list_web_presets</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="nb">print</span><span class="p">(</span><span class="n">list_llm_presets</span><span class="p">())</span>  <span class="c1"># [&#39;chaos&#39;, &#39;gentle&#39;, &#39;realistic&#39;, &#39;silent&#39;, &#39;stress_aimd&#39;, &#39;stress_extreme&#39;]</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="nb">print</span><span class="p">(</span><span class="n">list_smtp_presets</span><span class="p">())</span>  <span class="c1"># [&#39;gentle&#39;, &#39;realistic&#39;, &#39;silent&#39;, &#39;stress_delivery&#39;, &#39;stress_extreme&#39;]</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="nb">print</span><span class="p">(</span><span class="n">list_web_presets</span><span class="p">())</span>  <span class="c1"># [&#39;gentle&#39;, &#39;realistic&#39;, &#39;silent&#39;, &#39;stress_extreme&#39;, &#39;stress_scraping&#39;]</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="nb">print</span><span class="p">(</span><span class="n">list_blob_presets</span><span class="p">())</span>  <span class="c1"># [&#39;gentle&#39;, &#39;realistic&#39;, &#39;silent&#39;, &#39;stress_extreme&#39;, &#39;stress_storage&#39;]</span>
 </code></pre></div>
 <h2 id="related-pages">Related Pages<a class="headerlink" href="#related-pages" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="../chaosllm/">ChaosLLM</a> -- Full ChaosLLM endpoint and error injection reference</li>
 <li><a href="../chaosweb/">ChaosWeb</a> -- Full ChaosWeb endpoint and error injection reference</li>
 <li><a href="../chaosblob/">ChaosBlob</a> -- Full ChaosBlob endpoint and error injection reference</li>
+<li><a href="../chaossmtp/">ChaosSMTP</a> -- SMTP listener, error injection, and capture reference</li>
 <li><a href="../configuration/">Configuration</a> -- YAML config file structure and precedence details</li>
 </ul>
 
@@ -1769,7 +1976,7 @@
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../chaosblob/" class="md-footer__link md-footer__link--prev" aria-label="Previous: ChaosBlob">
+          <a href="../chaossmtp/" class="md-footer__link md-footer__link--prev" aria-label="Previous: ChaosSMTP">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -1779,7 +1986,7 @@
                 Previous
               </span>
               <div class="md-ellipsis">
-                ChaosBlob
+                ChaosSMTP
               </div>
             </div>
           </a>

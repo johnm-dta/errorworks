@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Composable chaos-testing services for LLM, web scraping, and object storage pipelines">
+        <meta name="description" content="Composable chaos-testing services for LLM, web scraping, object storage, and outbound email pipelines">
       
       
       
@@ -526,6 +526,34 @@
     
   
     ChaosBlob
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/chaossmtp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ChaosSMTP
   
 
     
@@ -1340,6 +1368,139 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#chaossmtp-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ChaosSMTP Configuration
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ChaosSMTP Configuration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#chaossmtpconfig-top-level" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ChaosSMTPConfig (top-level)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#smtpserverconfig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SMTPServerConfig
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#smtpadminconfig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SMTPAdminConfig
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#smtpcaptureconfig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SMTPCaptureConfig
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#smtperrorinjectionconfig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SMTPErrorInjectionConfig
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="SMTPErrorInjectionConfig">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#smtp-command-and-delivery-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SMTP Command and Delivery Errors
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#protocol-and-connection-failures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Protocol and Connection Failures
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#range-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Range Fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#selection-mode_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Selection Mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#smtpburstconfig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SMTPBurstConfig
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#yaml-configuration-example" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1400,7 +1561,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../changelog/" class="md-nav__link">
+      <a href="https://github.com/johnm-dta/errorworks/blob/main/CHANGELOG.md" class="md-nav__link">
         
   
   
@@ -1952,6 +2113,139 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#chaossmtp-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ChaosSMTP Configuration
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ChaosSMTP Configuration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#chaossmtpconfig-top-level" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ChaosSMTPConfig (top-level)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#smtpserverconfig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SMTPServerConfig
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#smtpadminconfig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SMTPAdminConfig
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#smtpcaptureconfig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SMTPCaptureConfig
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#smtperrorinjectionconfig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SMTPErrorInjectionConfig
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="SMTPErrorInjectionConfig">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#smtp-command-and-delivery-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SMTP Command and Delivery Errors
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#protocol-and-connection-failures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Protocol and Connection Failures
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#range-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Range Fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#selection-mode_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Selection Mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#smtpburstconfig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SMTPBurstConfig
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#yaml-configuration-example" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1985,7 +2279,7 @@
 <h1 id="configuration-schema-reference">Configuration Schema Reference<a class="headerlink" href="#configuration-schema-reference" title="Permanent link">&para;</a></h1>
 <p>All configuration models use Pydantic with <code>frozen=True</code> (immutable) and <code>extra="forbid"</code> (no unknown fields). Runtime updates go through the admin API's <code>POST /admin/config</code> endpoint, which creates new model instances rather than mutating existing ones.</p>
 <h2 id="shared-configuration">Shared Configuration<a class="headerlink" href="#shared-configuration" title="Permanent link">&para;</a></h2>
-<p>These models are defined in <code>errorworks.engine.types</code> and used by ChaosLLM, ChaosWeb, and ChaosBlob.</p>
+<p>These models are defined in <code>errorworks.engine.types</code>. <code>MetricsConfig</code> and <code>LatencyConfig</code> are shared by all server types; <code>ServerConfig</code> is used by the HTTP-native ChaosLLM, ChaosWeb, and ChaosBlob servers.</p>
 <h3 id="serverconfig">ServerConfig<a class="headerlink" href="#serverconfig" title="Permanent link">&para;</a></h3>
 <p>Server binding and worker configuration.</p>
 <table>
@@ -2056,6 +2350,7 @@
 <li>ChaosLLM: <code>file:chaosllm-metrics?mode=memory&amp;cache=shared</code></li>
 <li>ChaosWeb: <code>file:chaosweb-metrics?mode=memory&amp;cache=shared</code></li>
 <li>ChaosBlob: <code>file:chaosblob-metrics?mode=memory&amp;cache=shared</code></li>
+<li>ChaosSMTP: <code>file:chaossmtp-metrics?mode=memory&amp;cache=shared</code></li>
 </ul>
 <h3 id="latencyconfig">LatencyConfig<a class="headerlink" href="#latencyconfig" title="Permanent link">&para;</a></h3>
 <p>Latency simulation configuration. The simulated delay is <code>(base_ms + uniform(-jitter_ms, +jitter_ms)) / 1000</code> seconds, clamped to a minimum of 0.</p>
@@ -3342,6 +3637,393 @@
 <td><code>str</code></td>
 <td><code>"application/octet-stream"</code></td>
 <td>Content-Type used when a PUT has no content-type header.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="chaossmtp-configuration">ChaosSMTP Configuration<a class="headerlink" href="#chaossmtp-configuration" title="Permanent link">&para;</a></h2>
+<h3 id="chaossmtpconfig-top-level">ChaosSMTPConfig (top-level)<a class="headerlink" href="#chaossmtpconfig-top-level" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>smtp</code></td>
+<td><code>SMTPServerConfig</code></td>
+<td>See below</td>
+<td>SMTP listener binding and protocol configuration.</td>
+</tr>
+<tr>
+<td><code>admin</code></td>
+<td><code>SMTPAdminConfig</code></td>
+<td>See below</td>
+<td>HTTP admin sidecar configuration.</td>
+</tr>
+<tr>
+<td><code>metrics</code></td>
+<td><code>MetricsConfig</code></td>
+<td><code>database="file:chaossmtp-metrics?mode=memory&amp;cache=shared"</code></td>
+<td>Metrics storage configuration.</td>
+</tr>
+<tr>
+<td><code>latency</code></td>
+<td><code>LatencyConfig</code></td>
+<td>See above</td>
+<td>Latency simulation configuration.</td>
+</tr>
+<tr>
+<td><code>capture</code></td>
+<td><code>SMTPCaptureConfig</code></td>
+<td>See below</td>
+<td>Message capture configuration.</td>
+</tr>
+<tr>
+<td><code>error_injection</code></td>
+<td><code>SMTPErrorInjectionConfig</code></td>
+<td>See below</td>
+<td>SMTP-stage error injection configuration.</td>
+</tr>
+<tr>
+<td><code>preset_name</code></td>
+<td><code>str \| None</code></td>
+<td><code>None</code></td>
+<td>Preset name used to build this config (set automatically).</td>
+</tr>
+<tr>
+<td><code>allow_external_bind</code></td>
+<td><code>bool</code></td>
+<td><code>false</code></td>
+<td>Allow SMTP or admin binding to all interfaces (<code>0.0.0.0</code>, <code>::</code>, or equivalent).</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Safety constraint:</strong> Binding either <code>smtp.host</code> or <code>admin.host</code> to an unspecified/all-interface address is blocked by default. Set <code>allow_external_bind: true</code> to override for controlled local test environments.</p>
+<h3 id="smtpserverconfig">SMTPServerConfig<a class="headerlink" href="#smtpserverconfig" title="Permanent link">&para;</a></h3>
+<p>SMTP listener binding and protocol settings.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>host</code></td>
+<td><code>str</code></td>
+<td><code>"127.0.0.1"</code></td>
+<td>SMTP listener bind address. Must match pattern <code>^[a-zA-Z0-9.:\[\]-]+$</code>.</td>
+</tr>
+<tr>
+<td><code>port</code></td>
+<td><code>int</code></td>
+<td><code>2525</code></td>
+<td>SMTP listener port. Range: 0-65535. Use <code>0</code> for ephemeral test binding.</td>
+</tr>
+<tr>
+<td><code>hostname</code></td>
+<td><code>str</code></td>
+<td><code>"chaossmtp.local"</code></td>
+<td>Hostname announced to SMTP clients.</td>
+</tr>
+<tr>
+<td><code>data_size_limit</code></td>
+<td><code>int</code></td>
+<td><code>10485760</code></td>
+<td>Maximum SMTP DATA size in bytes. Must be &gt; 0.</td>
+</tr>
+<tr>
+<td><code>enable_smtputf8</code></td>
+<td><code>bool</code></td>
+<td><code>true</code></td>
+<td>Enable SMTPUTF8 support.</td>
+</tr>
+<tr>
+<td><code>require_starttls</code></td>
+<td><code>bool</code></td>
+<td><code>false</code></td>
+<td>Reserved for future TLS context support. <code>true</code> is rejected.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="smtpadminconfig">SMTPAdminConfig<a class="headerlink" href="#smtpadminconfig" title="Permanent link">&para;</a></h3>
+<p>HTTP admin sidecar configuration.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>enabled</code></td>
+<td><code>bool</code></td>
+<td><code>true</code></td>
+<td>Enable the HTTP admin sidecar.</td>
+</tr>
+<tr>
+<td><code>host</code></td>
+<td><code>str</code></td>
+<td><code>"127.0.0.1"</code></td>
+<td>Admin sidecar bind address. Must match pattern <code>^[a-zA-Z0-9.:\[\]-]+$</code>.</td>
+</tr>
+<tr>
+<td><code>port</code></td>
+<td><code>int</code></td>
+<td><code>8525</code></td>
+<td>Admin sidecar port. Range: 1-65535.</td>
+</tr>
+<tr>
+<td><code>admin_token</code></td>
+<td><code>str</code></td>
+<td>Auto-generated</td>
+<td>Bearer token for <code>/admin/*</code> endpoints. Auto-generated via <code>secrets.token_urlsafe(32)</code> if not set.</td>
+</tr>
+</tbody>
+</table>
+<p><code>chaossmtp show-config</code> removes <code>admin_token</code> from JSON/YAML output. The running admin sidecar still requires <code>Authorization: Bearer &lt;admin_token&gt;</code>.</p>
+<h3 id="smtpcaptureconfig">SMTPCaptureConfig<a class="headerlink" href="#smtpcaptureconfig" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>mode</code></td>
+<td><code>"discard" \| "metadata" \| "full"</code></td>
+<td><code>"metadata"</code></td>
+<td>Message capture mode. <code>discard</code> records metrics only; <code>metadata</code> stores envelope and safe headers; <code>full</code> stores message bytes.</td>
+</tr>
+<tr>
+<td><code>max_message_bytes</code></td>
+<td><code>int</code></td>
+<td><code>1048576</code></td>
+<td>Maximum bytes stored in <code>full</code> mode. Must be &gt;= 0.</td>
+</tr>
+<tr>
+<td><code>max_messages</code></td>
+<td><code>int</code></td>
+<td><code>1000</code></td>
+<td>Maximum captured messages kept in memory. Oldest messages are dropped first. Must be &gt;= 1.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="smtperrorinjectionconfig">SMTPErrorInjectionConfig<a class="headerlink" href="#smtperrorinjectionconfig" title="Permanent link">&para;</a></h3>
+<p>All percentage fields are floats in the range 0.0-100.0. A value of <code>5.0</code> means 5% for the SMTP stage where the field applies.</p>
+<h4 id="smtp-command-and-delivery-errors">SMTP Command and Delivery Errors<a class="headerlink" href="#smtp-command-and-delivery-errors" title="Permanent link">&para;</a></h4>
+<p>Current server handling invokes MAIL, RCPT, DATA, and ACCEPT stage decisions. CONNECT/banner-stage injection is not exposed until the listener has a real banner hook.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>rate_limit_pct</code></td>
+<td><code>float</code></td>
+<td><code>0.0</code></td>
+<td>450 rate-limit temporary failure percentage on MAIL/RCPT stages.</td>
+</tr>
+<tr>
+<td><code>mail_from_tempfail_pct</code></td>
+<td><code>float</code></td>
+<td><code>0.0</code></td>
+<td>MAIL FROM temporary failure percentage.</td>
+</tr>
+<tr>
+<td><code>mail_from_reject_pct</code></td>
+<td><code>float</code></td>
+<td><code>0.0</code></td>
+<td>MAIL FROM permanent rejection percentage.</td>
+</tr>
+<tr>
+<td><code>rcpt_to_tempfail_pct</code></td>
+<td><code>float</code></td>
+<td><code>0.0</code></td>
+<td>RCPT TO temporary failure percentage.</td>
+</tr>
+<tr>
+<td><code>rcpt_to_reject_pct</code></td>
+<td><code>float</code></td>
+<td><code>0.0</code></td>
+<td>RCPT TO permanent rejection percentage.</td>
+</tr>
+<tr>
+<td><code>data_tempfail_pct</code></td>
+<td><code>float</code></td>
+<td><code>0.0</code></td>
+<td>DATA temporary failure percentage.</td>
+</tr>
+<tr>
+<td><code>data_reject_pct</code></td>
+<td><code>float</code></td>
+<td><code>0.0</code></td>
+<td>DATA permanent rejection percentage.</td>
+</tr>
+<tr>
+<td><code>accept_then_drop_pct</code></td>
+<td><code>float</code></td>
+<td><code>0.0</code></td>
+<td>Accept message with <code>250</code> then drop it without capture.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="protocol-and-connection-failures">Protocol and Connection Failures<a class="headerlink" href="#protocol-and-connection-failures" title="Permanent link">&para;</a></h4>
+<p>Protocol and connection percentage fields are evaluated on MAIL, RCPT, or DATA stages depending on the injector stage list. <code>malformed_reply_pct</code> and <code>wrong_reply_code_pct</code> are currently reached through DATA handling.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>malformed_reply_pct</code></td>
+<td><code>float</code></td>
+<td><code>0.0</code></td>
+<td>Malformed SMTP reply percentage on DATA stages.</td>
+</tr>
+<tr>
+<td><code>wrong_reply_code_pct</code></td>
+<td><code>float</code></td>
+<td><code>0.0</code></td>
+<td>Unexpected SMTP reply code percentage on DATA stages.</td>
+</tr>
+<tr>
+<td><code>connection_reset_pct</code></td>
+<td><code>float</code></td>
+<td><code>0.0</code></td>
+<td>Close the SMTP transport percentage.</td>
+</tr>
+<tr>
+<td><code>connection_stall_pct</code></td>
+<td><code>float</code></td>
+<td><code>0.0</code></td>
+<td>Stall then close percentage.</td>
+</tr>
+<tr>
+<td><code>slow_response_pct</code></td>
+<td><code>float</code></td>
+<td><code>0.0</code></td>
+<td>Slow response percentage. Slow response delays but does not otherwise fail the transaction.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="range-fields">Range Fields<a class="headerlink" href="#range-fields" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>retry_after_sec</code></td>
+<td><code>tuple[int, int]</code></td>
+<td><code>(1, 30)</code></td>
+<td>Validated retry delay range config. Current SMTP replies do not emit a Retry-After header.</td>
+</tr>
+<tr>
+<td><code>connection_stall_sec</code></td>
+<td><code>tuple[int, int]</code></td>
+<td><code>(30, 60)</code></td>
+<td>Stall duration range [min, max] seconds.</td>
+</tr>
+<tr>
+<td><code>slow_response_sec</code></td>
+<td><code>tuple[int, int]</code></td>
+<td><code>(3, 15)</code></td>
+<td>Slow response delay range [min, max] seconds.</td>
+</tr>
+</tbody>
+</table>
+<p>Range fields must satisfy <code>min &lt;= max</code>. They accept both tuples and lists in YAML/JSON input.</p>
+<h4 id="selection-mode_2">Selection Mode<a class="headerlink" href="#selection-mode_2" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>selection_mode</code></td>
+<td><code>"priority" \| "weighted"</code></td>
+<td><code>"priority"</code></td>
+<td><code>priority</code>: errors evaluated in stage order. <code>weighted</code>: errors selected proportionally by weight.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Validation:</strong> In weighted mode, if total SMTP error percentages reach or exceed 100%, a warning is emitted because no successful messages will be generated.</p>
+<h4 id="smtpburstconfig">SMTPBurstConfig<a class="headerlink" href="#smtpburstconfig" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>enabled</code></td>
+<td><code>bool</code></td>
+<td><code>false</code></td>
+<td>Enable burst pattern injection.</td>
+</tr>
+<tr>
+<td><code>interval_sec</code></td>
+<td><code>int</code></td>
+<td><code>30</code></td>
+<td>Time between burst starts in seconds. Must be &gt; 0.</td>
+</tr>
+<tr>
+<td><code>duration_sec</code></td>
+<td><code>int</code></td>
+<td><code>5</code></td>
+<td>How long each burst lasts in seconds. Must be &gt; 0 and &lt; <code>interval_sec</code> when enabled.</td>
+</tr>
+<tr>
+<td><code>rcpt_to_tempfail_pct</code></td>
+<td><code>float</code></td>
+<td><code>80.0</code></td>
+<td>RCPT TO temporary failure percentage during burst windows. (Renamed from <code>tempfail_pct</code> for clarity — only the RCPT TO tempfail weight is overridden.)</td>
+</tr>
+<tr>
+<td><code>rate_limit_pct</code></td>
+<td><code>float</code></td>
+<td><code>50.0</code></td>
+<td>Rate-limit percentage during burst windows.</td>
 </tr>
 </tbody>
 </table>

@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Composable chaos-testing services for LLM, web scraping, and object storage pipelines">
+        <meta name="description" content="Composable chaos-testing services for LLM, web scraping, object storage, and outbound email pipelines">
       
       
       
@@ -546,6 +546,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../chaossmtp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ChaosSMTP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../presets/" class="md-nav__link">
         
   
@@ -706,6 +734,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#chaossmtp-full-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ChaosSMTP Full Example
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -724,10 +763,21 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#server" class="md-nav__link">
+  <a href="#server-chaosllm-and-chaosweb" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Server
+        Server (ChaosLLM and ChaosWeb)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#smtp-listener-and-admin-sidecar-chaossmtp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SMTP Listener and Admin Sidecar (ChaosSMTP)
       
     </span>
   </a>
@@ -750,6 +800,17 @@
     <span class="md-ellipsis">
       
         Latency
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#smtp-capture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SMTP Capture
       
     </span>
   </a>
@@ -1062,7 +1123,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../changelog/" class="md-nav__link">
+      <a href="https://github.com/johnm-dta/errorworks/blob/main/CHANGELOG.md" class="md-nav__link">
         
   
   
@@ -1181,6 +1242,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#chaossmtp-full-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ChaosSMTP Full Example
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1199,10 +1271,21 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#server" class="md-nav__link">
+  <a href="#server-chaosllm-and-chaosweb" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Server
+        Server (ChaosLLM and ChaosWeb)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#smtp-listener-and-admin-sidecar-chaossmtp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SMTP Listener and Admin Sidecar (ChaosSMTP)
       
     </span>
   </a>
@@ -1225,6 +1308,17 @@
     <span class="md-ellipsis">
       
         Latency
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#smtp-capture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SMTP Capture
       
     </span>
   </a>
@@ -1563,8 +1657,68 @@
 <a id="__codelineno-7-55" name="__codelineno-7-55" href="#__codelineno-7-55"></a><span class="w">    </span><span class="nt">slow_down_pct</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">35.0</span>
 <a id="__codelineno-7-56" name="__codelineno-7-56" href="#__codelineno-7-56"></a><span class="w">    </span><span class="nt">service_unavailable_pct</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10.0</span>
 </code></pre></div>
+<h3 id="chaossmtp-full-example">ChaosSMTP Full Example<a class="headerlink" href="#chaossmtp-full-example" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nt">smtp</span><span class="p">:</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span><span class="nt">host</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;127.0.0.1&quot;</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">  </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2525</span><span class="w">              </span><span class="c1"># Use 0 in tests for an ephemeral loopback port</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">  </span><span class="nt">hostname</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;chaossmtp.local&quot;</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">  </span><span class="nt">data_size_limit</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10485760</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="w">  </span><span class="nt">enable_smtputf8</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="w">  </span><span class="nt">require_starttls</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w">       </span><span class="c1"># true is reserved until TLS context support exists</span>
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="nt">admin</span><span class="p">:</span>
+<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="w">  </span><span class="nt">host</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;127.0.0.1&quot;</span>
+<a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a><span class="w">  </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8525</span>
+<a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a><span class="w">  </span><span class="nt">admin_token</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-secret-token&quot;</span><span class="w">  </span><span class="c1"># Auto-generated if omitted</span>
+<a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a>
+<a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a><span class="nt">metrics</span><span class="p">:</span>
+<a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a><span class="w">  </span><span class="nt">database</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;file:chaossmtp-metrics?mode=memory&amp;cache=shared&quot;</span>
+<a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a><span class="w">  </span><span class="nt">timeseries_bucket_sec</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<a id="__codelineno-8-18" name="__codelineno-8-18" href="#__codelineno-8-18"></a>
+<a id="__codelineno-8-19" name="__codelineno-8-19" href="#__codelineno-8-19"></a><span class="nt">capture</span><span class="p">:</span>
+<a id="__codelineno-8-20" name="__codelineno-8-20" href="#__codelineno-8-20"></a><span class="w">  </span><span class="nt">mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">metadata</span><span class="w">          </span><span class="c1"># discard | metadata | full</span>
+<a id="__codelineno-8-21" name="__codelineno-8-21" href="#__codelineno-8-21"></a><span class="w">  </span><span class="nt">max_message_bytes</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1048576</span>
+<a id="__codelineno-8-22" name="__codelineno-8-22" href="#__codelineno-8-22"></a><span class="w">  </span><span class="nt">max_messages</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1000</span>
+<a id="__codelineno-8-23" name="__codelineno-8-23" href="#__codelineno-8-23"></a>
+<a id="__codelineno-8-24" name="__codelineno-8-24" href="#__codelineno-8-24"></a><span class="nt">latency</span><span class="p">:</span>
+<a id="__codelineno-8-25" name="__codelineno-8-25" href="#__codelineno-8-25"></a><span class="w">  </span><span class="nt">base_ms</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">120</span>
+<a id="__codelineno-8-26" name="__codelineno-8-26" href="#__codelineno-8-26"></a><span class="w">  </span><span class="nt">jitter_ms</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">60</span>
+<a id="__codelineno-8-27" name="__codelineno-8-27" href="#__codelineno-8-27"></a>
+<a id="__codelineno-8-28" name="__codelineno-8-28" href="#__codelineno-8-28"></a><span class="nt">error_injection</span><span class="p">:</span>
+<a id="__codelineno-8-29" name="__codelineno-8-29" href="#__codelineno-8-29"></a><span class="w">  </span><span class="nt">selection_mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">priority</span>
+<a id="__codelineno-8-30" name="__codelineno-8-30" href="#__codelineno-8-30"></a>
+<a id="__codelineno-8-31" name="__codelineno-8-31" href="#__codelineno-8-31"></a><span class="w">  </span><span class="c1"># SMTP-stage failures</span>
+<a id="__codelineno-8-32" name="__codelineno-8-32" href="#__codelineno-8-32"></a><span class="w">  </span><span class="nt">rate_limit_pct</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3.0</span>
+<a id="__codelineno-8-33" name="__codelineno-8-33" href="#__codelineno-8-33"></a><span class="w">  </span><span class="nt">mail_from_tempfail_pct</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.0</span>
+<a id="__codelineno-8-34" name="__codelineno-8-34" href="#__codelineno-8-34"></a><span class="w">  </span><span class="nt">mail_from_reject_pct</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.0</span>
+<a id="__codelineno-8-35" name="__codelineno-8-35" href="#__codelineno-8-35"></a><span class="w">  </span><span class="nt">rcpt_to_tempfail_pct</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4.0</span>
+<a id="__codelineno-8-36" name="__codelineno-8-36" href="#__codelineno-8-36"></a><span class="w">  </span><span class="nt">rcpt_to_reject_pct</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.0</span>
+<a id="__codelineno-8-37" name="__codelineno-8-37" href="#__codelineno-8-37"></a><span class="w">  </span><span class="nt">data_tempfail_pct</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3.0</span>
+<a id="__codelineno-8-38" name="__codelineno-8-38" href="#__codelineno-8-38"></a><span class="w">  </span><span class="nt">data_reject_pct</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1.0</span>
+<a id="__codelineno-8-39" name="__codelineno-8-39" href="#__codelineno-8-39"></a><span class="w">  </span><span class="nt">accept_then_drop_pct</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.0</span>
+<a id="__codelineno-8-40" name="__codelineno-8-40" href="#__codelineno-8-40"></a><span class="w">  </span><span class="nt">malformed_reply_pct</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.0</span>
+<a id="__codelineno-8-41" name="__codelineno-8-41" href="#__codelineno-8-41"></a><span class="w">  </span><span class="nt">wrong_reply_code_pct</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.0</span>
+<a id="__codelineno-8-42" name="__codelineno-8-42" href="#__codelineno-8-42"></a><span class="w">  </span><span class="nt">connection_reset_pct</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.0</span>
+<a id="__codelineno-8-43" name="__codelineno-8-43" href="#__codelineno-8-43"></a><span class="w">  </span><span class="nt">connection_stall_pct</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.0</span>
+<a id="__codelineno-8-44" name="__codelineno-8-44" href="#__codelineno-8-44"></a><span class="w">  </span><span class="nt">slow_response_pct</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2.0</span>
+<a id="__codelineno-8-45" name="__codelineno-8-45" href="#__codelineno-8-45"></a>
+<a id="__codelineno-8-46" name="__codelineno-8-46" href="#__codelineno-8-46"></a><span class="w">  </span><span class="c1"># Delay ranges for selected SMTP behavior</span>
+<a id="__codelineno-8-47" name="__codelineno-8-47" href="#__codelineno-8-47"></a><span class="w">  </span><span class="c1"># retry_after_sec is validated config; current SMTP replies do not emit a Retry-After header.</span>
+<a id="__codelineno-8-48" name="__codelineno-8-48" href="#__codelineno-8-48"></a><span class="w">  </span><span class="nt">retry_after_sec</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">1</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">30</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-8-49" name="__codelineno-8-49" href="#__codelineno-8-49"></a><span class="w">  </span><span class="nt">connection_stall_sec</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">30</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">60</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-8-50" name="__codelineno-8-50" href="#__codelineno-8-50"></a><span class="w">  </span><span class="nt">slow_response_sec</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">3</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">15</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-8-51" name="__codelineno-8-51" href="#__codelineno-8-51"></a>
+<a id="__codelineno-8-52" name="__codelineno-8-52" href="#__codelineno-8-52"></a><span class="w">  </span><span class="c1"># Burst patterns</span>
+<a id="__codelineno-8-53" name="__codelineno-8-53" href="#__codelineno-8-53"></a><span class="w">  </span><span class="nt">burst</span><span class="p">:</span>
+<a id="__codelineno-8-54" name="__codelineno-8-54" href="#__codelineno-8-54"></a><span class="w">    </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-8-55" name="__codelineno-8-55" href="#__codelineno-8-55"></a><span class="w">    </span><span class="nt">interval_sec</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">60</span>
+<a id="__codelineno-8-56" name="__codelineno-8-56" href="#__codelineno-8-56"></a><span class="w">    </span><span class="nt">duration_sec</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8</span>
+<a id="__codelineno-8-57" name="__codelineno-8-57" href="#__codelineno-8-57"></a><span class="w">    </span><span class="nt">rcpt_to_tempfail_pct</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">50.0</span>
+<a id="__codelineno-8-58" name="__codelineno-8-58" href="#__codelineno-8-58"></a><span class="w">    </span><span class="nt">rate_limit_pct</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">40.0</span>
+</code></pre></div>
 <h2 id="configuration-sections">Configuration Sections<a class="headerlink" href="#configuration-sections" title="Permanent link">&para;</a></h2>
-<h3 id="server">Server<a class="headerlink" href="#server" title="Permanent link">&para;</a></h3>
+<h3 id="server-chaosllm-and-chaosweb">Server (ChaosLLM and ChaosWeb)<a class="headerlink" href="#server-chaosllm-and-chaosweb" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
 <tr>
@@ -1603,8 +1757,83 @@
 </table>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
-<p>Binding to <code>0.0.0.0</code> or <code>::</code> is blocked by default. ChaosLLM, ChaosWeb, and ChaosBlob are testing tools and should not be exposed to the network. Set <code>allow_external_bind: true</code> at the top level to override this safety check.</p>
+<p>Binding to <code>0.0.0.0</code> or <code>::</code> is blocked by default. Errorworks servers are testing tools and should not be exposed to the network. Set <code>allow_external_bind: true</code> at the top level to override this safety check.</p>
 </div>
+<h3 id="smtp-listener-and-admin-sidecar-chaossmtp">SMTP Listener and Admin Sidecar (ChaosSMTP)<a class="headerlink" href="#smtp-listener-and-admin-sidecar-chaossmtp" title="Permanent link">&para;</a></h3>
+<p>ChaosSMTP separates the SMTP listener from the HTTP admin sidecar:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>smtp.host</code></td>
+<td>string</td>
+<td><code>127.0.0.1</code></td>
+<td>SMTP listener bind address</td>
+</tr>
+<tr>
+<td><code>smtp.port</code></td>
+<td>int</td>
+<td><code>2525</code></td>
+<td>SMTP listener port. Config accepts <code>0</code> for an ephemeral test port.</td>
+</tr>
+<tr>
+<td><code>smtp.hostname</code></td>
+<td>string</td>
+<td><code>chaossmtp.local</code></td>
+<td>Hostname announced to SMTP clients</td>
+</tr>
+<tr>
+<td><code>smtp.data_size_limit</code></td>
+<td>int</td>
+<td><code>10485760</code></td>
+<td>Maximum SMTP DATA size in bytes</td>
+</tr>
+<tr>
+<td><code>smtp.enable_smtputf8</code></td>
+<td>bool</td>
+<td><code>true</code></td>
+<td>Enable SMTPUTF8 extension support</td>
+</tr>
+<tr>
+<td><code>smtp.require_starttls</code></td>
+<td>bool</td>
+<td><code>false</code></td>
+<td>Reserved for future TLS context support. <code>true</code> is rejected.</td>
+</tr>
+<tr>
+<td><code>admin.enabled</code></td>
+<td>bool</td>
+<td><code>true</code></td>
+<td>Run the HTTP admin sidecar</td>
+</tr>
+<tr>
+<td><code>admin.host</code></td>
+<td>string</td>
+<td><code>127.0.0.1</code></td>
+<td>Admin sidecar bind address</td>
+</tr>
+<tr>
+<td><code>admin.port</code></td>
+<td>int</td>
+<td><code>8525</code></td>
+<td>Admin sidecar port</td>
+</tr>
+<tr>
+<td><code>admin.admin_token</code></td>
+<td>string</td>
+<td>auto-generated</td>
+<td>Bearer token for <code>/admin/*</code> endpoints</td>
+</tr>
+</tbody>
+</table>
+<p><code>chaossmtp show-config</code> redacts <code>admin.admin_token</code>, but admin endpoints still require the bearer token at runtime.</p>
 <h3 id="metrics">Metrics<a class="headerlink" href="#metrics" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -1631,6 +1860,12 @@
 </tbody>
 </table>
 <p>Use <code>--database=/path/to/metrics.db</code> for persistent file-backed storage. See the <a href="../metrics/">Metrics Guide</a> for details.</p>
+<p>Default in-memory database URIs are service-specific:</p>
+<ul>
+<li>ChaosLLM: <code>file:chaosllm-metrics?mode=memory&amp;cache=shared</code></li>
+<li>ChaosWeb: <code>file:chaosweb-metrics?mode=memory&amp;cache=shared</code></li>
+<li>ChaosSMTP: <code>file:chaossmtp-metrics?mode=memory&amp;cache=shared</code></li>
+</ul>
 <h3 id="latency">Latency<a class="headerlink" href="#latency" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -1657,41 +1892,74 @@
 </tbody>
 </table>
 <p>The actual delay per request is <code>(base_ms + random(-jitter_ms, +jitter_ms)) / 1000</code> seconds, clamped to zero.</p>
+<h3 id="smtp-capture">SMTP Capture<a class="headerlink" href="#smtp-capture" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>capture.mode</code></td>
+<td><code>discard \| metadata \| full</code></td>
+<td><code>metadata</code></td>
+<td>How accepted SMTP messages are stored</td>
+</tr>
+<tr>
+<td><code>capture.max_message_bytes</code></td>
+<td>int</td>
+<td><code>1048576</code></td>
+<td>Maximum bytes stored in <code>full</code> capture mode</td>
+</tr>
+<tr>
+<td><code>capture.max_messages</code></td>
+<td>int</td>
+<td><code>1000</code></td>
+<td>Maximum captured messages kept in memory</td>
+</tr>
+</tbody>
+</table>
+<p><code>discard</code> records metrics only. <code>metadata</code> stores the envelope, subject, and safe headers. <code>full</code> stores base64-encoded message bytes up to <code>max_message_bytes</code>. Metadata and full capture keep at most <code>max_messages</code> records and drop the oldest first.</p>
 <h2 id="runtime-config-updates">Runtime Config Updates<a class="headerlink" href="#runtime-config-updates" title="Permanent link">&para;</a></h2>
 <p>You can update the configuration while the server is running via <code>POST /admin/config</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># Increase rate limiting at runtime</span>
-<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:8000/admin/config<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$ADMIN_TOKEN</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{</span>
-<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="s1">    &quot;error_injection&quot;: {</span>
-<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="s1">      &quot;rate_limit_pct&quot;: 25.0</span>
-<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="s1">    }</span>
-<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="s1">  }&#39;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># Increase rate limiting at runtime</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:8000/admin/config<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$ADMIN_TOKEN</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{</span>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="s1">    &quot;error_injection&quot;: {</span>
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="s1">      &quot;rate_limit_pct&quot;: 25.0</span>
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="s1">    }</span>
+<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="s1">  }&#39;</span>
 </code></pre></div>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># View current config</span>
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>curl<span class="w"> </span>http://localhost:8000/admin/config<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$ADMIN_TOKEN</span><span class="s2">&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c1"># View current config</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>curl<span class="w"> </span>http://localhost:8000/admin/config<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$ADMIN_TOKEN</span><span class="s2">&quot;</span>
 </code></pre></div>
 <p>Runtime updates use the same deep-merge behavior as config file layering. You only send the fields you want to change -- everything else is preserved.</p>
+<p>ChaosSMTP runtime updates cover <code>error_injection</code>, <code>capture</code>, and <code>latency</code>. Listener binding, admin binding, metrics database, and admin token changes require restarting the server with a new config.</p>
 <h3 id="how-runtime-updates-work">How Runtime Updates Work<a class="headerlink" href="#how-runtime-updates-work" title="Permanent link">&para;</a></h3>
 <p>The server uses immutable Pydantic models (<code>frozen=True</code>) for all configuration. When you POST an update:</p>
 <ol>
 <li>The current config is serialized to a dict</li>
 <li>Your update is deep-merged into it</li>
 <li>New immutable model instances are created and validated</li>
-<li>The new components (error injector, response generator, latency simulator) are built</li>
+<li>The new components (error injector, response/content/capture component, latency simulator) are built</li>
 <li>References are atomically swapped under a lock</li>
 </ol>
 <p>Requests that are already in-flight continue using the old configuration. This guarantees each request sees a consistent configuration throughout its lifetime.</p>
 <h3 id="validation">Validation<a class="headerlink" href="#validation" title="Permanent link">&para;</a></h3>
 <p>If your update contains invalid values, the server returns 422 with a validation error and the configuration is unchanged:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="p">{</span>
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">  </span><span class="nt">&quot;error&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;validation_error&quot;</span><span class="p">,</span>
-<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">    </span><span class="nt">&quot;message&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1 validation error for ErrorInjectionConfig\nrate_limit_pct\n  Input should be less than or equal to 100 [type=less_than_equal, ...]&quot;</span>
-<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">  </span><span class="p">}</span>
-<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="p">{</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">  </span><span class="nt">&quot;error&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;validation_error&quot;</span><span class="p">,</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">    </span><span class="nt">&quot;message&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1 validation error for ErrorInjectionConfig\nrate_limit_pct\n  Input should be less than or equal to 100 [type=less_than_equal, ...]&quot;</span>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="p">}</span>
 </code></pre></div>
 <h2 id="related-pages">Related Pages<a class="headerlink" href="#related-pages" title="Permanent link">&para;</a></h2>
 <ul>
@@ -1699,6 +1967,7 @@
 <li><a href="../chaosllm/">ChaosLLM</a> -- LLM-specific error types and endpoints</li>
 <li><a href="../chaosweb/">ChaosWeb</a> -- Web-specific error types and endpoints</li>
 <li><a href="../chaosblob/">ChaosBlob</a> -- Blob-specific error types and endpoints</li>
+<li><a href="../chaossmtp/">ChaosSMTP</a> -- SMTP-specific listener, capture, and error injection behavior</li>
 <li><a href="../metrics/">Metrics</a> -- Metrics storage configuration</li>
 </ul>
 

@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Composable chaos-testing services for LLM, web scraping, and object storage pipelines">
+        <meta name="description" content="Composable chaos-testing services for LLM, web scraping, object storage, and outbound email pipelines">
       
       
       
@@ -488,10 +488,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#6-use-the-pytest-fixture" class="md-nav__link">
+  <a href="#6-use-the-repository-pytest-fixture" class="md-nav__link">
     <span class="md-ellipsis">
       
-        6. Use the pytest fixture
+        6. Use the repository pytest fixture
       
     </span>
   </a>
@@ -650,6 +650,34 @@
     
   
     ChaosBlob
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/chaossmtp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ChaosSMTP
   
 
     
@@ -961,7 +989,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../changelog/" class="md-nav__link">
+      <a href="https://github.com/johnm-dta/errorworks/blob/main/CHANGELOG.md" class="md-nav__link">
         
   
   
@@ -1063,10 +1091,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#6-use-the-pytest-fixture" class="md-nav__link">
+  <a href="#6-use-the-repository-pytest-fixture" class="md-nav__link">
     <span class="md-ellipsis">
       
-        6. Use the pytest fixture
+        6. Use the repository pytest fixture
       
     </span>
   </a>
@@ -1107,7 +1135,7 @@
 <h1 id="quick-start">Quick Start<a class="headerlink" href="#quick-start" title="Permanent link">&para;</a></h1>
 <p>This walkthrough takes you from zero to chaos-testing in a few minutes. You will
 start fake servers, observe fault injection in action, check metrics, and write
-your first test using the pytest fixture.</p>
+your first contributor test using the repository pytest fixtures.</p>
 <h2 id="1-start-chaosllm">1. Start ChaosLLM<a class="headerlink" href="#1-start-chaosllm" title="Permanent link">&para;</a></h2>
 <p>Launch a fake OpenAI-compatible server with the <code>realistic</code> preset, which
 configures a mix of successful responses, rate limits, and server errors:</p>
@@ -1156,25 +1184,28 @@ and error category breakdowns.</p>
 </code></pre></div>
 <p>You will see a mix of valid HTML, encoding mismatches, truncated content, and
 other failure modes that commonly break web scrapers.</p>
-<h2 id="6-use-the-pytest-fixture">6. Use the pytest fixture<a class="headerlink" href="#6-use-the-pytest-fixture" title="Permanent link">&para;</a></h2>
-<p>The real power of errorworks is in automated testing. The built-in pytest fixtures
-let you spin up an in-process fake server with no real network socket:</p>
+<h2 id="6-use-the-repository-pytest-fixture">6. Use the repository pytest fixture<a class="headerlink" href="#6-use-the-repository-pytest-fixture" title="Permanent link">&para;</a></h2>
+<p>When working from a source checkout, the repository fixtures under
+<code>tests/fixtures</code> let maintainers spin up fake servers in tests. They are
+repo-internal helpers, not installed package imports. The ChaosLLM and ChaosWeb
+fixtures use in-process <code>TestClient</code> calls, so they do not open real network
+sockets:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
 <a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
 <a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
 <a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">chaosllm</span><span class="p">(</span><span class="n">preset</span><span class="o">=</span><span class="s2">&quot;realistic&quot;</span><span class="p">,</span> <span class="n">rate_limit_pct</span><span class="o">=</span><span class="mf">25.0</span><span class="p">)</span>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_retry_on_rate_limit</span><span class="p">(</span><span class="n">chaosllm</span><span class="p">):</span>
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    <span class="n">response</span> <span class="o">=</span> <span class="n">chaosllm</span><span class="o">.</span><span class="n">post_completion</span><span class="p">(</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_retry_on_rate_limit</span><span class="p">(</span><span class="n">chaosllm_server</span><span class="p">):</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    <span class="n">response</span> <span class="o">=</span> <span class="n">chaosllm_server</span><span class="o">.</span><span class="n">post_completion</span><span class="p">(</span>
 <a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>        <span class="n">model</span><span class="o">=</span><span class="s2">&quot;gpt-4&quot;</span><span class="p">,</span>
 <a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>        <span class="n">messages</span><span class="o">=</span><span class="p">[{</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="s2">&quot;test&quot;</span><span class="p">}],</span>
 <a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>    <span class="p">)</span>
 <a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>    <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">200</span><span class="p">,</span> <span class="mi">429</span><span class="p">)</span>
 </code></pre></div>
 <p>The <code>@pytest.mark.chaosllm</code> marker configures the server for that test. The
-<code>chaosllm</code> fixture provides helper methods like <code>post_completion()</code>,
+<code>chaosllm_server</code> fixture provides helper methods like <code>post_completion()</code>,
 <code>get_stats()</code>, and <code>update_config()</code>.</p>
-<p>To run this test, make sure errorworks is installed with test extras and invoke
-pytest:</p>
+<p>To run this test, use a source checkout and invoke pytest through the repository
+environment:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>uv<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>-m<span class="w"> </span>chaosllm
 </code></pre></div>
 <h2 id="next-steps">Next steps<a class="headerlink" href="#next-steps" title="Permanent link">&para;</a></h2>
@@ -1182,7 +1213,7 @@ pytest:</p>
 <li>Learn about all the fault types ChaosLLM can inject: <a href="../../guide/chaosllm/">ChaosLLM Guide</a></li>
 <li>Explore ChaosWeb's scraping-specific faults: <a href="../../guide/chaosweb/">ChaosWeb Guide</a></li>
 <li>See available presets and how to customize them: <a href="../../guide/presets/">Presets</a></li>
-<li>Dive into the testing fixture API: <a href="../../guide/testing-fixtures/">Testing Fixtures</a></li>
+<li>See repository fixture helpers for contributors: <a href="../../guide/testing-fixtures/">Testing Fixtures</a></li>
 </ul>
 
 

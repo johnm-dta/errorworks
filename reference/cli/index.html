@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Composable chaos-testing services for LLM, web scraping, and object storage pipelines">
+        <meta name="description" content="Composable chaos-testing services for LLM, web scraping, object storage, and outbound email pipelines">
       
       
       
@@ -526,6 +526,34 @@
     
   
     ChaosBlob
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/chaossmtp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ChaosSMTP
   
 
     
@@ -1222,6 +1250,128 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#chaossmtp-chaossmtp-server" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        chaossmtp -- ChaosSMTP Server
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="chaossmtp -- ChaosSMTP Server">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#chaossmtp-serve" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        chaossmtp serve
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="chaossmtp serve">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#configuration-source-flags_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration Source Flags
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#smtp-listener-flags" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SMTP Listener Flags
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#admin-sidecar-flags" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Admin Sidecar Flags
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#metrics-and-capture-flags" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Metrics and Capture Flags
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#error-injection-flags_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Error Injection Flags
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#burst-and-latency-flags" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Burst and Latency Flags
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#chaossmtp-presets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        chaossmtp presets
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#chaossmtp-show-config" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        chaossmtp show-config
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#chaosllm-mcp-mcp-metrics-server" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1338,7 +1488,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../changelog/" class="md-nav__link">
+      <a href="https://github.com/johnm-dta/errorworks/blob/main/CHANGELOG.md" class="md-nav__link">
         
   
   
@@ -1828,6 +1978,128 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#chaossmtp-chaossmtp-server" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        chaossmtp -- ChaosSMTP Server
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="chaossmtp -- ChaosSMTP Server">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#chaossmtp-serve" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        chaossmtp serve
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="chaossmtp serve">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#configuration-source-flags_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration Source Flags
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#smtp-listener-flags" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SMTP Listener Flags
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#admin-sidecar-flags" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Admin Sidecar Flags
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#metrics-and-capture-flags" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Metrics and Capture Flags
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#error-injection-flags_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Error Injection Flags
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#burst-and-latency-flags" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Burst and Latency Flags
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#chaossmtp-presets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        chaossmtp presets
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#chaossmtp-show-config" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        chaossmtp show-config
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#chaosllm-mcp-mcp-metrics-server" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1859,17 +2131,19 @@
 
 
 <h1 id="cli-reference">CLI Reference<a class="headerlink" href="#cli-reference" title="Permanent link">&para;</a></h1>
-<p>Errorworks provides several CLI entry points, all built with <a href="https://typer.tiangolo.com/">Typer</a>.</p>
+<p>Errorworks provides service-specific CLI entry points plus the unified <code>chaosengine</code> command, all built with <a href="https://typer.tiangolo.com/">Typer</a>.</p>
 <h2 id="chaosengine-unified-cli"><code>chaosengine</code> -- Unified CLI<a class="headerlink" href="#chaosengine-unified-cli" title="Permanent link">&para;</a></h2>
-<p>The <code>chaosengine</code> command aggregates ChaosLLM, ChaosWeb, and ChaosBlob under a single entry point. It mounts the same Typer apps as subcommands, so all flags are identical to the standalone commands.</p>
+<p>The <code>chaosengine</code> command aggregates ChaosLLM, ChaosWeb, ChaosBlob, and ChaosSMTP under a single entry point. It mounts the same Typer apps as subcommands, so all flags are identical to the standalone commands.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>chaosengine<span class="w"> </span>llm<span class="w"> </span>serve<span class="w"> </span>--preset<span class="o">=</span>gentle
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>chaosengine<span class="w"> </span>llm<span class="w"> </span>presets
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>chaosengine<span class="w"> </span>web<span class="w"> </span>serve<span class="w"> </span>--preset<span class="o">=</span>stress_scraping
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>chaosengine<span class="w"> </span>web<span class="w"> </span>presets
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>chaosengine<span class="w"> </span>blob<span class="w"> </span>serve<span class="w"> </span>--preset<span class="o">=</span>stress_storage
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>chaosengine<span class="w"> </span>blob<span class="w"> </span>presets
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>chaosengine<span class="w"> </span>smtp<span class="w"> </span>serve<span class="w"> </span>--preset<span class="o">=</span>stress_delivery
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>chaosengine<span class="w"> </span>smtp<span class="w"> </span>presets
 </code></pre></div>
-<p>The standalone entry points (<code>chaosllm</code>, <code>chaosweb</code>, <code>chaosblob</code>) continue to work unchanged.</p>
+<p>The standalone entry points (<code>chaosllm</code>, <code>chaosweb</code>, <code>chaosblob</code>, <code>chaossmtp</code>) continue to work unchanged.</p>
 <hr />
 <h2 id="chaosllm-chaosllm-server"><code>chaosllm</code> -- ChaosLLM Server<a class="headerlink" href="#chaosllm-chaosllm-server" title="Permanent link">&para;</a></h2>
 <h3 id="chaosllm-serve"><code>chaosllm serve</code><a class="headerlink" href="#chaosllm-serve" title="Permanent link">&para;</a></h3>
@@ -2712,6 +2986,352 @@
 </tbody>
 </table>
 <hr />
+<h2 id="chaossmtp-chaossmtp-server"><code>chaossmtp</code> -- ChaosSMTP Server<a class="headerlink" href="#chaossmtp-chaossmtp-server" title="Permanent link">&para;</a></h2>
+<h3 id="chaossmtp-serve"><code>chaossmtp serve</code><a class="headerlink" href="#chaossmtp-serve" title="Permanent link">&para;</a></h3>
+<p>Start the ChaosSMTP fake SMTP receiving server and its optional HTTP admin sidecar. ChaosSMTP never relays mail; it accepts, rejects, drops, or captures messages locally.</p>
+<p><strong>Configuration precedence</strong> is identical to ChaosLLM and ChaosWeb.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>chaossmtp<span class="w"> </span>serve<span class="w"> </span>--preset<span class="o">=</span>realistic
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>chaosengine<span class="w"> </span>smtp<span class="w"> </span>serve<span class="w"> </span>--preset<span class="o">=</span>stress_delivery
+</code></pre></div>
+<h4 id="configuration-source-flags_3">Configuration Source Flags<a class="headerlink" href="#configuration-source-flags_3" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Short</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--preset</code></td>
+<td><code>-p</code></td>
+<td><code>None</code></td>
+<td>Preset configuration to use. Use <code>chaossmtp presets</code> to list available.</td>
+</tr>
+<tr>
+<td><code>--config</code></td>
+<td><code>-c</code></td>
+<td><code>None</code></td>
+<td>Path to YAML configuration file.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="smtp-listener-flags">SMTP Listener Flags<a class="headerlink" href="#smtp-listener-flags" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Short</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--host</code></td>
+<td><code>-h</code></td>
+<td><code>127.0.0.1</code></td>
+<td>SMTP host address to bind to.</td>
+</tr>
+<tr>
+<td><code>--port</code></td>
+<td><code>-P</code></td>
+<td><code>2525</code></td>
+<td>SMTP port to listen on (1-65535 for CLI; config allows <code>0</code> for ephemeral test binding).</td>
+</tr>
+<tr>
+<td><code>--hostname</code></td>
+<td></td>
+<td><code>chaossmtp.local</code></td>
+<td>SMTP server hostname announced to clients.</td>
+</tr>
+<tr>
+<td><code>--data-size-limit</code></td>
+<td></td>
+<td><code>10485760</code></td>
+<td>Maximum SMTP DATA size in bytes.</td>
+</tr>
+<tr>
+<td><code>--enable-smtputf8</code> / <code>--disable-smtputf8</code></td>
+<td></td>
+<td><code>true</code></td>
+<td>Enable SMTPUTF8 support.</td>
+</tr>
+<tr>
+<td><code>--require-starttls</code> / <code>--no-require-starttls</code></td>
+<td></td>
+<td><code>false</code></td>
+<td>Reserved for future TLS context support. Passing <code>--require-starttls</code> is rejected.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="admin-sidecar-flags">Admin Sidecar Flags<a class="headerlink" href="#admin-sidecar-flags" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--admin-enabled</code> / <code>--no-admin</code></td>
+<td><code>true</code></td>
+<td>Enable the HTTP admin sidecar.</td>
+</tr>
+<tr>
+<td><code>--admin-host</code></td>
+<td><code>127.0.0.1</code></td>
+<td>Admin sidecar host address to bind to.</td>
+</tr>
+<tr>
+<td><code>--admin-port</code></td>
+<td><code>8525</code></td>
+<td>Admin sidecar port.</td>
+</tr>
+<tr>
+<td><code>--admin-token</code></td>
+<td>Auto-generated</td>
+<td>Bearer token for <code>/admin/*</code> endpoints.</td>
+</tr>
+<tr>
+<td><code>--allow-external-bind</code> / <code>--no-allow-external-bind</code></td>
+<td><code>false</code></td>
+<td>Allow SMTP or admin binding to non-loopback hosts.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="metrics-and-capture-flags">Metrics and Capture Flags<a class="headerlink" href="#metrics-and-capture-flags" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Short</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--database</code></td>
+<td><code>-d</code></td>
+<td><code>file:chaossmtp-metrics?mode=memory&amp;cache=shared</code></td>
+<td>SQLite database path or URI for metrics.</td>
+</tr>
+<tr>
+<td><code>--timeseries-bucket-sec</code></td>
+<td></td>
+<td><code>1</code></td>
+<td>Metrics time-series bucket size in seconds.</td>
+</tr>
+<tr>
+<td><code>--capture-mode</code></td>
+<td></td>
+<td><code>metadata</code></td>
+<td>Message capture mode: <code>discard</code>, <code>metadata</code>, or <code>full</code>.</td>
+</tr>
+<tr>
+<td><code>--max-message-bytes</code></td>
+<td></td>
+<td><code>1048576</code></td>
+<td>Maximum captured bytes in <code>full</code> capture mode.</td>
+</tr>
+<tr>
+<td><code>--max-messages</code></td>
+<td></td>
+<td><code>1000</code></td>
+<td>Maximum captured messages kept in memory. Oldest messages are dropped first.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="error-injection-flags_3">Error Injection Flags<a class="headerlink" href="#error-injection-flags_3" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--rate-limit-pct</code></td>
+<td><code>0.0</code></td>
+<td>SMTP rate limit percentage.</td>
+</tr>
+<tr>
+<td><code>--mail-from-tempfail-pct</code></td>
+<td><code>0.0</code></td>
+<td>MAIL FROM temporary failure percentage.</td>
+</tr>
+<tr>
+<td><code>--mail-from-reject-pct</code></td>
+<td><code>0.0</code></td>
+<td>MAIL FROM permanent rejection percentage.</td>
+</tr>
+<tr>
+<td><code>--rcpt-to-tempfail-pct</code></td>
+<td><code>0.0</code></td>
+<td>RCPT TO temporary failure percentage.</td>
+</tr>
+<tr>
+<td><code>--rcpt-to-reject-pct</code></td>
+<td><code>0.0</code></td>
+<td>RCPT TO permanent rejection percentage.</td>
+</tr>
+<tr>
+<td><code>--data-tempfail-pct</code></td>
+<td><code>0.0</code></td>
+<td>DATA temporary failure percentage.</td>
+</tr>
+<tr>
+<td><code>--data-reject-pct</code></td>
+<td><code>0.0</code></td>
+<td>DATA permanent rejection percentage.</td>
+</tr>
+<tr>
+<td><code>--accept-then-drop-pct</code></td>
+<td><code>0.0</code></td>
+<td>Accept message, return success, and drop without capture.</td>
+</tr>
+<tr>
+<td><code>--malformed-reply-pct</code></td>
+<td><code>0.0</code></td>
+<td>Malformed SMTP reply percentage.</td>
+</tr>
+<tr>
+<td><code>--wrong-reply-code-pct</code></td>
+<td><code>0.0</code></td>
+<td>Unexpected SMTP reply code percentage.</td>
+</tr>
+<tr>
+<td><code>--connection-reset-pct</code></td>
+<td><code>0.0</code></td>
+<td>SMTP transport close percentage.</td>
+</tr>
+<tr>
+<td><code>--connection-stall-pct</code></td>
+<td><code>0.0</code></td>
+<td>Stall then close percentage.</td>
+</tr>
+<tr>
+<td><code>--slow-response-pct</code></td>
+<td><code>0.0</code></td>
+<td>Slow response percentage.</td>
+</tr>
+<tr>
+<td><code>--selection-mode</code></td>
+<td><code>priority</code></td>
+<td>Error selection strategy: <code>priority</code> or <code>weighted</code>.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="burst-and-latency-flags">Burst and Latency Flags<a class="headerlink" href="#burst-and-latency-flags" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--burst-enabled</code> / <code>--no-burst</code></td>
+<td><code>false</code></td>
+<td>Enable burst pattern injection.</td>
+</tr>
+<tr>
+<td><code>--burst-interval-sec</code></td>
+<td><code>30</code></td>
+<td>Time between burst starts in seconds.</td>
+</tr>
+<tr>
+<td><code>--burst-duration-sec</code></td>
+<td><code>5</code></td>
+<td>Burst duration in seconds.</td>
+</tr>
+<tr>
+<td><code>--burst-tempfail-pct</code></td>
+<td><code>80.0</code></td>
+<td>Temporary failure percentage during bursts.</td>
+</tr>
+<tr>
+<td><code>--burst-rate-limit-pct</code></td>
+<td><code>50.0</code></td>
+<td>Rate limit percentage during bursts.</td>
+</tr>
+<tr>
+<td><code>--base-ms</code></td>
+<td><code>50</code></td>
+<td>Base latency in milliseconds.</td>
+</tr>
+<tr>
+<td><code>--jitter-ms</code></td>
+<td><code>30</code></td>
+<td>Latency jitter in milliseconds (+/-).</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Examples:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># Start with defaults</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>chaossmtp<span class="w"> </span>serve
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="c1"># Use a preset</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>chaossmtp<span class="w"> </span>serve<span class="w"> </span>--preset<span class="o">=</span>realistic
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="c1"># Force temporary recipient failures</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>chaossmtp<span class="w"> </span>serve<span class="w"> </span>--rcpt-to-tempfail-pct<span class="o">=</span><span class="m">100</span>.0
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="c1"># Custom listener, admin sidecar, and metrics database</span>
+<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>chaossmtp<span class="w"> </span>serve<span class="w"> </span>--port<span class="o">=</span><span class="m">2526</span><span class="w"> </span>--admin-port<span class="o">=</span><span class="m">8526</span><span class="w"> </span>--database<span class="o">=</span>./smtp-metrics.db
+<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>
+<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="c1"># Unified CLI</span>
+<a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a>chaosengine<span class="w"> </span>smtp<span class="w"> </span>serve<span class="w"> </span>--preset<span class="o">=</span>stress_delivery
+</code></pre></div>
+<h3 id="chaossmtp-presets"><code>chaossmtp presets</code><a class="headerlink" href="#chaossmtp-presets" title="Permanent link">&para;</a></h3>
+<p>List available preset configurations.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>chaossmtp<span class="w"> </span>presets
+</code></pre></div>
+<h3 id="chaossmtp-show-config"><code>chaossmtp show-config</code><a class="headerlink" href="#chaossmtp-show-config" title="Permanent link">&para;</a></h3>
+<p>Display the effective (merged) configuration. The output redacts <code>admin_token</code>; the running admin endpoints still require the bearer token.</p>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Short</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--preset</code></td>
+<td><code>-p</code></td>
+<td><code>None</code></td>
+<td>Preset to show configuration for.</td>
+</tr>
+<tr>
+<td><code>--config</code></td>
+<td><code>-c</code></td>
+<td><code>None</code></td>
+<td>Config file to show.</td>
+</tr>
+<tr>
+<td><code>--format</code></td>
+<td><code>-f</code></td>
+<td><code>yaml</code></td>
+<td>Output format: <code>json</code> or <code>yaml</code>.</td>
+</tr>
+</tbody>
+</table>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>chaossmtp<span class="w"> </span>show-config<span class="w"> </span>--preset<span class="o">=</span>realistic
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>chaossmtp<span class="w"> </span>show-config<span class="w"> </span>--preset<span class="o">=</span>stress_delivery<span class="w"> </span>--format<span class="o">=</span>json
+</code></pre></div>
+<hr />
 <h2 id="chaosllm-mcp-mcp-metrics-server"><code>chaosllm-mcp</code> -- MCP Metrics Server<a class="headerlink" href="#chaosllm-mcp-mcp-metrics-server" title="Permanent link">&para;</a></h2>
 <p>Start the ChaosLLM MCP (Model Context Protocol) server for metrics analysis. Provides Claude-optimized tools for analyzing ChaosLLM metrics and investigating error patterns.</p>
 <table>
@@ -2738,11 +3358,11 @@
 </tr>
 </tbody>
 </table>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># Auto-discover database</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>chaosllm-mcp
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="c1"># Explicit database path</span>
-<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>chaosllm-mcp<span class="w"> </span>--database<span class="o">=</span>./my-metrics.db
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c1"># Auto-discover database</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>chaosllm-mcp
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="c1"># Explicit database path</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>chaosllm-mcp<span class="w"> </span>--database<span class="o">=</span>./my-metrics.db
 </code></pre></div>
 <p>If no database is found and none is specified, the command exits with an error suggesting you run <code>chaosllm serve</code> first to create one.</p>
 

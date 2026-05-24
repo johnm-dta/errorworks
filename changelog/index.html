@@ -6,14 +6,12 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Composable chaos-testing services for LLM, web scraping, and object storage pipelines">
+        <meta name="description" content="Composable chaos-testing services for LLM, web scraping, object storage, and outbound email pipelines">
       
       
       
         <link rel="canonical" href="https://johnm-dta.github.io/errorworks/changelog/">
       
-      
-        <link rel="prev" href="../architecture/">
       
       
       
@@ -544,6 +542,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../guide/chaossmtp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ChaosSMTP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../guide/presets/" class="md-nav__link">
         
   
@@ -832,37 +858,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Changelog
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="https://github.com/johnm-dta/errorworks/blob/main/CHANGELOG.md" class="md-nav__link">
         
   
   
@@ -878,315 +877,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#unreleased" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        [Unreleased]
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="[Unreleased]">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#added" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Added
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#changed-breaking" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Changed (breaking)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#fixed-security-robustness" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Fixed (security / robustness)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#removed-security" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Removed (security)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#documentation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Documentation
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#013-2026-05-24" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        [0.1.3] - 2026-05-24
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="[0.1.3] - 2026-05-24">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#changed" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Changed
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#012-2026-03-23" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        [0.1.2] - 2026-03-23
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="[0.1.2] - 2026-03-23">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#fixed" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Fixed
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#changed_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Changed
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#011-2026-03-17" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        [0.1.1] - 2026-03-17
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="[0.1.1] - 2026-03-17">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#added_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Added
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#changed_2" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Changed
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#fixed_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Fixed
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#010-2026-03-12" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        [0.1.0] - 2026-03-12
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="[0.1.0] - 2026-03-12">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#added_2" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Added
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Added">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#core-engine-errorworksengine" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Core Engine (errorworks.engine)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#chaosllm-errorworksllm" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        ChaosLLM (errorworks.llm)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#chaosllm-mcp-errorworksllm_mcp" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        ChaosLLM MCP (errorworks.llm_mcp)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#chaosweb-errorworksweb" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        ChaosWeb (errorworks.web)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#unified-cli" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Unified CLI
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#testing-support" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Testing Support
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1226,7 +916,18 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="[Unreleased]">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#020-2026-05-25" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.2.0] - 2026-05-25
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[0.2.0] - 2026-05-25">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1531,11 +1232,18 @@
 <p>The format is based on <a href="https://keepachangelog.com/en/1.1.0/">Keep a Changelog</a>,
 and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
 <h2 id="unreleased">[Unreleased]<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
+<h2 id="020-2026-05-25">[0.2.0] - 2026-05-25<a class="headerlink" href="#020-2026-05-25" title="Permanent link">&para;</a></h2>
 <h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>ChaosBlob</strong>: S3-compatible-ish path-style object storage chaos server with
   PUT/GET/HEAD/DELETE/ListObjectsV2 support, blob-specific fault injection,
   metrics, CLI, presets, pytest fixture, and documentation.</li>
+<li><strong>ChaosSMTP</strong>: SMTP receiving server for outbound email resilience tests.
+  Stage-aware error injection across MAIL/RCPT/DATA, slow-reply latency,
+  accepted-but-dropped messages, three capture modes (<code>metadata</code>, <code>discard</code>,
+  <code>full</code>), admin app for runtime config/metrics, immutable captured-header
+  policy, SQLite metrics, CLI (<code>chaossmtp</code>), presets, pytest fixture, and
+  documentation. Mail is never relayed — all sessions stay local.</li>
 </ul>
 <h3 id="changed-breaking">Changed (breaking)<a class="headerlink" href="#changed-breaking" title="Permanent link">&para;</a></h3>
 <ul>
@@ -1569,6 +1277,29 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <li><strong>MCP analyzer is now truly read-only</strong>: the SQLite connection is opened via
   a <code>file:...?mode=ro</code> URI and no longer executes <code>PRAGMA journal_mode=WAL</code>,
   so it does not create WAL/SHM side files or mutate the on-disk database.</li>
+<li><strong>Engine: malformed <code>Content-Length</code> now rejected explicitly.</strong>
+  <code>read_limited_body()</code> previously relied on <code>except ValueError</code> plus
+  <code>isinstance</code> to distinguish a size-limit exception from an int-parse
+  failure, but because <code>RequestBodyTooLarge</code> subclasses <code>ValueError</code>, a
+  genuine parse failure was silently swallowed and the size guard was
+  effectively disabled for any client sending <code>Content-Length: abc</code>, <code>1.5</code>,
+  or <code>-1</code>. A new <code>MalformedContentLength(ValueError)</code> is now raised on bad
+  input; blob maps it to <code>S3 InvalidRequest</code>/HTTP 400, and admin/LLM inherit
+  the correct behaviour via their existing handlers.</li>
+<li><strong>Engine: graceful fallback when config-handoff temp file is missing.</strong>
+  Worker processes (uvicorn fork) previously died with a bare
+  <code>FileNotFoundError</code> when the handoff temp file was absent (shutdown race,
+  <code>/tmp</code> cleaner, mismatched cleanup). A shared <code>engine/config_handoff.py</code>
+  helper now falls back to the env-var-only form when the temp file is gone,
+  and raises a diagnostic <code>ConfigHandoffError</code> only when both mechanisms are
+  missing or unreadable. Used by all three HTTP servers (blob/llm/web).</li>
+<li><strong>MCP <code>analyze_latency</code>: percentiles now computed over full population.</strong>
+  The previous implementation ran <code>ORDER BY latency_ms LIMIT 100</code> and then
+  computed percentiles over the returned rows — the smallest-100 lower tail,
+  producing wildly low p95/p99 values. Replaced with the
+  <code>LIMIT 1 OFFSET k</code> per-percentile SQL pattern already used in
+  <code>engine/metrics_store.py</code> — exact, single-row per query, consistent across
+  the codebase.</li>
 </ul>
 <h3 id="removed-security">Removed (security)<a class="headerlink" href="#removed-security" title="Permanent link">&para;</a></h3>
 <ul>
@@ -1586,6 +1317,8 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <li>ChaosWeb guide: fixed the template helper list to match what is actually
   registered (<code>random_choice</code>, <code>random_int</code>, <code>random_words</code>, <code>timestamp</code> —
   no <code>random_float</code>).</li>
+<li>Added <code>docs/guide/chaosblob.md</code> and <code>docs/guide/chaossmtp.md</code>; updated
+  <code>docs/index.md</code> and the MkDocs nav to surface both new plugins.</li>
 </ul>
 <h2 id="013-2026-05-24">[0.1.3] - 2026-05-24<a class="headerlink" href="#013-2026-05-24" title="Permanent link">&para;</a></h2>
 <h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
@@ -1727,28 +1460,6 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
       
         <footer class="md-footer">
   
-    
-      
-      <nav class="md-footer__inner md-grid" aria-label="Footer" >
-        
-          
-          <a href="../architecture/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Architecture">
-            <div class="md-footer__button md-icon">
-              
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
-            </div>
-            <div class="md-footer__title">
-              <span class="md-footer__direction">
-                Previous
-              </span>
-              <div class="md-ellipsis">
-                Architecture
-              </div>
-            </div>
-          </a>
-        
-        
-      </nav>
     
   
   <div class="md-footer-meta md-typeset">

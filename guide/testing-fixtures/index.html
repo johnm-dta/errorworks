@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Composable chaos-testing services for LLM, web scraping, and object storage pipelines">
+        <meta name="description" content="Composable chaos-testing services for LLM, web scraping, object storage, and outbound email pipelines">
       
       
       
@@ -80,7 +80,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#testing-fixtures-guide" class="md-skip">
+        <a href="#repository-testing-fixtures-guide" class="md-skip">
           Skip to content
         </a>
       
@@ -546,6 +546,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../chaossmtp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ChaosSMTP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../presets/" class="md-nav__link">
         
   
@@ -895,6 +923,67 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#chaossmtp-fixture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ChaosSMTP Fixture
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ChaosSMTP Fixture">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#basic-usage_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Basic Usage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#marker-based-configuration_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Marker-Based Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#available-marker-kwargs_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Available Marker Kwargs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fixture-helpers_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fixture Helpers
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#complete-working-examples" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -933,6 +1022,17 @@
     <span class="md-ellipsis">
       
         ChaosBlob: Testing Blob Pipeline Recovery
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#chaossmtp-testing-delivery-failures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ChaosSMTP: Testing Delivery Failures
       
     </span>
   </a>
@@ -1161,7 +1261,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../changelog/" class="md-nav__link">
+      <a href="https://github.com/johnm-dta/errorworks/blob/main/CHANGELOG.md" class="md-nav__link">
         
   
   
@@ -1413,6 +1513,67 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#chaossmtp-fixture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ChaosSMTP Fixture
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ChaosSMTP Fixture">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#basic-usage_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Basic Usage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#marker-based-configuration_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Marker-Based Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#available-marker-kwargs_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Available Marker Kwargs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fixture-helpers_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fixture Helpers
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#complete-working-examples" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1451,6 +1612,17 @@
     <span class="md-ellipsis">
       
         ChaosBlob: Testing Blob Pipeline Recovery
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#chaossmtp-testing-delivery-failures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ChaosSMTP: Testing Delivery Failures
       
     </span>
   </a>
@@ -1504,21 +1676,24 @@
   
 
 
-<h1 id="testing-fixtures-guide">Testing Fixtures Guide<a class="headerlink" href="#testing-fixtures-guide" title="Permanent link">&para;</a></h1>
-<p>Errorworks provides pytest fixtures that run ChaosLLM, ChaosWeb, and ChaosBlob servers in-process using Starlette's <code>TestClient</code>. No real network sockets are opened -- requests go directly through the ASGI stack, making tests fast, isolated, and safe to run in parallel.</p>
+<h1 id="repository-testing-fixtures-guide">Repository Testing Fixtures Guide<a class="headerlink" href="#repository-testing-fixtures-guide" title="Permanent link">&para;</a></h1>
+<p>This page documents pytest fixtures used by the errorworks repository test suite. They live under <code>tests/fixtures</code>, outside <code>src/errorworks</code>, and are not included in the installed wheel. Use these helpers when developing or maintaining errorworks from a source checkout.</p>
+<p>ChaosLLM, ChaosWeb, and ChaosBlob repository fixtures run in-process using Starlette's <code>TestClient</code>, so no real network sockets are opened for HTTP tests. The ChaosSMTP repository fixture uses an ephemeral loopback TCP socket because normal SMTP clients require a real socket and protocol session.</p>
 <h2 id="setup">Setup<a class="headerlink" href="#setup" title="Permanent link">&para;</a></h2>
-<p>Import the fixtures in your <code>conftest.py</code>:</p>
+<p>From the errorworks source tree, import the fixtures in the relevant test package <code>conftest.py</code>:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># tests/conftest.py</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">tests.fixtures.chaosllm</span><span class="w"> </span><span class="kn">import</span> <span class="n">chaosllm_server</span>  <span class="c1"># noqa: F401</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">tests.fixtures.chaosweb</span><span class="w"> </span><span class="kn">import</span> <span class="n">chaosweb_server</span>  <span class="c1"># noqa: F401</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">tests.fixtures.chaosblob</span><span class="w"> </span><span class="kn">import</span> <span class="n">chaosblob</span>  <span class="c1"># noqa: F401</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">tests.fixtures.chaossmtp</span><span class="w"> </span><span class="kn">import</span> <span class="n">chaossmtp_server</span>  <span class="c1"># noqa: F401</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">tests.fixtures.chaosweb</span><span class="w"> </span><span class="kn">import</span> <span class="n">chaosweb_server</span>  <span class="c1"># noqa: F401</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">tests.fixtures.chaosblob</span><span class="w"> </span><span class="kn">import</span> <span class="n">chaosblob</span>  <span class="c1"># noqa: F401</span>
 </code></pre></div>
 <p>Register the custom markers to avoid pytest warnings:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># tests/conftest.py (or pyproject.toml)</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">pytest_configure</span><span class="p">(</span><span class="n">config</span><span class="p">):</span>
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">config</span><span class="o">.</span><span class="n">addinivalue_line</span><span class="p">(</span><span class="s2">&quot;markers&quot;</span><span class="p">,</span> <span class="s2">&quot;chaosllm: ChaosLLM server configuration&quot;</span><span class="p">)</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">config</span><span class="o">.</span><span class="n">addinivalue_line</span><span class="p">(</span><span class="s2">&quot;markers&quot;</span><span class="p">,</span> <span class="s2">&quot;chaosweb: ChaosWeb server configuration&quot;</span><span class="p">)</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">config</span><span class="o">.</span><span class="n">addinivalue_line</span><span class="p">(</span><span class="s2">&quot;markers&quot;</span><span class="p">,</span> <span class="s2">&quot;chaosblob: ChaosBlob server configuration&quot;</span><span class="p">)</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">config</span><span class="o">.</span><span class="n">addinivalue_line</span><span class="p">(</span><span class="s2">&quot;markers&quot;</span><span class="p">,</span> <span class="s2">&quot;chaossmtp: ChaosSMTP server configuration&quot;</span><span class="p">)</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">config</span><span class="o">.</span><span class="n">addinivalue_line</span><span class="p">(</span><span class="s2">&quot;markers&quot;</span><span class="p">,</span> <span class="s2">&quot;chaosweb: ChaosWeb server configuration&quot;</span><span class="p">)</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="n">config</span><span class="o">.</span><span class="n">addinivalue_line</span><span class="p">(</span><span class="s2">&quot;markers&quot;</span><span class="p">,</span> <span class="s2">&quot;chaosblob: ChaosBlob server configuration&quot;</span><span class="p">)</span>
 </code></pre></div>
 <h2 id="chaosllm-fixture">ChaosLLM Fixture<a class="headerlink" href="#chaosllm-fixture" title="Permanent link">&para;</a></h2>
 <h3 id="basic-usage">Basic Usage<a class="headerlink" href="#basic-usage" title="Permanent link">&para;</a></h3>
@@ -2186,137 +2361,386 @@
 </tr>
 </tbody>
 </table>
+<h2 id="chaossmtp-fixture">ChaosSMTP Fixture<a class="headerlink" href="#chaossmtp-fixture" title="Permanent link">&para;</a></h2>
+<p>The repository's <code>chaossmtp_server</code> fixture starts a real SMTP listener on <code>127.0.0.1</code> with <code>smtp.port=0</code>, so the operating system assigns an ephemeral port. This keeps tests isolated while still exercising standard clients like <code>smtplib</code>.</p>
+<h3 id="basic-usage_3">Basic Usage<a class="headerlink" href="#basic-usage_3" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">email.message</span><span class="w"> </span><span class="kn">import</span> <span class="n">EmailMessage</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_sends_message</span><span class="p">(</span><span class="n">chaossmtp_server</span><span class="p">):</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>    <span class="n">message</span> <span class="o">=</span> <span class="n">EmailMessage</span><span class="p">()</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>    <span class="n">message</span><span class="p">[</span><span class="s2">&quot;From&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;sender@example.com&quot;</span>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>    <span class="n">message</span><span class="p">[</span><span class="s2">&quot;To&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;recipient@example.com&quot;</span>
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>    <span class="n">message</span><span class="p">[</span><span class="s2">&quot;Subject&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;Fixture test&quot;</span>
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>    <span class="n">message</span><span class="o">.</span><span class="n">set_content</span><span class="p">(</span><span class="s2">&quot;hello&quot;</span><span class="p">)</span>
+<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>
+<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>    <span class="k">assert</span> <span class="n">chaossmtp_server</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span><span class="n">message</span><span class="p">)</span> <span class="o">==</span> <span class="p">{}</span>
+<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>    <span class="k">assert</span> <span class="n">chaossmtp_server</span><span class="o">.</span><span class="n">wait_for_messages</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>    <span class="k">assert</span> <span class="n">chaossmtp_server</span><span class="o">.</span><span class="n">get_stats</span><span class="p">()[</span><span class="s2">&quot;total_requests&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span>
+</code></pre></div>
+<h3 id="marker-based-configuration_3">Marker-Based Configuration<a class="headerlink" href="#marker-based-configuration_3" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">email.message</span><span class="w"> </span><span class="kn">import</span> <span class="n">EmailMessage</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">smtplib</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">chaossmtp</span><span class="p">(</span><span class="n">rcpt_to_reject_pct</span><span class="o">=</span><span class="mf">100.0</span><span class="p">)</span>
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_recipient_rejection</span><span class="p">(</span><span class="n">chaossmtp_server</span><span class="p">):</span>
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>    <span class="n">message</span> <span class="o">=</span> <span class="n">EmailMessage</span><span class="p">()</span>
+<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>    <span class="n">message</span><span class="p">[</span><span class="s2">&quot;From&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;sender@example.com&quot;</span>
+<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>    <span class="n">message</span><span class="p">[</span><span class="s2">&quot;To&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;recipient@example.com&quot;</span>
+<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a>    <span class="n">message</span><span class="p">[</span><span class="s2">&quot;Subject&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;Rejected&quot;</span>
+<a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>    <span class="n">message</span><span class="o">.</span><span class="n">set_content</span><span class="p">(</span><span class="s2">&quot;hello&quot;</span><span class="p">)</span>
+<a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a>
+<a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a>    <span class="k">with</span> <span class="n">pytest</span><span class="o">.</span><span class="n">raises</span><span class="p">(</span><span class="n">smtplib</span><span class="o">.</span><span class="n">SMTPRecipientsRefused</span><span class="p">):</span>
+<a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a>        <span class="n">chaossmtp_server</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="available-marker-kwargs_3">Available Marker Kwargs<a class="headerlink" href="#available-marker-kwargs_3" title="Permanent link">&para;</a></h3>
+<p>The <code>chaossmtp</code> marker accepts these keyword arguments:</p>
+<table>
+<thead>
+<tr>
+<th>Kwarg</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>preset</code></td>
+<td>str</td>
+<td>Base preset name (<code>silent</code>, <code>gentle</code>, <code>realistic</code>, <code>stress_delivery</code>, <code>stress_extreme</code>)</td>
+</tr>
+<tr>
+<td><code>rate_limit_pct</code></td>
+<td>float</td>
+<td>SMTP rate limit percentage</td>
+</tr>
+<tr>
+<td><code>mail_from_tempfail_pct</code></td>
+<td>float</td>
+<td>MAIL FROM temporary failure percentage</td>
+</tr>
+<tr>
+<td><code>mail_from_reject_pct</code></td>
+<td>float</td>
+<td>MAIL FROM permanent rejection percentage</td>
+</tr>
+<tr>
+<td><code>rcpt_to_tempfail_pct</code></td>
+<td>float</td>
+<td>RCPT TO temporary failure percentage</td>
+</tr>
+<tr>
+<td><code>rcpt_to_reject_pct</code></td>
+<td>float</td>
+<td>RCPT TO permanent rejection percentage</td>
+</tr>
+<tr>
+<td><code>data_tempfail_pct</code></td>
+<td>float</td>
+<td>DATA temporary failure percentage</td>
+</tr>
+<tr>
+<td><code>data_reject_pct</code></td>
+<td>float</td>
+<td>DATA permanent rejection percentage</td>
+</tr>
+<tr>
+<td><code>accept_then_drop_pct</code></td>
+<td>float</td>
+<td>Accept message and drop without capture percentage</td>
+</tr>
+<tr>
+<td><code>malformed_reply_pct</code></td>
+<td>float</td>
+<td>Malformed SMTP reply percentage</td>
+</tr>
+<tr>
+<td><code>wrong_reply_code_pct</code></td>
+<td>float</td>
+<td>Unexpected SMTP reply code percentage</td>
+</tr>
+<tr>
+<td><code>connection_reset_pct</code></td>
+<td>float</td>
+<td>SMTP transport close percentage</td>
+</tr>
+<tr>
+<td><code>connection_stall_pct</code></td>
+<td>float</td>
+<td>Stall then close percentage</td>
+</tr>
+<tr>
+<td><code>slow_response_pct</code></td>
+<td>float</td>
+<td>Slow response percentage</td>
+</tr>
+<tr>
+<td><code>retry_after_sec</code></td>
+<td>tuple[int, int]</td>
+<td>Validated retry range config; current SMTP replies do not emit a Retry-After header</td>
+</tr>
+<tr>
+<td><code>connection_stall_sec</code></td>
+<td>tuple[int, int]</td>
+<td>Stall duration range</td>
+</tr>
+<tr>
+<td><code>slow_response_sec</code></td>
+<td>tuple[int, int]</td>
+<td>Slow response delay range</td>
+</tr>
+<tr>
+<td><code>selection_mode</code></td>
+<td>str</td>
+<td><code>priority</code> or <code>weighted</code></td>
+</tr>
+<tr>
+<td><code>base_ms</code></td>
+<td>int</td>
+<td>Base latency in milliseconds</td>
+</tr>
+<tr>
+<td><code>jitter_ms</code></td>
+<td>int</td>
+<td>Latency jitter in milliseconds</td>
+</tr>
+<tr>
+<td><code>capture_mode</code></td>
+<td>str</td>
+<td>Capture mode (<code>discard</code>, <code>metadata</code>, <code>full</code>)</td>
+</tr>
+<tr>
+<td><code>max_message_bytes</code></td>
+<td>int</td>
+<td>Maximum bytes stored in <code>full</code> capture mode</td>
+</tr>
+<tr>
+<td><code>max_messages</code></td>
+<td>int</td>
+<td>Maximum captured messages kept in memory</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The fixture sets <code>smtp.port=0</code>, <code>base_ms=0</code>, <code>jitter_ms=0</code>, and a deterministic admin token by default. If you need latency simulation, set latency explicitly in the marker.</p>
+</div>
+<h3 id="fixture-helpers_3">Fixture Helpers<a class="headerlink" href="#fixture-helpers_3" title="Permanent link">&para;</a></h3>
+<p>The <code>ChaosSMTPFixture</code> object provides:</p>
+<table>
+<thead>
+<tr>
+<th>Method/Property</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>send_message(message)</code></td>
+<td>Send an <code>EmailMessage</code> with <code>smtplib.SMTP</code></td>
+</tr>
+<tr>
+<td><code>get_stats()</code></td>
+<td>Get metrics summary</td>
+</tr>
+<tr>
+<td><code>export_metrics()</code></td>
+<td>Export raw metrics data and captured messages</td>
+</tr>
+<tr>
+<td><code>update_config(rcpt_to_tempfail_pct=..., capture_mode=..., ...)</code></td>
+<td>Update runtime config</td>
+</tr>
+<tr>
+<td><code>reset()</code></td>
+<td>Reset metrics and captured messages</td>
+</tr>
+<tr>
+<td><code>wait_for_requests(count, timeout=10.0)</code></td>
+<td>Block until N SMTP transactions are recorded</td>
+</tr>
+<tr>
+<td><code>wait_for_messages(count, timeout=10.0)</code></td>
+<td>Block until N messages are captured</td>
+</tr>
+<tr>
+<td><code>host</code></td>
+<td>Bound SMTP host</td>
+</tr>
+<tr>
+<td><code>port</code></td>
+<td>Ephemeral SMTP port</td>
+</tr>
+<tr>
+<td><code>metrics_db</code></td>
+<td>File-backed SQLite metrics path for this test</td>
+</tr>
+<tr>
+<td><code>run_id</code></td>
+<td>Current run ID</td>
+</tr>
+</tbody>
+</table>
 <h2 id="complete-working-examples">Complete Working Examples<a class="headerlink" href="#complete-working-examples" title="Permanent link">&para;</a></h2>
 <h3 id="chaosllm-testing-error-recovery">ChaosLLM: Testing Error Recovery<a class="headerlink" href="#chaosllm-testing-error-recovery" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>
-<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">chaosllm</span><span class="p">(</span><span class="n">rate_limit_pct</span><span class="o">=</span><span class="mf">100.0</span><span class="p">)</span>
-<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_all_requests_rate_limited</span><span class="p">(</span><span class="n">chaosllm_server</span><span class="p">):</span>
-<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Verify behavior when every request is rate limited.&quot;&quot;&quot;</span>
-<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>    <span class="n">response</span> <span class="o">=</span> <span class="n">chaosllm_server</span><span class="o">.</span><span class="n">post_completion</span><span class="p">()</span>
-<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>    <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">429</span>
-<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>    <span class="k">assert</span> <span class="s2">&quot;Retry-After&quot;</span> <span class="ow">in</span> <span class="n">response</span><span class="o">.</span><span class="n">headers</span>
-<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>    <span class="n">data</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
-<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>    <span class="k">assert</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;error&quot;</span><span class="p">][</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;rate_limit_error&quot;</span>
-<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>
-<a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>
-<a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">chaosllm</span><span class="p">(</span><span class="n">invalid_json_pct</span><span class="o">=</span><span class="mf">100.0</span><span class="p">)</span>
-<a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_malformed_json_handling</span><span class="p">(</span><span class="n">chaosllm_server</span><span class="p">):</span>
-<a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Verify the client can detect invalid JSON responses.&quot;&quot;&quot;</span>
-<a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a>    <span class="n">response</span> <span class="o">=</span> <span class="n">chaosllm_server</span><span class="o">.</span><span class="n">post_completion</span><span class="p">()</span>
-<a id="__codelineno-9-17" name="__codelineno-9-17" href="#__codelineno-9-17"></a>    <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span>  <span class="c1"># Malformed responses return 200</span>
-<a id="__codelineno-9-18" name="__codelineno-9-18" href="#__codelineno-9-18"></a>    <span class="c1"># The body is not valid JSON</span>
-<a id="__codelineno-9-19" name="__codelineno-9-19" href="#__codelineno-9-19"></a>    <span class="k">try</span><span class="p">:</span>
-<a id="__codelineno-9-20" name="__codelineno-9-20" href="#__codelineno-9-20"></a>        <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
-<a id="__codelineno-9-21" name="__codelineno-9-21" href="#__codelineno-9-21"></a>        <span class="k">assert</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;Expected JSON decode error&quot;</span>
-<a id="__codelineno-9-22" name="__codelineno-9-22" href="#__codelineno-9-22"></a>    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-<a id="__codelineno-9-23" name="__codelineno-9-23" href="#__codelineno-9-23"></a>        <span class="k">pass</span>  <span class="c1"># Expected</span>
-<a id="__codelineno-9-24" name="__codelineno-9-24" href="#__codelineno-9-24"></a>
-<a id="__codelineno-9-25" name="__codelineno-9-25" href="#__codelineno-9-25"></a>
-<a id="__codelineno-9-26" name="__codelineno-9-26" href="#__codelineno-9-26"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_runtime_config_update</span><span class="p">(</span><span class="n">chaosllm_server</span><span class="p">):</span>
-<a id="__codelineno-9-27" name="__codelineno-9-27" href="#__codelineno-9-27"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Verify runtime config updates take effect.&quot;&quot;&quot;</span>
-<a id="__codelineno-9-28" name="__codelineno-9-28" href="#__codelineno-9-28"></a>    <span class="c1"># Start with no errors</span>
-<a id="__codelineno-9-29" name="__codelineno-9-29" href="#__codelineno-9-29"></a>    <span class="n">response</span> <span class="o">=</span> <span class="n">chaosllm_server</span><span class="o">.</span><span class="n">post_completion</span><span class="p">()</span>
-<a id="__codelineno-9-30" name="__codelineno-9-30" href="#__codelineno-9-30"></a>    <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span>
-<a id="__codelineno-9-31" name="__codelineno-9-31" href="#__codelineno-9-31"></a>
-<a id="__codelineno-9-32" name="__codelineno-9-32" href="#__codelineno-9-32"></a>    <span class="c1"># Enable 100% rate limiting</span>
-<a id="__codelineno-9-33" name="__codelineno-9-33" href="#__codelineno-9-33"></a>    <span class="n">chaosllm_server</span><span class="o">.</span><span class="n">update_config</span><span class="p">(</span><span class="n">rate_limit_pct</span><span class="o">=</span><span class="mf">100.0</span><span class="p">)</span>
-<a id="__codelineno-9-34" name="__codelineno-9-34" href="#__codelineno-9-34"></a>
-<a id="__codelineno-9-35" name="__codelineno-9-35" href="#__codelineno-9-35"></a>    <span class="n">response</span> <span class="o">=</span> <span class="n">chaosllm_server</span><span class="o">.</span><span class="n">post_completion</span><span class="p">()</span>
-<a id="__codelineno-9-36" name="__codelineno-9-36" href="#__codelineno-9-36"></a>    <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">429</span>
-<a id="__codelineno-9-37" name="__codelineno-9-37" href="#__codelineno-9-37"></a>
-<a id="__codelineno-9-38" name="__codelineno-9-38" href="#__codelineno-9-38"></a>    <span class="c1"># Check metrics</span>
-<a id="__codelineno-9-39" name="__codelineno-9-39" href="#__codelineno-9-39"></a>    <span class="n">stats</span> <span class="o">=</span> <span class="n">chaosllm_server</span><span class="o">.</span><span class="n">get_stats</span><span class="p">()</span>
-<a id="__codelineno-9-40" name="__codelineno-9-40" href="#__codelineno-9-40"></a>    <span class="k">assert</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;total_requests&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span>
-<a id="__codelineno-9-41" name="__codelineno-9-41" href="#__codelineno-9-41"></a>
-<a id="__codelineno-9-42" name="__codelineno-9-42" href="#__codelineno-9-42"></a>
-<a id="__codelineno-9-43" name="__codelineno-9-43" href="#__codelineno-9-43"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_metrics_tracking</span><span class="p">(</span><span class="n">chaosllm_server</span><span class="p">):</span>
-<a id="__codelineno-9-44" name="__codelineno-9-44" href="#__codelineno-9-44"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Verify metrics are recorded for each request.&quot;&quot;&quot;</span>
-<a id="__codelineno-9-45" name="__codelineno-9-45" href="#__codelineno-9-45"></a>    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
-<a id="__codelineno-9-46" name="__codelineno-9-46" href="#__codelineno-9-46"></a>        <span class="n">chaosllm_server</span><span class="o">.</span><span class="n">post_completion</span><span class="p">()</span>
-<a id="__codelineno-9-47" name="__codelineno-9-47" href="#__codelineno-9-47"></a>
-<a id="__codelineno-9-48" name="__codelineno-9-48" href="#__codelineno-9-48"></a>    <span class="n">chaosllm_server</span><span class="o">.</span><span class="n">wait_for_requests</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
-<a id="__codelineno-9-49" name="__codelineno-9-49" href="#__codelineno-9-49"></a>    <span class="n">stats</span> <span class="o">=</span> <span class="n">chaosllm_server</span><span class="o">.</span><span class="n">get_stats</span><span class="p">()</span>
-<a id="__codelineno-9-50" name="__codelineno-9-50" href="#__codelineno-9-50"></a>    <span class="k">assert</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;total_requests&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">10</span>
-<a id="__codelineno-9-51" name="__codelineno-9-51" href="#__codelineno-9-51"></a>    <span class="k">assert</span> <span class="s2">&quot;latency_stats&quot;</span> <span class="ow">in</span> <span class="n">stats</span>
-</code></pre></div>
-<h3 id="chaosweb-testing-scraper-resilience">ChaosWeb: Testing Scraper Resilience<a class="headerlink" href="#chaosweb-testing-scraper-resilience" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>
-<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">chaosweb</span><span class="p">(</span><span class="n">forbidden_pct</span><span class="o">=</span><span class="mf">100.0</span><span class="p">)</span>
-<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_all_requests_blocked</span><span class="p">(</span><span class="n">chaosweb_server</span><span class="p">):</span>
-<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Verify behavior when bot detection blocks everything.&quot;&quot;&quot;</span>
-<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>    <span class="n">response</span> <span class="o">=</span> <span class="n">chaosweb_server</span><span class="o">.</span><span class="n">fetch_page</span><span class="p">(</span><span class="s2">&quot;/articles/test&quot;</span><span class="p">)</span>
-<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>    <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">403</span>
-<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>
-<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>
-<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">chaosweb</span><span class="p">(</span><span class="n">encoding_mismatch_pct</span><span class="o">=</span><span class="mf">100.0</span><span class="p">)</span>
-<a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_encoding_mismatch_detection</span><span class="p">(</span><span class="n">chaosweb_server</span><span class="p">):</span>
-<a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Verify the scraper detects encoding mismatches.&quot;&quot;&quot;</span>
-<a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a>    <span class="n">response</span> <span class="o">=</span> <span class="n">chaosweb_server</span><span class="o">.</span><span class="n">fetch_page</span><span class="p">(</span><span class="s2">&quot;/articles/test&quot;</span><span class="p">)</span>
-<a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a>    <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span>
-<a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a>    <span class="c1"># Header says UTF-8 but body is ISO-8859-1</span>
-<a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a>    <span class="k">assert</span> <span class="s2">&quot;utf-8&quot;</span> <span class="ow">in</span> <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;content-type&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
-<a id="__codelineno-10-17" name="__codelineno-10-17" href="#__codelineno-10-17"></a>
-<a id="__codelineno-10-18" name="__codelineno-10-18" href="#__codelineno-10-18"></a>
-<a id="__codelineno-10-19" name="__codelineno-10-19" href="#__codelineno-10-19"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">chaosweb</span><span class="p">(</span><span class="n">redirect_loop_pct</span><span class="o">=</span><span class="mf">100.0</span><span class="p">)</span>
-<a id="__codelineno-10-20" name="__codelineno-10-20" href="#__codelineno-10-20"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_redirect_loop_handling</span><span class="p">(</span><span class="n">chaosweb_server</span><span class="p">):</span>
-<a id="__codelineno-10-21" name="__codelineno-10-21" href="#__codelineno-10-21"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Verify the scraper detects redirect loops.&quot;&quot;&quot;</span>
-<a id="__codelineno-10-22" name="__codelineno-10-22" href="#__codelineno-10-22"></a>    <span class="n">response</span> <span class="o">=</span> <span class="n">chaosweb_server</span><span class="o">.</span><span class="n">fetch_page</span><span class="p">(</span><span class="s2">&quot;/articles/test&quot;</span><span class="p">)</span>
-<a id="__codelineno-10-23" name="__codelineno-10-23" href="#__codelineno-10-23"></a>    <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">301</span>
-<a id="__codelineno-10-24" name="__codelineno-10-24" href="#__codelineno-10-24"></a>    <span class="k">assert</span> <span class="s2">&quot;Location&quot;</span> <span class="ow">in</span> <span class="n">response</span><span class="o">.</span><span class="n">headers</span>
-<a id="__codelineno-10-25" name="__codelineno-10-25" href="#__codelineno-10-25"></a>    <span class="c1"># Without follow_redirects, you get the first redirect</span>
-<a id="__codelineno-10-26" name="__codelineno-10-26" href="#__codelineno-10-26"></a>    <span class="k">assert</span> <span class="s2">&quot;/redirect?&quot;</span> <span class="ow">in</span> <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s2">&quot;Location&quot;</span><span class="p">]</span>
-<a id="__codelineno-10-27" name="__codelineno-10-27" href="#__codelineno-10-27"></a>
-<a id="__codelineno-10-28" name="__codelineno-10-28" href="#__codelineno-10-28"></a>
-<a id="__codelineno-10-29" name="__codelineno-10-29" href="#__codelineno-10-29"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">chaosweb</span><span class="p">(</span><span class="n">preset</span><span class="o">=</span><span class="s2">&quot;realistic&quot;</span><span class="p">)</span>
-<a id="__codelineno-10-30" name="__codelineno-10-30" href="#__codelineno-10-30"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_realistic_scraping</span><span class="p">(</span><span class="n">chaosweb_server</span><span class="p">):</span>
-<a id="__codelineno-10-31" name="__codelineno-10-31" href="#__codelineno-10-31"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Test with realistic error distribution.&quot;&quot;&quot;</span>
-<a id="__codelineno-10-32" name="__codelineno-10-32" href="#__codelineno-10-32"></a>    <span class="n">results</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;success&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span>
-<a id="__codelineno-10-33" name="__codelineno-10-33" href="#__codelineno-10-33"></a>    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">):</span>
-<a id="__codelineno-10-34" name="__codelineno-10-34" href="#__codelineno-10-34"></a>        <span class="n">response</span> <span class="o">=</span> <span class="n">chaosweb_server</span><span class="o">.</span><span class="n">fetch_page</span><span class="p">(</span><span class="s2">&quot;/articles/test&quot;</span><span class="p">)</span>
-<a id="__codelineno-10-35" name="__codelineno-10-35" href="#__codelineno-10-35"></a>        <span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span><span class="p">:</span>
-<a id="__codelineno-10-36" name="__codelineno-10-36" href="#__codelineno-10-36"></a>            <span class="n">results</span><span class="p">[</span><span class="s2">&quot;success&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
-<a id="__codelineno-10-37" name="__codelineno-10-37" href="#__codelineno-10-37"></a>        <span class="k">else</span><span class="p">:</span>
-<a id="__codelineno-10-38" name="__codelineno-10-38" href="#__codelineno-10-38"></a>            <span class="n">results</span><span class="p">[</span><span class="s2">&quot;error&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
-<a id="__codelineno-10-39" name="__codelineno-10-39" href="#__codelineno-10-39"></a>    <span class="c1"># Realistic preset: ~80% success rate</span>
-<a id="__codelineno-10-40" name="__codelineno-10-40" href="#__codelineno-10-40"></a>    <span class="k">assert</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;success&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">50</span>
-</code></pre></div>
-<h3 id="chaosblob-testing-blob-pipeline-recovery">ChaosBlob: Testing Blob Pipeline Recovery<a class="headerlink" href="#chaosblob-testing-blob-pipeline-recovery" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
 <a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>
-<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">chaosblob</span><span class="p">(</span><span class="n">preset</span><span class="o">=</span><span class="s2">&quot;silent&quot;</span><span class="p">)</span>
-<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_blob_pipeline_handles_slow_down</span><span class="p">(</span><span class="n">chaosblob</span><span class="p">):</span>
-<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Verify a blob pipeline can retry after object-store throttling.&quot;&quot;&quot;</span>
-<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>    <span class="n">chaosblob</span><span class="o">.</span><span class="n">put_object</span><span class="p">(</span><span class="s2">&quot;bucket&quot;</span><span class="p">,</span> <span class="s2">&quot;incoming/1.json&quot;</span><span class="p">,</span> <span class="sa">b</span><span class="s1">&#39;{&quot;id&quot;: 1}&#39;</span><span class="p">)</span>
-<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>    <span class="n">chaosblob</span><span class="o">.</span><span class="n">update_config</span><span class="p">(</span><span class="n">slow_down_pct</span><span class="o">=</span><span class="mf">100.0</span><span class="p">,</span> <span class="n">updates</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;error_injection&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;retry_after_sec&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]}})</span>
-<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>
-<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>    <span class="n">response</span> <span class="o">=</span> <span class="n">chaosblob</span><span class="o">.</span><span class="n">get_object</span><span class="p">(</span><span class="s2">&quot;bucket&quot;</span><span class="p">,</span> <span class="s2">&quot;incoming/1.json&quot;</span><span class="p">)</span>
-<a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a>    <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">503</span>
-<a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a>    <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s2">&quot;retry-after&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;0&quot;</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">chaosllm</span><span class="p">(</span><span class="n">rate_limit_pct</span><span class="o">=</span><span class="mf">100.0</span><span class="p">)</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_all_requests_rate_limited</span><span class="p">(</span><span class="n">chaosllm_server</span><span class="p">):</span>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Verify behavior when every request is rate limited.&quot;&quot;&quot;</span>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>    <span class="n">response</span> <span class="o">=</span> <span class="n">chaosllm_server</span><span class="o">.</span><span class="n">post_completion</span><span class="p">()</span>
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>    <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">429</span>
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>    <span class="k">assert</span> <span class="s2">&quot;Retry-After&quot;</span> <span class="ow">in</span> <span class="n">response</span><span class="o">.</span><span class="n">headers</span>
+<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>    <span class="n">data</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+<a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a>    <span class="k">assert</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;error&quot;</span><span class="p">][</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;rate_limit_error&quot;</span>
+<a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a>
 <a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a>
-<a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a>    <span class="n">chaosblob</span><span class="o">.</span><span class="n">update_config</span><span class="p">(</span><span class="n">slow_down_pct</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
-<a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a>    <span class="n">response</span> <span class="o">=</span> <span class="n">chaosblob</span><span class="o">.</span><span class="n">get_object</span><span class="p">(</span><span class="s2">&quot;bucket&quot;</span><span class="p">,</span> <span class="s2">&quot;incoming/1.json&quot;</span><span class="p">)</span>
-<a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a>    <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span>
-<a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a>    <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span> <span class="o">==</span> <span class="p">{</span><span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">}</span>
-<a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a>
-<a id="__codelineno-11-18" name="__codelineno-11-18" href="#__codelineno-11-18"></a>    <span class="n">stats</span> <span class="o">=</span> <span class="n">chaosblob</span><span class="o">.</span><span class="n">get_stats</span><span class="p">()</span>
-<a id="__codelineno-11-19" name="__codelineno-11-19" href="#__codelineno-11-19"></a>    <span class="k">assert</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;total_requests&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span>
+<a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">chaosllm</span><span class="p">(</span><span class="n">invalid_json_pct</span><span class="o">=</span><span class="mf">100.0</span><span class="p">)</span>
+<a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_malformed_json_handling</span><span class="p">(</span><span class="n">chaosllm_server</span><span class="p">):</span>
+<a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Verify the client can detect invalid JSON responses.&quot;&quot;&quot;</span>
+<a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a>    <span class="n">response</span> <span class="o">=</span> <span class="n">chaosllm_server</span><span class="o">.</span><span class="n">post_completion</span><span class="p">()</span>
+<a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a>    <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span>  <span class="c1"># Malformed responses return 200</span>
+<a id="__codelineno-11-18" name="__codelineno-11-18" href="#__codelineno-11-18"></a>    <span class="c1"># The body is not valid JSON</span>
+<a id="__codelineno-11-19" name="__codelineno-11-19" href="#__codelineno-11-19"></a>    <span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-11-20" name="__codelineno-11-20" href="#__codelineno-11-20"></a>        <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+<a id="__codelineno-11-21" name="__codelineno-11-21" href="#__codelineno-11-21"></a>        <span class="k">assert</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;Expected JSON decode error&quot;</span>
+<a id="__codelineno-11-22" name="__codelineno-11-22" href="#__codelineno-11-22"></a>    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+<a id="__codelineno-11-23" name="__codelineno-11-23" href="#__codelineno-11-23"></a>        <span class="k">pass</span>  <span class="c1"># Expected</span>
+<a id="__codelineno-11-24" name="__codelineno-11-24" href="#__codelineno-11-24"></a>
+<a id="__codelineno-11-25" name="__codelineno-11-25" href="#__codelineno-11-25"></a>
+<a id="__codelineno-11-26" name="__codelineno-11-26" href="#__codelineno-11-26"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_runtime_config_update</span><span class="p">(</span><span class="n">chaosllm_server</span><span class="p">):</span>
+<a id="__codelineno-11-27" name="__codelineno-11-27" href="#__codelineno-11-27"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Verify runtime config updates take effect.&quot;&quot;&quot;</span>
+<a id="__codelineno-11-28" name="__codelineno-11-28" href="#__codelineno-11-28"></a>    <span class="c1"># Start with no errors</span>
+<a id="__codelineno-11-29" name="__codelineno-11-29" href="#__codelineno-11-29"></a>    <span class="n">response</span> <span class="o">=</span> <span class="n">chaosllm_server</span><span class="o">.</span><span class="n">post_completion</span><span class="p">()</span>
+<a id="__codelineno-11-30" name="__codelineno-11-30" href="#__codelineno-11-30"></a>    <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span>
+<a id="__codelineno-11-31" name="__codelineno-11-31" href="#__codelineno-11-31"></a>
+<a id="__codelineno-11-32" name="__codelineno-11-32" href="#__codelineno-11-32"></a>    <span class="c1"># Enable 100% rate limiting</span>
+<a id="__codelineno-11-33" name="__codelineno-11-33" href="#__codelineno-11-33"></a>    <span class="n">chaosllm_server</span><span class="o">.</span><span class="n">update_config</span><span class="p">(</span><span class="n">rate_limit_pct</span><span class="o">=</span><span class="mf">100.0</span><span class="p">)</span>
+<a id="__codelineno-11-34" name="__codelineno-11-34" href="#__codelineno-11-34"></a>
+<a id="__codelineno-11-35" name="__codelineno-11-35" href="#__codelineno-11-35"></a>    <span class="n">response</span> <span class="o">=</span> <span class="n">chaosllm_server</span><span class="o">.</span><span class="n">post_completion</span><span class="p">()</span>
+<a id="__codelineno-11-36" name="__codelineno-11-36" href="#__codelineno-11-36"></a>    <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">429</span>
+<a id="__codelineno-11-37" name="__codelineno-11-37" href="#__codelineno-11-37"></a>
+<a id="__codelineno-11-38" name="__codelineno-11-38" href="#__codelineno-11-38"></a>    <span class="c1"># Check metrics</span>
+<a id="__codelineno-11-39" name="__codelineno-11-39" href="#__codelineno-11-39"></a>    <span class="n">stats</span> <span class="o">=</span> <span class="n">chaosllm_server</span><span class="o">.</span><span class="n">get_stats</span><span class="p">()</span>
+<a id="__codelineno-11-40" name="__codelineno-11-40" href="#__codelineno-11-40"></a>    <span class="k">assert</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;total_requests&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span>
+<a id="__codelineno-11-41" name="__codelineno-11-41" href="#__codelineno-11-41"></a>
+<a id="__codelineno-11-42" name="__codelineno-11-42" href="#__codelineno-11-42"></a>
+<a id="__codelineno-11-43" name="__codelineno-11-43" href="#__codelineno-11-43"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_metrics_tracking</span><span class="p">(</span><span class="n">chaosllm_server</span><span class="p">):</span>
+<a id="__codelineno-11-44" name="__codelineno-11-44" href="#__codelineno-11-44"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Verify metrics are recorded for each request.&quot;&quot;&quot;</span>
+<a id="__codelineno-11-45" name="__codelineno-11-45" href="#__codelineno-11-45"></a>    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+<a id="__codelineno-11-46" name="__codelineno-11-46" href="#__codelineno-11-46"></a>        <span class="n">chaosllm_server</span><span class="o">.</span><span class="n">post_completion</span><span class="p">()</span>
+<a id="__codelineno-11-47" name="__codelineno-11-47" href="#__codelineno-11-47"></a>
+<a id="__codelineno-11-48" name="__codelineno-11-48" href="#__codelineno-11-48"></a>    <span class="n">chaosllm_server</span><span class="o">.</span><span class="n">wait_for_requests</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+<a id="__codelineno-11-49" name="__codelineno-11-49" href="#__codelineno-11-49"></a>    <span class="n">stats</span> <span class="o">=</span> <span class="n">chaosllm_server</span><span class="o">.</span><span class="n">get_stats</span><span class="p">()</span>
+<a id="__codelineno-11-50" name="__codelineno-11-50" href="#__codelineno-11-50"></a>    <span class="k">assert</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;total_requests&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">10</span>
+<a id="__codelineno-11-51" name="__codelineno-11-51" href="#__codelineno-11-51"></a>    <span class="k">assert</span> <span class="s2">&quot;latency_stats&quot;</span> <span class="ow">in</span> <span class="n">stats</span>
+</code></pre></div>
+<h3 id="chaosweb-testing-scraper-resilience">ChaosWeb: Testing Scraper Resilience<a class="headerlink" href="#chaosweb-testing-scraper-resilience" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">chaosweb</span><span class="p">(</span><span class="n">forbidden_pct</span><span class="o">=</span><span class="mf">100.0</span><span class="p">)</span>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_all_requests_blocked</span><span class="p">(</span><span class="n">chaosweb_server</span><span class="p">):</span>
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Verify behavior when bot detection blocks everything.&quot;&quot;&quot;</span>
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>    <span class="n">response</span> <span class="o">=</span> <span class="n">chaosweb_server</span><span class="o">.</span><span class="n">fetch_page</span><span class="p">(</span><span class="s2">&quot;/articles/test&quot;</span><span class="p">)</span>
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>    <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">403</span>
+<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>
+<a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>
+<a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">chaosweb</span><span class="p">(</span><span class="n">encoding_mismatch_pct</span><span class="o">=</span><span class="mf">100.0</span><span class="p">)</span>
+<a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_encoding_mismatch_detection</span><span class="p">(</span><span class="n">chaosweb_server</span><span class="p">):</span>
+<a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Verify the scraper detects encoding mismatches.&quot;&quot;&quot;</span>
+<a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a>    <span class="n">response</span> <span class="o">=</span> <span class="n">chaosweb_server</span><span class="o">.</span><span class="n">fetch_page</span><span class="p">(</span><span class="s2">&quot;/articles/test&quot;</span><span class="p">)</span>
+<a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a>    <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span>
+<a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a>    <span class="c1"># Header says UTF-8 but body is ISO-8859-1</span>
+<a id="__codelineno-12-16" name="__codelineno-12-16" href="#__codelineno-12-16"></a>    <span class="k">assert</span> <span class="s2">&quot;utf-8&quot;</span> <span class="ow">in</span> <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;content-type&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+<a id="__codelineno-12-17" name="__codelineno-12-17" href="#__codelineno-12-17"></a>
+<a id="__codelineno-12-18" name="__codelineno-12-18" href="#__codelineno-12-18"></a>
+<a id="__codelineno-12-19" name="__codelineno-12-19" href="#__codelineno-12-19"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">chaosweb</span><span class="p">(</span><span class="n">redirect_loop_pct</span><span class="o">=</span><span class="mf">100.0</span><span class="p">)</span>
+<a id="__codelineno-12-20" name="__codelineno-12-20" href="#__codelineno-12-20"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_redirect_loop_handling</span><span class="p">(</span><span class="n">chaosweb_server</span><span class="p">):</span>
+<a id="__codelineno-12-21" name="__codelineno-12-21" href="#__codelineno-12-21"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Verify the scraper detects redirect loops.&quot;&quot;&quot;</span>
+<a id="__codelineno-12-22" name="__codelineno-12-22" href="#__codelineno-12-22"></a>    <span class="n">response</span> <span class="o">=</span> <span class="n">chaosweb_server</span><span class="o">.</span><span class="n">fetch_page</span><span class="p">(</span><span class="s2">&quot;/articles/test&quot;</span><span class="p">)</span>
+<a id="__codelineno-12-23" name="__codelineno-12-23" href="#__codelineno-12-23"></a>    <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">301</span>
+<a id="__codelineno-12-24" name="__codelineno-12-24" href="#__codelineno-12-24"></a>    <span class="k">assert</span> <span class="s2">&quot;Location&quot;</span> <span class="ow">in</span> <span class="n">response</span><span class="o">.</span><span class="n">headers</span>
+<a id="__codelineno-12-25" name="__codelineno-12-25" href="#__codelineno-12-25"></a>    <span class="c1"># Without follow_redirects, you get the first redirect</span>
+<a id="__codelineno-12-26" name="__codelineno-12-26" href="#__codelineno-12-26"></a>    <span class="k">assert</span> <span class="s2">&quot;/redirect?&quot;</span> <span class="ow">in</span> <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s2">&quot;Location&quot;</span><span class="p">]</span>
+<a id="__codelineno-12-27" name="__codelineno-12-27" href="#__codelineno-12-27"></a>
+<a id="__codelineno-12-28" name="__codelineno-12-28" href="#__codelineno-12-28"></a>
+<a id="__codelineno-12-29" name="__codelineno-12-29" href="#__codelineno-12-29"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">chaosweb</span><span class="p">(</span><span class="n">preset</span><span class="o">=</span><span class="s2">&quot;realistic&quot;</span><span class="p">)</span>
+<a id="__codelineno-12-30" name="__codelineno-12-30" href="#__codelineno-12-30"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_realistic_scraping</span><span class="p">(</span><span class="n">chaosweb_server</span><span class="p">):</span>
+<a id="__codelineno-12-31" name="__codelineno-12-31" href="#__codelineno-12-31"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Test with realistic error distribution.&quot;&quot;&quot;</span>
+<a id="__codelineno-12-32" name="__codelineno-12-32" href="#__codelineno-12-32"></a>    <span class="n">results</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;success&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span>
+<a id="__codelineno-12-33" name="__codelineno-12-33" href="#__codelineno-12-33"></a>    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">):</span>
+<a id="__codelineno-12-34" name="__codelineno-12-34" href="#__codelineno-12-34"></a>        <span class="n">response</span> <span class="o">=</span> <span class="n">chaosweb_server</span><span class="o">.</span><span class="n">fetch_page</span><span class="p">(</span><span class="s2">&quot;/articles/test&quot;</span><span class="p">)</span>
+<a id="__codelineno-12-35" name="__codelineno-12-35" href="#__codelineno-12-35"></a>        <span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span><span class="p">:</span>
+<a id="__codelineno-12-36" name="__codelineno-12-36" href="#__codelineno-12-36"></a>            <span class="n">results</span><span class="p">[</span><span class="s2">&quot;success&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+<a id="__codelineno-12-37" name="__codelineno-12-37" href="#__codelineno-12-37"></a>        <span class="k">else</span><span class="p">:</span>
+<a id="__codelineno-12-38" name="__codelineno-12-38" href="#__codelineno-12-38"></a>            <span class="n">results</span><span class="p">[</span><span class="s2">&quot;error&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+<a id="__codelineno-12-39" name="__codelineno-12-39" href="#__codelineno-12-39"></a>    <span class="c1"># Realistic preset: ~80% success rate</span>
+<a id="__codelineno-12-40" name="__codelineno-12-40" href="#__codelineno-12-40"></a>    <span class="k">assert</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;success&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">50</span>
+</code></pre></div>
+<h3 id="chaosblob-testing-blob-pipeline-recovery">ChaosBlob: Testing Blob Pipeline Recovery<a class="headerlink" href="#chaosblob-testing-blob-pipeline-recovery" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">chaosblob</span><span class="p">(</span><span class="n">preset</span><span class="o">=</span><span class="s2">&quot;silent&quot;</span><span class="p">)</span>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_blob_pipeline_handles_slow_down</span><span class="p">(</span><span class="n">chaosblob</span><span class="p">):</span>
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Verify a blob pipeline can retry after object-store throttling.&quot;&quot;&quot;</span>
+<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>    <span class="n">chaosblob</span><span class="o">.</span><span class="n">put_object</span><span class="p">(</span><span class="s2">&quot;bucket&quot;</span><span class="p">,</span> <span class="s2">&quot;incoming/1.json&quot;</span><span class="p">,</span> <span class="sa">b</span><span class="s1">&#39;{&quot;id&quot;: 1}&#39;</span><span class="p">)</span>
+<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>    <span class="n">chaosblob</span><span class="o">.</span><span class="n">update_config</span><span class="p">(</span><span class="n">slow_down_pct</span><span class="o">=</span><span class="mf">100.0</span><span class="p">,</span> <span class="n">updates</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;error_injection&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;retry_after_sec&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]}})</span>
+<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>
+<a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a>    <span class="n">response</span> <span class="o">=</span> <span class="n">chaosblob</span><span class="o">.</span><span class="n">get_object</span><span class="p">(</span><span class="s2">&quot;bucket&quot;</span><span class="p">,</span> <span class="s2">&quot;incoming/1.json&quot;</span><span class="p">)</span>
+<a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a>    <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">503</span>
+<a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a>    <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s2">&quot;retry-after&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;0&quot;</span>
+<a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a>
+<a id="__codelineno-13-13" name="__codelineno-13-13" href="#__codelineno-13-13"></a>    <span class="n">chaosblob</span><span class="o">.</span><span class="n">update_config</span><span class="p">(</span><span class="n">slow_down_pct</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
+<a id="__codelineno-13-14" name="__codelineno-13-14" href="#__codelineno-13-14"></a>    <span class="n">response</span> <span class="o">=</span> <span class="n">chaosblob</span><span class="o">.</span><span class="n">get_object</span><span class="p">(</span><span class="s2">&quot;bucket&quot;</span><span class="p">,</span> <span class="s2">&quot;incoming/1.json&quot;</span><span class="p">)</span>
+<a id="__codelineno-13-15" name="__codelineno-13-15" href="#__codelineno-13-15"></a>    <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span>
+<a id="__codelineno-13-16" name="__codelineno-13-16" href="#__codelineno-13-16"></a>    <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span> <span class="o">==</span> <span class="p">{</span><span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">}</span>
+<a id="__codelineno-13-17" name="__codelineno-13-17" href="#__codelineno-13-17"></a>
+<a id="__codelineno-13-18" name="__codelineno-13-18" href="#__codelineno-13-18"></a>    <span class="n">stats</span> <span class="o">=</span> <span class="n">chaosblob</span><span class="o">.</span><span class="n">get_stats</span><span class="p">()</span>
+<a id="__codelineno-13-19" name="__codelineno-13-19" href="#__codelineno-13-19"></a>    <span class="k">assert</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;total_requests&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span>
+</code></pre></div>
+<h3 id="chaossmtp-testing-delivery-failures">ChaosSMTP: Testing Delivery Failures<a class="headerlink" href="#chaossmtp-testing-delivery-failures" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">email.message</span><span class="w"> </span><span class="kn">import</span> <span class="n">EmailMessage</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">smtplib</span>
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="k">def</span><span class="w"> </span><span class="nf">_message</span><span class="p">():</span>
+<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>    <span class="n">message</span> <span class="o">=</span> <span class="n">EmailMessage</span><span class="p">()</span>
+<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>    <span class="n">message</span><span class="p">[</span><span class="s2">&quot;From&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;sender@example.com&quot;</span>
+<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a>    <span class="n">message</span><span class="p">[</span><span class="s2">&quot;To&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;recipient@example.com&quot;</span>
+<a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a>    <span class="n">message</span><span class="p">[</span><span class="s2">&quot;Subject&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;Delivery test&quot;</span>
+<a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a>    <span class="n">message</span><span class="o">.</span><span class="n">set_content</span><span class="p">(</span><span class="s2">&quot;hello&quot;</span><span class="p">)</span>
+<a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a>    <span class="k">return</span> <span class="n">message</span>
+<a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a>
+<a id="__codelineno-14-13" name="__codelineno-14-13" href="#__codelineno-14-13"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">chaossmtp</span><span class="p">(</span><span class="n">data_reject_pct</span><span class="o">=</span><span class="mf">100.0</span><span class="p">)</span>
+<a id="__codelineno-14-14" name="__codelineno-14-14" href="#__codelineno-14-14"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_data_rejection</span><span class="p">(</span><span class="n">chaossmtp_server</span><span class="p">):</span>
+<a id="__codelineno-14-15" name="__codelineno-14-15" href="#__codelineno-14-15"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Verify behavior when every DATA command is rejected.&quot;&quot;&quot;</span>
+<a id="__codelineno-14-16" name="__codelineno-14-16" href="#__codelineno-14-16"></a>    <span class="k">with</span> <span class="n">pytest</span><span class="o">.</span><span class="n">raises</span><span class="p">(</span><span class="n">smtplib</span><span class="o">.</span><span class="n">SMTPDataError</span><span class="p">)</span> <span class="k">as</span> <span class="n">exc_info</span><span class="p">:</span>
+<a id="__codelineno-14-17" name="__codelineno-14-17" href="#__codelineno-14-17"></a>        <span class="n">chaossmtp_server</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span><span class="n">_message</span><span class="p">())</span>
+<a id="__codelineno-14-18" name="__codelineno-14-18" href="#__codelineno-14-18"></a>    <span class="k">assert</span> <span class="n">exc_info</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">smtp_code</span> <span class="o">==</span> <span class="mi">554</span>
+<a id="__codelineno-14-19" name="__codelineno-14-19" href="#__codelineno-14-19"></a>
+<a id="__codelineno-14-20" name="__codelineno-14-20" href="#__codelineno-14-20"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_capture_metadata</span><span class="p">(</span><span class="n">chaossmtp_server</span><span class="p">):</span>
+<a id="__codelineno-14-21" name="__codelineno-14-21" href="#__codelineno-14-21"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Verify accepted messages are captured as metadata by default.&quot;&quot;&quot;</span>
+<a id="__codelineno-14-22" name="__codelineno-14-22" href="#__codelineno-14-22"></a>    <span class="k">assert</span> <span class="n">chaossmtp_server</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span><span class="n">_message</span><span class="p">())</span> <span class="o">==</span> <span class="p">{}</span>
+<a id="__codelineno-14-23" name="__codelineno-14-23" href="#__codelineno-14-23"></a>    <span class="k">assert</span> <span class="n">chaossmtp_server</span><span class="o">.</span><span class="n">wait_for_messages</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<a id="__codelineno-14-24" name="__codelineno-14-24" href="#__codelineno-14-24"></a>    <span class="n">exported</span> <span class="o">=</span> <span class="n">chaossmtp_server</span><span class="o">.</span><span class="n">export_metrics</span><span class="p">()</span>
+<a id="__codelineno-14-25" name="__codelineno-14-25" href="#__codelineno-14-25"></a>    <span class="k">assert</span> <span class="n">exported</span><span class="p">[</span><span class="s2">&quot;messages&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;subject&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;Delivery test&quot;</span>
 </code></pre></div>
 <h2 id="how-it-works">How It Works<a class="headerlink" href="#how-it-works" title="Permanent link">&para;</a></h2>
-<p>The fixtures use Starlette's <code>TestClient</code>, which wraps the ASGI application and routes HTTP calls through the stack without opening a network socket. This means:</p>
+<p>The ChaosLLM and ChaosWeb repository fixtures use Starlette's <code>TestClient</code>, which wraps the ASGI application and routes HTTP calls through the stack without opening a network socket. This means:</p>
 <ul>
 <li><strong>No port conflicts</strong> -- multiple tests can run in parallel</li>
 <li><strong>No startup delay</strong> -- the server is ready immediately</li>
 <li><strong>Full fidelity</strong> -- the same request handling code runs as in production</li>
 <li><strong>Isolated state</strong> -- each test gets a fresh server instance via <code>tmp_path</code></li>
 </ul>
-<p>The <code>_build_config_from_marker()</code> function translates marker kwargs into a <code>ChaosLLMConfig</code>, <code>ChaosWebConfig</code>, or <code>ChaosBlobConfig</code> object. It applies the same precedence rules as the CLI: marker kwargs override the preset, and the fixture always forces latency to zero and sets a deterministic admin token for test convenience.</p>
+<p>The ChaosSMTP repository fixture uses the same configuration pattern, but it starts a real <code>aiosmtpd</code> listener on an ephemeral loopback port. That keeps tests close to production SMTP client behavior while avoiding fixed-port conflicts.</p>
+<p>The <code>_build_config_from_marker()</code> function translates marker kwargs into a <code>ChaosLLMConfig</code>, <code>ChaosWebConfig</code>, <code>ChaosBlobConfig</code>, or <code>ChaosSMTPConfig</code> object. It applies the same precedence rules as the CLI: marker kwargs override the preset, and the fixture always forces latency to zero and sets a deterministic admin token for test convenience.</p>
 <h2 id="related-pages">Related Pages<a class="headerlink" href="#related-pages" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="../chaosllm/">ChaosLLM</a> -- Error types and response modes</li>
 <li><a href="../chaosweb/">ChaosWeb</a> -- Error types and content modes</li>
 <li><a href="../chaosblob/">ChaosBlob</a> -- Object-storage error types and fixture helpers</li>
+<li><a href="../chaossmtp/">ChaosSMTP</a> -- SMTP listener, error types, and capture modes</li>
 <li><a href="../metrics/">Metrics</a> -- Understanding metrics data in tests</li>
 <li><a href="../configuration/">Configuration</a> -- How configuration precedence works</li>
 </ul>
