@@ -62,6 +62,7 @@ docs = [
 
 [project.scripts]
 chaosengine = "errorworks.engine.cli:main"
+chaosblob = "errorworks.blob.cli:main"
 chaosllm = "errorworks.llm.cli:main"
 chaosllm-mcp = "errorworks.llm.cli:mcp_main_entry"
 chaosweb = "errorworks.web.cli:main"
