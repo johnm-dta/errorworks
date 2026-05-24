@@ -1,0 +1,12 @@
+# Default owner for everything in the repo. Required reviewers for
+# every PR; keeps the maintainer in the loop on external contributions.
+*       @johnm-dta
+
+# Workflow and security-sensitive paths — explicit so any change to
+# CI/CD, supply-chain config, or publish flow is reviewed by the
+# repository owner.
+/.github/                  @johnm-dta
+/.github/workflows/        @johnm-dta
+/.github/dependabot.yml    @johnm-dta
+/.pre-commit-config.yaml   @johnm-dta
+/pyproject.toml            @johnm-dta

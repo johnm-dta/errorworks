@@ -1,0 +1,74 @@
+name: Security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+    paths:
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/security.yml"
+  schedule:
+    # Weekly catch-all so newly published CVEs in unchanged dependencies
+    # still page someone. Monday 06:00 Sydney = 19:00 UTC Sunday.
+    - cron: "0 19 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # CodeQL static analysis. Auto-builds for Python; results land in the
+  # Security tab and gate via "Code scanning" branch protection if enabled.
+  # ---------------------------------------------------------------------------
+  codeql:
+    name: codeql (python)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+      - uses: github/codeql-action/init@03e4368ac7daa2bd82b3e85262f3bf87ee112f57  # v3
+        with:
+          languages: python
+          queries: security-and-quality
+      - uses: github/codeql-action/analyze@03e4368ac7daa2bd82b3e85262f3bf87ee112f57  # v3
+        with:
+          category: "/language:python"
+
+  # ---------------------------------------------------------------------------
+  # pip-audit against the resolved dependency set. Runs offline against
+  # the lockfile-equivalent state uv produces from pyproject.toml.
+  # ---------------------------------------------------------------------------
+  pip-audit:
+    name: pip-audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: "pyproject.toml"
+      - name: Resolve dependencies into requirements.txt
+        run: |
+          uv export \
+            --all-extras \
+            --no-hashes \
+            --format requirements-txt \
+            > /tmp/requirements.txt
+      - name: Run pip-audit
+        run: |
+          uvx --from pip-audit pip-audit \
+            --requirement /tmp/requirements.txt \
+            --strict \
+            --disable-pip
