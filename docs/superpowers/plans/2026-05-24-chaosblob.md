@@ -18,7 +18,7 @@ Build the minimum useful object-store chaos surface:
 - `GET /{bucket}/{key:path}` returns an object body or an injected object/read failure.
 - `HEAD /{bucket}/{key:path}` returns object metadata without a body.
 - `DELETE /{bucket}/{key:path}` deletes an object and returns a success response.
-- `GET /{bucket}?list-type=2&prefix=logs/&continuation-token=2&max-keys=1000` returns S3-style ListObjectsV2 XML.
+- `GET /{bucket}?list-type=2&prefix=logs/&continuation-token=<opaque-token>&max-keys=1000` returns S3-style ListObjectsV2 XML.
 - Shared `/health` and `/admin/*` endpoints match existing server families.
 
 Do not implement full AWS Signature V4 validation, multipart upload, bucket creation, bucket policies, object versioning, ACLs, presigned URL validation, or cloud-specific SDK quirks in this first plan. The server must accept signed requests as ordinary HTTP requests so clients can point path-style S3-compatible clients at it.
