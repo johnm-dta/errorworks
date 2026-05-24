@@ -1,5 +1,7 @@
 """Tests for ChaosSMTP metrics recorder."""
 
+import pytest
+
 from errorworks.engine.types import MetricsConfig
 from errorworks.smtp.metrics import SMTPMetricsRecorder
 
@@ -42,6 +44,32 @@ def test_record_tempfail_classifies_timeseries(tmp_path) -> None:
     )
     timeseries = recorder.get_timeseries()
     assert timeseries[0]["messages_tempfailed"] == 1
+
+
+def test_explicit_tempfail_without_reply_code_classifies_timeseries(tmp_path) -> None:
+    recorder = SMTPMetricsRecorder(MetricsConfig(database=str(tmp_path / "smtp.db")))
+    recorder.record_transaction(
+        transaction_id="tx-1",
+        session_id="session-1",
+        timestamp_utc="2026-05-24T00:00:00+00:00",
+        outcome="tempfailed",
+        capture_mode="metadata",
+    )
+    timeseries = recorder.get_timeseries()
+    assert timeseries[0]["messages_tempfailed"] == 1
+
+
+def test_explicit_permfail_without_reply_code_classifies_timeseries(tmp_path) -> None:
+    recorder = SMTPMetricsRecorder(MetricsConfig(database=str(tmp_path / "smtp.db")))
+    recorder.record_transaction(
+        transaction_id="tx-1",
+        session_id="session-1",
+        timestamp_utc="2026-05-24T00:00:00+00:00",
+        outcome="permfailed",
+        capture_mode="metadata",
+    )
+    timeseries = recorder.get_timeseries()
+    assert timeseries[0]["messages_permfailed"] == 1
 
 
 def test_connection_error_reply_code_does_not_count_as_tempfail(tmp_path) -> None:
@@ -115,6 +143,31 @@ def test_get_requests_returns_filtered_raw_rows(tmp_path) -> None:
     assert len(requests) == 1
     assert requests[0]["transaction_id"] == "tx-2"
     assert requests[0]["outcome"] == "tempfailed"
+
+
+def test_failed_record_transaction_rolls_back_raw_insert(tmp_path) -> None:
+    recorder = SMTPMetricsRecorder(MetricsConfig(database=str(tmp_path / "smtp.db")))
+    with pytest.raises(ValueError, match="Invalid timestamp"):
+        recorder.record_transaction(
+            transaction_id="tx-invalid",
+            session_id="session-1",
+            timestamp_utc="not-a-timestamp",
+            outcome="success",
+            reply_code=250,
+            capture_mode="metadata",
+        )
+
+    recorder.record_transaction(
+        transaction_id="tx-valid",
+        session_id="session-1",
+        timestamp_utc="2026-05-24T00:00:00+00:00",
+        outcome="success",
+        reply_code=250,
+        capture_mode="metadata",
+    )
+
+    transaction_ids = {row["transaction_id"] for row in recorder.export_data()["requests"]}
+    assert transaction_ids == {"tx-valid"}
 
 
 def test_reset_starts_new_run(tmp_path) -> None:

@@ -79,6 +79,24 @@ def _classify_outcome(outcome: str, reply_code: int | None, error_type: str | No
             malformed_protocol=False,
             accepted_then_dropped=True,
         )
+    if outcome == "tempfailed":
+        return SMTPOutcomeClassification(
+            accepted=False,
+            tempfailed=True,
+            permfailed=False,
+            connection_error=False,
+            malformed_protocol=False,
+            accepted_then_dropped=False,
+        )
+    if outcome == "permfailed":
+        return SMTPOutcomeClassification(
+            accepted=False,
+            tempfailed=False,
+            permfailed=True,
+            connection_error=False,
+            malformed_protocol=False,
+            accepted_then_dropped=False,
+        )
     if outcome == "connection_error":
         return SMTPOutcomeClassification(
             accepted=False,
@@ -136,6 +154,9 @@ class SMTPMetricsRecorder:
     def started_utc(self) -> str:
         return self._store.started_utc
 
+    def _rollback_pending_transaction(self) -> None:
+        self._store._get_connection().rollback()
+
     def record_transaction(
         self,
         *,
@@ -160,41 +181,45 @@ class SMTPMetricsRecorder:
         tls_used: bool | None = None,
         auth_username: str | None = None,
     ) -> None:
-        self._store.record(
-            transaction_id=transaction_id,
-            session_id=session_id,
-            timestamp_utc=timestamp_utc,
-            client_addr=client_addr,
-            mail_from=mail_from,
-            rcpt_count=rcpt_count,
-            rcpt_domains=rcpt_domains,
-            message_size_bytes=message_size_bytes,
-            subject=subject,
-            outcome=outcome,
-            smtp_stage=smtp_stage,
-            reply_code=reply_code,
-            enhanced_status_code=enhanced_status_code,
-            error_type=error_type,
-            injection_type=injection_type,
-            latency_ms=latency_ms,
-            injected_delay_ms=injected_delay_ms,
-            capture_mode=capture_mode,
-            tls_used=int(tls_used) if tls_used is not None else None,
-            auth_username=auth_username,
-        )
-        cls = _classify_outcome(outcome, reply_code, error_type)
-        bucket = self._store.get_bucket_utc(timestamp_utc)
-        self._store.update_timeseries(
-            bucket,
-            messages_accepted=int(cls.accepted),
-            messages_tempfailed=int(cls.tempfailed),
-            messages_permfailed=int(cls.permfailed),
-            messages_connection_error=int(cls.connection_error),
-            messages_malformed_protocol=int(cls.malformed_protocol),
-            messages_accepted_then_dropped=int(cls.accepted_then_dropped),
-        )
-        self._store.update_bucket_latency(bucket, latency_ms)
-        self._store.commit()
+        try:
+            self._store.record(
+                transaction_id=transaction_id,
+                session_id=session_id,
+                timestamp_utc=timestamp_utc,
+                client_addr=client_addr,
+                mail_from=mail_from,
+                rcpt_count=rcpt_count,
+                rcpt_domains=rcpt_domains,
+                message_size_bytes=message_size_bytes,
+                subject=subject,
+                outcome=outcome,
+                smtp_stage=smtp_stage,
+                reply_code=reply_code,
+                enhanced_status_code=enhanced_status_code,
+                error_type=error_type,
+                injection_type=injection_type,
+                latency_ms=latency_ms,
+                injected_delay_ms=injected_delay_ms,
+                capture_mode=capture_mode,
+                tls_used=int(tls_used) if tls_used is not None else None,
+                auth_username=auth_username,
+            )
+            cls = _classify_outcome(outcome, reply_code, error_type)
+            bucket = self._store.get_bucket_utc(timestamp_utc)
+            self._store.update_timeseries(
+                bucket,
+                messages_accepted=int(cls.accepted),
+                messages_tempfailed=int(cls.tempfailed),
+                messages_permfailed=int(cls.permfailed),
+                messages_connection_error=int(cls.connection_error),
+                messages_malformed_protocol=int(cls.malformed_protocol),
+                messages_accepted_then_dropped=int(cls.accepted_then_dropped),
+            )
+            self._store.update_bucket_latency(bucket, latency_ms)
+            self._store.commit()
+        except Exception:
+            self._rollback_pending_transaction()
+            raise
 
     def update_timeseries(self) -> None:
         self._store.rebuild_timeseries(_classify_row)
