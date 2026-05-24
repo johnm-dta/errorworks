@@ -224,19 +224,81 @@ error_injection:
     forbidden_pct: 30
 ```
 
+### ChaosBlob Full Example
+
+```yaml
+server:
+  host: "127.0.0.1"
+  port: 8300
+  workers: 1
+  admin_token: "my-secret-token"
+
+metrics:
+  database: "file:chaosblob-metrics?mode=memory&cache=shared"
+  timeseries_bucket_sec: 1
+
+storage:
+  max_object_bytes: 10485760
+  default_content_type: "application/octet-stream"
+  expose_s3_xml: true
+
+latency:
+  base_ms: 150
+  jitter_ms: 75
+
+error_injection:
+  selection_mode: priority
+
+  # S3 HTTP errors
+  slow_down_pct: 4.0
+  access_denied_pct: 0.5
+  not_found_pct: 1.0
+  service_unavailable_pct: 0.8
+  internal_error_pct: 0.2
+  bad_gateway_pct: 0.2
+  gateway_timeout_pct: 0.3
+  retry_after_sec: [2, 20]
+
+  # Connection failures
+  timeout_pct: 0.3
+  timeout_sec: [10, 30]
+  connection_reset_pct: 0.2
+  connection_stall_pct: 0.0
+  connection_stall_start_sec: [0, 2]
+  connection_stall_sec: [30, 60]
+  slow_response_pct: 3.0
+  slow_response_sec: [2, 8]
+
+  # Object and list corruption
+  truncated_body_pct: 0.5
+  wrong_content_length_pct: 0.3
+  checksum_mismatch_pct: 0.5
+  metadata_corruption_pct: 0.3
+  stale_list_pct: 3.0
+  malformed_xml_pct: 0.2
+
+  # Burst patterns
+  burst:
+    enabled: true
+    interval_sec: 90
+    duration_sec: 10
+    slow_down_pct: 35.0
+    service_unavailable_pct: 10.0
+```
+
 ## Configuration Sections
 
 ### Server
 
-| Field | Type | Default (LLM/Web) | Description |
+| Field | Type | Default (LLM/Web/Blob) | Description |
 |---|---|---|---|
 | `host` | string | `127.0.0.1` | Bind address |
-| `port` | int | `8000` / `8200` | Listen port |
+| `port` | int | `8000` / `8200` / `8300` | Listen port |
 | `workers` | int | `1` | Uvicorn worker count. Values > 1 require a file-backed metrics database. |
 | `admin_token` | string | auto-generated | Bearer token for `/admin/*` endpoints |
 
 !!! warning
-    Binding to `0.0.0.0` or `::` is blocked by default. ChaosLLM and ChaosWeb are testing tools and should not be exposed to the network. Set `allow_external_bind: true` at the top level to override this safety check.
+    Binding to `0.0.0.0` or `::` is blocked by default. ChaosLLM, ChaosWeb, and ChaosBlob are testing tools and should not be exposed to the network. Set `allow_external_bind: true` at the top level to override this safety check.
 
 ### Metrics
 
@@ -310,4 +372,5 @@ If your update contains invalid values, the server returns 422 with a validation
 - [Presets](presets.md) -- Pre-built configuration profiles
 - [ChaosLLM](chaosllm.md) -- LLM-specific error types and endpoints
 - [ChaosWeb](chaosweb.md) -- Web-specific error types and endpoints
+- [ChaosBlob](chaosblob.md) -- Blob-specific error types and endpoints
 - [Metrics](metrics.md) -- Metrics storage configuration

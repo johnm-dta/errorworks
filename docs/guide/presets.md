@@ -8,6 +8,7 @@ Presets are pre-built configuration profiles that set error rates, latency, burs
 # CLI
 uv run chaosllm serve --preset=realistic
 uv run chaosweb serve --preset=stress_scraping
+uv run chaosblob serve --preset=stress_storage
 
 # Python
 from errorworks.llm.config import load_config
@@ -59,6 +60,28 @@ config = load_config(preset="realistic")
 | `realistic` | Testing against typical web scraping production conditions |
 | `stress_scraping` | Verifying retry logic, backoff, and error routing under pressure |
 | `stress_extreme` | Finding failure modes and verifying graceful degradation |
+
+## ChaosBlob Presets
+
+### Comparison Table
+
+| Preset | SlowDown | HTTP Errors | Connection Failures | Object Corruption | List Corruption | Burst | Latency |
+|---|---|---|---|---|---|---|---|
+| `silent` | 0% | 0% | 0% | 0% | 0% | Off | 50 +/- 25ms |
+| `gentle` | 1% | 0.5% not found | 0% | 0% | 0% | Off | 100 +/- 50ms |
+| `realistic` | 4% | 0.5% access denied, 1% not found, 0.8% svc, 0.2% internal, 0.2% bad gw, 0.3% gw timeout | 0.3% timeout, 0.2% reset, 3% slow | 0.5% truncated, 0.3% wrong length, 0.5% checksum, 0.3% metadata | 3% stale, 0.2% malformed XML | 90s/10s (35% slow, 10% svc) | 150 +/- 75ms |
+| `stress_storage` | 8% | 4% not found | 8% slow | 8% truncated, 6% wrong length, 8% checksum, 6% metadata | 12% stale, 4% malformed XML | 60s/12s (60% slow, 20% svc) | 250 +/- 150ms |
+| `stress_extreme` | 20% | 5% access denied, 5% not found, 8% svc, 4% internal, 3% bad gw, 5% gw timeout | 8% timeout, 5% reset, 4% stall, 8% slow | 6% truncated, 5% wrong length, 6% checksum, 4% metadata | 8% stale, 4% malformed XML | 30s/8s (90% slow, 60% svc) | 600 +/- 300ms |
+
+### When to Use Each
+
+| Preset | Use When |
+|---|---|
+| `silent` | Measuring object workflow throughput without injected failures |
+| `gentle` | Verifying happy-path PUT/GET/list behavior with light throttling |
+| `realistic` | Testing common object-store throttling, stale list, and rare read faults |
+| `stress_storage` | Exercising body integrity, metadata validation, and stale listing recovery |
+| `stress_extreme` | Finding retry, timeout, and corruption handling breakpoints |
 
 ## Combining Presets with Overrides
 
@@ -113,14 +136,17 @@ config = load_config(
 
 ```python
 from errorworks.llm.config import list_presets as list_llm_presets
+from errorworks.blob.config import list_presets as list_blob_presets
 from errorworks.web.config import list_presets as list_web_presets
 
 print(list_llm_presets())  # ['chaos', 'gentle', 'realistic', 'silent', 'stress_aimd', 'stress_extreme']
 print(list_web_presets())  # ['gentle', 'realistic', 'silent', 'stress_extreme', 'stress_scraping']
+print(list_blob_presets())  # ['gentle', 'realistic', 'silent', 'stress_extreme', 'stress_storage']
 ```
 
 ## Related Pages
 
 - [ChaosLLM](chaosllm.md) -- Full ChaosLLM endpoint and error injection reference
 - [ChaosWeb](chaosweb.md) -- Full ChaosWeb endpoint and error injection reference
+- [ChaosBlob](chaosblob.md) -- Full ChaosBlob endpoint and error injection reference
 - [Configuration](configuration.md) -- YAML config file structure and precedence details

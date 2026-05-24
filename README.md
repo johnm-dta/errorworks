@@ -1,6 +1,6 @@
 # errorworks
 
-Composable chaos-testing services for LLM and web scraping pipelines.
+Composable chaos-testing services for LLM, web scraping, and object storage pipelines.
 
 [![CI](https://github.com/johnm-dta/errorworks/actions/workflows/ci.yml/badge.svg)](https://github.com/johnm-dta/errorworks/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/errorworks)](https://pypi.org/project/errorworks/)
@@ -18,7 +18,9 @@ errorworks provides fake servers that inject configurable faults into your test
 traffic. Point your LLM client at a ChaosLLM server to verify it retries on 429s
 and surfaces clean errors on malformed JSON. Point your scraper at a ChaosWeb
 server to confirm it handles truncated HTML, encoding mismatches, and SSRF
-redirects. Fault rates, error distributions, and latency profiles are all
+redirects. Point your blob pipeline at a ChaosBlob server to exercise
+S3-style throttling, stale listings, corrupted object reads, and metadata
+surprises. Fault rates, error distributions, and latency profiles are all
 configurable via CLI flags, YAML files, or built-in presets.
 
 Everything runs in-process during CI via pytest fixtures (no sockets, no
@@ -32,6 +34,7 @@ reconfiguration through admin endpoints.
 - Connection failures: timeout, reset, stall
 - Malformed responses: invalid JSON, truncated bodies, missing fields, wrong content-type
 - Web-specific: SSRF redirects (private IPs, cloud metadata), encoding mismatches, truncated HTML, charset confusion
+- Blob-specific: S3 `SlowDown`, `AccessDenied`, stale listings, malformed XML, truncated object bodies, ETag mismatch, metadata corruption
 
 **Latency simulation**
 - Configurable base delay with jitter
@@ -41,10 +44,12 @@ reconfiguration through admin endpoints.
 - Four content modes: `random` (vocabulary-based), `template` (Jinja2 sandbox), `echo` (reflect input), `preset` (JSONL bank)
 - ChaosLLM returns OpenAI-compatible chat completion responses
 - ChaosWeb returns HTML pages
+- ChaosBlob stores and serves object bytes with S3-shaped XML list/error responses
 
 **Presets**
 - LLM: `silent`, `gentle`, `realistic`, `chaos`, `stress_aimd`, `stress_extreme`
 - Web: `silent`, `gentle`, `realistic`, `stress_scraping`, `stress_extreme`
+- Blob: `silent`, `gentle`, `realistic`, `stress_storage`, `stress_extreme`
 
 **Metrics and admin**
 - SQLite-backed metrics with timeseries aggregation
@@ -79,9 +84,13 @@ chaosllm serve --preset=realistic --port=8000
 # Web server
 chaosweb serve --preset=stress_scraping --port=9000
 
+# Blob server
+chaosblob serve --preset=realistic --port=8300
+
 # Unified CLI
 chaosengine llm serve --preset=gentle
 chaosengine web serve --preset=stress_scraping
+chaosengine blob serve --preset=stress_storage
 ```
 
 ### Pytest fixtures
@@ -127,7 +136,7 @@ Full documentation is available at [johnm-dta.github.io/errorworks](https://john
 
 ## Architecture
 
-errorworks uses a composition-based design: each server type (ChaosLLM, ChaosWeb)
+errorworks uses a composition-based design: each server type (ChaosLLM, ChaosWeb, ChaosBlob)
 composes shared engine components rather than inheriting from base classes. The
 core engine provides an `InjectionEngine` for fault selection, a `MetricsStore`
 for recording, a `LatencySimulator` for delays, and a `ConfigLoader` for
