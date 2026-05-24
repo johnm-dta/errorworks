@@ -17,9 +17,9 @@ from errorworks.blob.config import (
     load_preset,
 )
 from errorworks.blob.error_injector import BlobErrorCategory, BlobErrorDecision, BlobErrorInjector, BlobOperation
-from errorworks.blob.metrics import BlobMetricsRecorder
+from errorworks.blob.metrics import BlobMetricsRecorder, BlobOutcomeClassification, BlobOutcomeCounter
 from errorworks.blob.server import ChaosBlobServer, create_app
-from errorworks.blob.store import BlobObject, BlobStore
+from errorworks.blob.store import BlobListPage, BlobObject, BlobStore
 
 __all__ = [
     "DEFAULT_MEMORY_DB",
@@ -28,9 +28,12 @@ __all__ = [
     "BlobErrorDecision",
     "BlobErrorInjectionConfig",
     "BlobErrorInjector",
+    "BlobListPage",
     "BlobMetricsRecorder",
     "BlobObject",
     "BlobOperation",
+    "BlobOutcomeClassification",
+    "BlobOutcomeCounter",
     "BlobServerConfig",
     "BlobStorageConfig",
     "BlobStore",

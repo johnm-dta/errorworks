@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any, NamedTuple
+from dataclasses import dataclass
+from enum import StrEnum
+from typing import Any
 
 from errorworks.engine.metrics_store import MetricsStore
 from errorworks.engine.types import ColumnDef, MetricsConfig, MetricsSchema, SqlType
@@ -47,17 +49,24 @@ BLOB_METRICS_SCHEMA = MetricsSchema(
 )
 
 
-class BlobOutcomeClassification(NamedTuple):
+class BlobOutcomeCounter(StrEnum):
+    """Mutually-exclusive blob request counter names."""
+
+    SUCCESS = "requests_success"
+    SLOW_DOWN = "requests_slow_down"
+    NOT_FOUND = "requests_not_found"
+    ACCESS_DENIED = "requests_access_denied"
+    SERVER_ERROR = "requests_server_error"
+    CONNECTION_ERROR = "requests_connection_error"
+    CORRUPTED = "requests_corrupted"
+    STALE_LIST = "requests_stale_list"
+
+
+@dataclass(frozen=True, slots=True)
+class BlobOutcomeClassification:
     """Classification of a blob request outcome for time-series aggregation."""
 
-    success: bool
-    slow_down: bool
-    not_found: bool
-    access_denied: bool
-    server_error: bool
-    connection_error: bool
-    corrupted: bool
-    stale_list: bool
+    counter: BlobOutcomeCounter | None
 
 
 _BLOB_CONNECTION_ERROR_TYPES = frozenset({"timeout", "connection_reset", "connection_stall"})
@@ -79,20 +88,23 @@ def _classify_blob_outcome(
     error_type: str | None,
 ) -> BlobOutcomeClassification:
     """Classify a blob outcome for time-series aggregation."""
-    is_slow_down = error_type == "slow_down"
-    is_connection_error = error_type in _BLOB_CONNECTION_ERROR_TYPES
-    is_not_found = status_code == 404 or error_type in _BLOB_NOT_FOUND_ERROR_TYPES
-    is_access_denied = status_code == 403 or error_type == "access_denied"
-    return BlobOutcomeClassification(
-        success=outcome == "success",
-        slow_down=is_slow_down,
-        not_found=is_not_found,
-        access_denied=is_access_denied,
-        server_error=status_code is not None and 500 <= status_code < 600 and not is_slow_down and not is_connection_error,
-        connection_error=is_connection_error,
-        corrupted=outcome == "error_corrupted" or error_type in _BLOB_CORRUPTION_ERROR_TYPES,
-        stale_list=error_type == "stale_list",
-    )
+    if error_type == "slow_down":
+        return BlobOutcomeClassification(BlobOutcomeCounter.SLOW_DOWN)
+    if error_type in _BLOB_CONNECTION_ERROR_TYPES:
+        return BlobOutcomeClassification(BlobOutcomeCounter.CONNECTION_ERROR)
+    if error_type == "stale_list":
+        return BlobOutcomeClassification(BlobOutcomeCounter.STALE_LIST)
+    if outcome == "error_corrupted" or error_type in _BLOB_CORRUPTION_ERROR_TYPES:
+        return BlobOutcomeClassification(BlobOutcomeCounter.CORRUPTED)
+    if status_code == 404 or error_type in _BLOB_NOT_FOUND_ERROR_TYPES:
+        return BlobOutcomeClassification(BlobOutcomeCounter.NOT_FOUND)
+    if status_code == 403 or error_type == "access_denied":
+        return BlobOutcomeClassification(BlobOutcomeCounter.ACCESS_DENIED)
+    if status_code is not None and 500 <= status_code < 600:
+        return BlobOutcomeClassification(BlobOutcomeCounter.SERVER_ERROR)
+    if outcome == "success":
+        return BlobOutcomeClassification(BlobOutcomeCounter.SUCCESS)
+    return BlobOutcomeClassification(None)
 
 
 class BlobMetricsRecorder:
@@ -158,14 +170,14 @@ class BlobMetricsRecorder:
         bucket_utc = self._store.get_bucket_utc(timestamp_utc)
         self._store.update_timeseries(
             bucket_utc,
-            requests_success=int(cls.success),
-            requests_slow_down=int(cls.slow_down),
-            requests_not_found=int(cls.not_found),
-            requests_access_denied=int(cls.access_denied),
-            requests_server_error=int(cls.server_error),
-            requests_connection_error=int(cls.connection_error),
-            requests_corrupted=int(cls.corrupted),
-            requests_stale_list=int(cls.stale_list),
+            requests_success=int(cls.counter is BlobOutcomeCounter.SUCCESS),
+            requests_slow_down=int(cls.counter is BlobOutcomeCounter.SLOW_DOWN),
+            requests_not_found=int(cls.counter is BlobOutcomeCounter.NOT_FOUND),
+            requests_access_denied=int(cls.counter is BlobOutcomeCounter.ACCESS_DENIED),
+            requests_server_error=int(cls.counter is BlobOutcomeCounter.SERVER_ERROR),
+            requests_connection_error=int(cls.counter is BlobOutcomeCounter.CONNECTION_ERROR),
+            requests_corrupted=int(cls.counter is BlobOutcomeCounter.CORRUPTED),
+            requests_stale_list=int(cls.counter is BlobOutcomeCounter.STALE_LIST),
         )
         self._store.update_bucket_latency(bucket_utc, latency_ms)
         self._store.commit()

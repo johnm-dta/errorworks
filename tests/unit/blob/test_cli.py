@@ -176,6 +176,32 @@ def test_serve_multi_worker_cleans_up_env_var(mock_run, tmp_path) -> None:
 
     assert result.exit_code == 0, result.output
     assert "_ERRORWORKS_BLOB_CONFIG" not in os.environ
+    assert "_ERRORWORKS_BLOB_CONFIG_FILE" not in os.environ
+
+
+@patch(_UVICORN_RUN)
+def test_serve_multi_worker_uses_config_file_not_secret_bearing_env(mock_run, tmp_path) -> None:
+    import os
+    from pathlib import Path
+
+    db = tmp_path / "blob-metrics.db"
+    observed_config_path: str | None = None
+
+    def inspect_env(*_args, **_kwargs) -> None:
+        nonlocal observed_config_path
+        assert "_ERRORWORKS_BLOB_CONFIG" not in os.environ
+        observed_config_path = os.environ["_ERRORWORKS_BLOB_CONFIG_FILE"]
+        config_path = Path(observed_config_path)
+        assert config_path.exists()
+        assert config_path.stat().st_mode & 0o777 == 0o600
+
+    mock_run.side_effect = inspect_env
+
+    result = runner.invoke(app, ["serve", "--workers=2", f"--database={db}"])
+
+    assert result.exit_code == 0, result.output
+    assert observed_config_path is not None
+    assert not Path(observed_config_path).exists()
 
 
 def test_create_app_from_env_builds_valid_app(monkeypatch) -> None:
@@ -184,6 +210,20 @@ def test_create_app_from_env_builds_valid_app(monkeypatch) -> None:
     from errorworks.blob.config import ChaosBlobConfig
 
     monkeypatch.setenv("_ERRORWORKS_BLOB_CONFIG", ChaosBlobConfig().model_dump_json())
+
+    result_app = _create_app_from_env()
+
+    assert isinstance(result_app, Starlette)
+
+
+def test_create_app_from_env_reads_private_config_file(monkeypatch, tmp_path) -> None:
+    from starlette.applications import Starlette
+
+    from errorworks.blob.config import ChaosBlobConfig
+
+    config_file = tmp_path / "blob-config.json"
+    config_file.write_text(ChaosBlobConfig().model_dump_json())
+    monkeypatch.setenv("_ERRORWORKS_BLOB_CONFIG_FILE", str(config_file))
 
     result_app = _create_app_from_env()
 

@@ -16,6 +16,12 @@ class RequestBodyTooLarge(ValueError):
 
 async def read_limited_json(request: Request, *, max_bytes: int = MAX_JSON_BODY_BYTES) -> Any:
     """Read a JSON request body with a hard byte limit."""
+    body = await read_limited_body(request, max_bytes=max_bytes)
+    return json.loads(body)
+
+
+async def read_limited_body(request: Request, *, max_bytes: int) -> bytes:
+    """Read a request body with a hard byte limit."""
     content_length = request.headers.get("content-length")
     if content_length is not None:
         try:
@@ -33,4 +39,4 @@ async def read_limited_json(request: Request, *, max_bytes: int = MAX_JSON_BODY_
             raise RequestBodyTooLarge(f"Request body exceeds {max_bytes} bytes")
         chunks.append(chunk)
 
-    return json.loads(b"".join(chunks))
+    return b"".join(chunks)

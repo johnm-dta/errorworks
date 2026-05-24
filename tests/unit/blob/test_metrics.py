@@ -11,6 +11,7 @@ import pytest
 from errorworks.blob.metrics import (
     BlobMetricsRecorder,
     BlobOutcomeClassification,
+    BlobOutcomeCounter,
     _classify_blob_outcome,
 )
 from errorworks.engine.types import MetricsConfig
@@ -28,42 +29,38 @@ def recorder(tmp_path: Path) -> Generator[BlobMetricsRecorder, None, None]:
 class TestClassifyBlobOutcome:
     """Tests for blob outcome classification."""
 
-    def test_returns_named_tuple(self) -> None:
+    def test_returns_single_counter_classification(self) -> None:
         result = _classify_blob_outcome("success", 200, None)
         assert isinstance(result, BlobOutcomeClassification)
+        assert isinstance(result.counter, BlobOutcomeCounter)
 
     def test_success_outcome(self) -> None:
         result = _classify_blob_outcome("success", 200, None)
-        assert result.success is True
-        assert result.slow_down is False
-        assert result.not_found is False
-        assert result.access_denied is False
-        assert result.server_error is False
-        assert result.connection_error is False
-        assert result.corrupted is False
-        assert result.stale_list is False
+        assert result.counter is BlobOutcomeCounter.SUCCESS
 
     def test_slow_down_is_not_generic_server_error(self) -> None:
         result = _classify_blob_outcome("error_injected", 503, "slow_down")
-        assert result.slow_down is True
-        assert result.server_error is False
+        assert result.counter is BlobOutcomeCounter.SLOW_DOWN
 
     def test_not_found_by_status_or_error_type(self) -> None:
-        assert _classify_blob_outcome("error_injected", 404, "NoSuchKey").not_found is True
-        assert _classify_blob_outcome("error_injected", None, "not_found").not_found is True
+        assert _classify_blob_outcome("error_injected", 404, "NoSuchKey").counter is BlobOutcomeCounter.NOT_FOUND
+        assert _classify_blob_outcome("error_injected", None, "not_found").counter is BlobOutcomeCounter.NOT_FOUND
 
     def test_connection_error_is_not_generic_server_error(self) -> None:
         result = _classify_blob_outcome("error_injected", 504, "connection_reset")
-        assert result.connection_error is True
-        assert result.server_error is False
+        assert result.counter is BlobOutcomeCounter.CONNECTION_ERROR
 
     def test_corrupted_by_error_type_or_outcome(self) -> None:
-        assert _classify_blob_outcome("error_injected", 200, "checksum_mismatch").corrupted is True
-        assert _classify_blob_outcome("error_corrupted", 200, None).corrupted is True
+        assert _classify_blob_outcome("error_injected", 200, "checksum_mismatch").counter is BlobOutcomeCounter.CORRUPTED
+        assert _classify_blob_outcome("error_corrupted", 200, None).counter is BlobOutcomeCounter.CORRUPTED
 
     def test_stale_list(self) -> None:
         result = _classify_blob_outcome("error_injected", 200, "stale_list")
-        assert result.stale_list is True
+        assert result.counter is BlobOutcomeCounter.STALE_LIST
+
+    def test_classification_is_mutually_exclusive(self) -> None:
+        result = _classify_blob_outcome("error_corrupted", 503, "slow_down")
+        assert result.counter is BlobOutcomeCounter.SLOW_DOWN
 
 
 class TestBlobMetricsRecorder:

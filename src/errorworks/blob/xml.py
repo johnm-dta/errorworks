@@ -7,16 +7,19 @@ from xml.etree import ElementTree
 
 from errorworks.blob.store import BlobListPage
 
+S3_XML_NAMESPACE = "http://s3.amazonaws.com/doc/2006-03-01/"
+ElementTree.register_namespace("", S3_XML_NAMESPACE)
+
 
 def error_xml(code: str, message: str, *, resource: str | None = None, request_id: str | None = None) -> bytes:
     """Return an S3-style error document."""
-    root = ElementTree.Element("Error")
-    ElementTree.SubElement(root, "Code").text = code
-    ElementTree.SubElement(root, "Message").text = message
+    root = ElementTree.Element(_s3_tag("Error"))
+    ElementTree.SubElement(root, _s3_tag("Code")).text = code
+    ElementTree.SubElement(root, _s3_tag("Message")).text = message
     if resource is not None:
-        ElementTree.SubElement(root, "Resource").text = resource
+        ElementTree.SubElement(root, _s3_tag("Resource")).text = resource
     if request_id is not None:
-        ElementTree.SubElement(root, "RequestId").text = request_id
+        ElementTree.SubElement(root, _s3_tag("RequestId")).text = request_id
     return _to_xml_bytes(root)
 
 
@@ -28,26 +31,30 @@ def list_objects_v2_xml(
     page: BlobListPage,
 ) -> bytes:
     """Return an S3-style ListObjectsV2 response document."""
-    root = ElementTree.Element("ListBucketResult")
-    ElementTree.SubElement(root, "Name").text = bucket
-    ElementTree.SubElement(root, "Prefix").text = prefix
-    ElementTree.SubElement(root, "KeyCount").text = str(len(page.objects))
-    ElementTree.SubElement(root, "MaxKeys").text = str(max_keys)
-    ElementTree.SubElement(root, "IsTruncated").text = str(page.is_truncated).lower()
+    root = ElementTree.Element(_s3_tag("ListBucketResult"))
+    ElementTree.SubElement(root, _s3_tag("Name")).text = bucket
+    ElementTree.SubElement(root, _s3_tag("Prefix")).text = prefix
+    ElementTree.SubElement(root, _s3_tag("KeyCount")).text = str(len(page.objects))
+    ElementTree.SubElement(root, _s3_tag("MaxKeys")).text = str(max_keys)
+    ElementTree.SubElement(root, _s3_tag("IsTruncated")).text = str(page.is_truncated).lower()
     if continuation_token is not None:
-        ElementTree.SubElement(root, "ContinuationToken").text = continuation_token
+        ElementTree.SubElement(root, _s3_tag("ContinuationToken")).text = continuation_token
     if page.next_continuation_token is not None:
-        ElementTree.SubElement(root, "NextContinuationToken").text = page.next_continuation_token
+        ElementTree.SubElement(root, _s3_tag("NextContinuationToken")).text = page.next_continuation_token
 
     for obj in page.objects:
-        contents = ElementTree.SubElement(root, "Contents")
-        ElementTree.SubElement(contents, "Key").text = obj.key
-        ElementTree.SubElement(contents, "LastModified").text = obj.last_modified_utc
-        ElementTree.SubElement(contents, "ETag").text = obj.etag
-        ElementTree.SubElement(contents, "Size").text = str(obj.size)
-        ElementTree.SubElement(contents, "StorageClass").text = "STANDARD"
+        contents = ElementTree.SubElement(root, _s3_tag("Contents"))
+        ElementTree.SubElement(contents, _s3_tag("Key")).text = obj.key
+        ElementTree.SubElement(contents, _s3_tag("LastModified")).text = obj.last_modified_utc
+        ElementTree.SubElement(contents, _s3_tag("ETag")).text = obj.etag
+        ElementTree.SubElement(contents, _s3_tag("Size")).text = str(obj.size)
+        ElementTree.SubElement(contents, _s3_tag("StorageClass")).text = "STANDARD"
 
     return _to_xml_bytes(root)
+
+
+def _s3_tag(name: str) -> str:
+    return f"{{{S3_XML_NAMESPACE}}}{name}"
 
 
 def _to_xml_bytes(root: ElementTree.Element) -> bytes:

@@ -56,6 +56,8 @@ Not implemented:
 
 `PUT` stores `Content-Type` and any `x-amz-meta-*` headers. The server returns quoted MD5 ETags for stored objects. Objects live in memory and are cleared by `/admin/reset` or process restart.
 
+List pagination uses opaque continuation tokens that resume after the last key returned on the previous page. `max-keys` must be at least `1`; values above S3's `1000` key page limit are capped to `1000`.
+
 ### Health and Admin
 
 | Endpoint | Method | Auth | Description |
@@ -67,7 +69,7 @@ Not implemented:
 | `/admin/export` | GET | Bearer token | Export raw metrics and config |
 | `/admin/reset` | POST | Bearer token | Reset metrics, stored objects, and burst state |
 
-Admin endpoints require an `Authorization: Bearer <token>` header. The token is auto-generated at startup and printed to the console, or set through config.
+Admin endpoints require an `Authorization: Bearer <token>` header. The token is auto-generated if omitted, but generated tokens are not printed. Set `server.admin_token` explicitly in config when you need to call the admin API.
 
 ## Error Injection
 

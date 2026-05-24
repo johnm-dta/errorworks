@@ -354,7 +354,7 @@ class TestMetricsSchemaValidation:
     def test_valid_composite_index_referencing_existing_columns(self) -> None:
         schema = MetricsSchema(
             request_columns=(
-                ColumnDef(name="timestamp_utc", sql_type=SqlType.TEXT),
+                ColumnDef(name="timestamp_utc", sql_type=SqlType.TEXT, nullable=False),
                 ColumnDef(name="bucket", sql_type=SqlType.TEXT),
                 ColumnDef(name="object_key", sql_type=SqlType.TEXT),
             ),

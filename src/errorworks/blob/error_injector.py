@@ -107,6 +107,13 @@ class BlobErrorInjector:
         min_sec, max_sec = self._config.retry_after_sec
         return self._rng.randint(min_sec, max_sec)
 
+    def pick_delay(self, delay_range: tuple[int, int]) -> float:
+        """Pick a random delay value from a configured range."""
+        min_sec, max_sec = delay_range
+        if min_sec == max_sec:
+            return float(min_sec)
+        return self._rng.uniform(min_sec, max_sec)
+
     def _build_specs(self, operation: BlobOperation) -> list[ErrorSpec]:
         """Build operation-scoped error specs in priority order."""
         in_burst = self._engine.is_in_burst()

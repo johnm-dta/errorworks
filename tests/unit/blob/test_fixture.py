@@ -15,12 +15,12 @@ from tests.fixtures.chaosblob import _build_config_from_marker
 
 def _xml_code(response) -> str | None:
     root = ElementTree.fromstring(response.content)
-    return root.findtext("Code")
+    return root.findtext("{*}Code")
 
 
 def _list_keys(response) -> list[str]:
     root = ElementTree.fromstring(response.content)
-    return [node.text or "" for node in root.findall("Contents/Key")]
+    return [node.text or "" for node in root.findall("{*}Contents/{*}Key")]
 
 
 @dataclass

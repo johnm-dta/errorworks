@@ -200,8 +200,8 @@ List objects using a `ListObjectsV2` style XML response.
 |-----------|-------------|
 | `list-type=2` | Required. Other values return `InvalidRequest`. |
 | `prefix` | Optional key prefix filter. |
-| `max-keys` | Optional maximum number of keys to return. Defaults to `1000`. |
-| `continuation-token` | Optional token from `NextContinuationToken`. |
+| `max-keys` | Optional maximum number of keys to return. Defaults to `1000`; must be at least `1`; values above `1000` are capped. |
+| `continuation-token` | Optional opaque token from `NextContinuationToken`. |
 
 **Success response** (200): XML `ListBucketResult` with `Contents`, `IsTruncated`, and optional `NextContinuationToken` elements.
 

@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+import base64
+import binascii
 import hashlib
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from threading import Lock
 from types import MappingProxyType
+
+_CONTINUATION_TOKEN_PREFIX = "key:"
 
 
 class ObjectTooLargeError(ValueError):
@@ -31,6 +35,11 @@ class BlobObject:
     etag: str
     last_modified_utc: str
 
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "body", bytes(self.body))
+        object.__setattr__(self, "headers", MappingProxyType(dict(self.headers)))
+        object.__setattr__(self, "metadata", MappingProxyType(dict(self.metadata)))
+
     @property
     def size(self) -> int:
         """Return object size in bytes."""
@@ -41,9 +50,15 @@ class BlobObject:
 class BlobListPage:
     """Single page of object-listing results."""
 
-    objects: list[BlobObject]
+    objects: tuple[BlobObject, ...]
     is_truncated: bool
     next_continuation_token: str | None
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "objects", tuple(self.objects))
+        has_token = self.next_continuation_token is not None
+        if self.is_truncated != has_token:
+            raise ValueError("is_truncated must match presence of next_continuation_token")
 
 
 class BlobStore:
@@ -99,9 +114,8 @@ class BlobStore:
         max_keys: int,
         continuation_token: str | None,
     ) -> BlobListPage:
-        """List objects in key order, starting at an integer continuation token."""
-        start_index = self._parse_continuation_token(continuation_token)
-        max_keys = max(max_keys, 0)
+        """List objects in key order, starting after the continuation-token key."""
+        start_after_key = self._parse_continuation_token(continuation_token)
 
         with self._lock:
             objects = sorted(
@@ -113,10 +127,15 @@ class BlobStore:
                 key=lambda obj: obj.key,
             )
 
-        page_objects = objects[start_index : start_index + max_keys]
+        if start_after_key is None:
+            start_index = 0
+        else:
+            start_index = next((index for index, obj in enumerate(objects) if obj.key > start_after_key), len(objects))
+
+        page_objects = tuple(objects[start_index : start_index + max_keys])
         next_index = start_index + len(page_objects)
         is_truncated = next_index < len(objects)
-        next_token = str(next_index) if is_truncated else None
+        next_token = self._encode_continuation_token(page_objects[-1].key) if is_truncated and page_objects else None
         return BlobListPage(objects=page_objects, is_truncated=is_truncated, next_continuation_token=next_token)
 
     def reset(self) -> None:
@@ -124,13 +143,19 @@ class BlobStore:
         with self._lock:
             self._objects.clear()
 
-    def _parse_continuation_token(self, continuation_token: str | None) -> int:
+    @staticmethod
+    def _encode_continuation_token(key: str) -> str:
+        token_body = f"{_CONTINUATION_TOKEN_PREFIX}{key}".encode()
+        return base64.urlsafe_b64encode(token_body).decode()
+
+    @staticmethod
+    def _parse_continuation_token(continuation_token: str | None) -> str | None:
         if continuation_token is None or continuation_token == "":
-            return 0
+            return None
         try:
-            start_index = int(continuation_token)
-        except ValueError as exc:
+            decoded = base64.urlsafe_b64decode(continuation_token.encode()).decode()
+        except (binascii.Error, UnicodeDecodeError) as exc:
             raise InvalidContinuationTokenError(f"invalid continuation token: {continuation_token!r}") from exc
-        if start_index < 0:
+        if not decoded.startswith(_CONTINUATION_TOKEN_PREFIX):
             raise InvalidContinuationTokenError(f"invalid continuation token: {continuation_token!r}")
-        return start_index
+        return decoded.removeprefix(_CONTINUATION_TOKEN_PREFIX)

@@ -251,6 +251,7 @@ Start the ChaosBlob fake object-storage server for S3-style blob pipeline resili
 | `--host` | `-h` | `127.0.0.1` | Host address to bind to. |
 | `--port` | `-P` | `8300` | Port to listen on (1-65535). |
 | `--workers` | `-w` | `1` (or from preset) | Number of uvicorn workers. Multi-worker mode requires a file-backed metrics database. |
+| `--allow-external-bind` | | `false` | Permit binding to all interfaces such as `0.0.0.0`. |
 
 #### Metrics Flags
 

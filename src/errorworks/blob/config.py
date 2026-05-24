@@ -4,14 +4,14 @@ from __future__ import annotations
 
 import warnings
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from errorworks.engine.config_loader import list_presets as _list_presets
 from errorworks.engine.config_loader import load_config as _load_config
 from errorworks.engine.config_loader import load_preset as _load_preset
-from errorworks.engine.types import DANGEROUS_BIND_HOSTS, LatencyConfig, MetricsConfig, ServerConfig
+from errorworks.engine.types import DANGEROUS_BIND_HOSTS, LatencyConfig, MetricsConfig, SelectionMode, ServerConfig
 from errorworks.engine.validators import parse_range as _parse_range
 from errorworks.engine.validators import validate_ranges as _validate_ranges
 
@@ -91,7 +91,7 @@ class BlobErrorInjectionConfig(BaseModel):
     malformed_xml_pct: float = Field(default=0.0, ge=0.0, le=100.0, description="Percentage of malformed XML responses")
 
     burst: BlobBurstConfig = Field(default_factory=BlobBurstConfig, description="Burst pattern configuration")
-    selection_mode: Literal["priority", "weighted"] = Field(default="priority", description="Error selection strategy")
+    selection_mode: SelectionMode = Field(default=SelectionMode.PRIORITY, description="Error selection strategy")
 
     @field_validator(
         "retry_after_sec",

@@ -14,6 +14,7 @@ from starlette.applications import Starlette
 from errorworks.blob.config import ChaosBlobConfig, list_presets, load_config
 
 _CONFIG_ENV_VAR = "_ERRORWORKS_BLOB_CONFIG"
+_CONFIG_FILE_ENV_VAR = "_ERRORWORKS_BLOB_CONFIG_FILE"
 
 app = typer.Typer(
     name="chaosblob",
@@ -40,7 +41,11 @@ def _create_app_from_env() -> Starlette:
 
     from errorworks.blob.server import create_app
 
-    config = ChaosBlobConfig.model_validate_json(os.environ[_CONFIG_ENV_VAR])
+    if config_file := os.environ.get(_CONFIG_FILE_ENV_VAR):
+        config_json = Path(config_file).read_text()
+    else:
+        config_json = os.environ[_CONFIG_ENV_VAR]
+    config = ChaosBlobConfig.model_validate_json(config_json)
     return create_app(config)
 
 
@@ -174,6 +179,10 @@ def serve(
         int | None,
         typer.Option("--max-object-bytes", help="Maximum stored object size in bytes.", min=1),
     ] = None,
+    allow_external_bind: Annotated[
+        bool,
+        typer.Option("--allow-external-bind", help="Allow binding to all interfaces such as 0.0.0.0."),
+    ] = False,
     version: Annotated[
         bool,
         typer.Option("--version", "-v", callback=_version_callback, is_eager=True, help="Show version."),
@@ -209,6 +218,7 @@ def serve(
         burst_interval_sec=burst_interval_sec,
         burst_duration_sec=burst_duration_sec,
         max_object_bytes=max_object_bytes,
+        allow_external_bind=allow_external_bind,
     )
 
     try:
@@ -253,8 +263,14 @@ def serve(
 
     if config.server.workers > 1:
         import os
+        import tempfile
+        from contextlib import suppress
 
-        os.environ[_CONFIG_ENV_VAR] = config.model_dump_json()
+        fd, config_path = tempfile.mkstemp(prefix="errorworks-blob-", suffix=".json")
+        os.close(fd)
+        os.chmod(config_path, 0o600)
+        Path(config_path).write_text(config.model_dump_json())
+        os.environ[_CONFIG_FILE_ENV_VAR] = config_path
         try:
             uvicorn.run(
                 "errorworks.blob.cli:_create_app_from_env",
@@ -266,6 +282,9 @@ def serve(
             )
         finally:
             os.environ.pop(_CONFIG_ENV_VAR, None)
+            os.environ.pop(_CONFIG_FILE_ENV_VAR, None)
+            with suppress(FileNotFoundError):
+                Path(config_path).unlink()
     else:
         from errorworks.blob.server import create_app
 
@@ -318,6 +337,9 @@ def _build_cli_overrides(**values: Any) -> dict[str, Any]:
 
     if values["max_object_bytes"] is not None:
         cli_overrides["storage"] = {"max_object_bytes": values["max_object_bytes"]}
+
+    if values["allow_external_bind"]:
+        cli_overrides["allow_external_bind"] = True
 
     return cli_overrides
 
