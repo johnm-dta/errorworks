@@ -31,7 +31,7 @@ def _is_dangerous_bind_host(host: str) -> bool:
     except ValueError:
         pass
 
-    if not all(char.isdigit() or char == "." for char in host):
+    if not all(char.isdigit() or char in ".xXabcdefABCDEF" for char in host):
         return False
 
     try:

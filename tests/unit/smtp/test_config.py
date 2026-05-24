@@ -41,6 +41,11 @@ def test_smtp_wildcard_alias_blocked_by_default() -> None:
         ChaosSMTPConfig(smtp={"host": "0"})
 
 
+def test_smtp_hex_wildcard_alias_blocked_by_default() -> None:
+    with pytest.raises(ValidationError, match="exposes ChaosSMTP"):
+        ChaosSMTPConfig(smtp={"host": "0x0"})
+
+
 def test_admin_external_bind_blocked_by_default() -> None:
     with pytest.raises(ValidationError, match="exposes ChaosSMTP"):
         ChaosSMTPConfig(admin={"host": "0.0.0.0"})
@@ -49,6 +54,11 @@ def test_admin_external_bind_blocked_by_default() -> None:
 def test_admin_wildcard_alias_blocked_by_default() -> None:
     with pytest.raises(ValidationError, match="exposes ChaosSMTP"):
         ChaosSMTPConfig(admin={"host": "0"})
+
+
+def test_admin_hex_wildcard_alias_blocked_by_default() -> None:
+    with pytest.raises(ValidationError, match="exposes ChaosSMTP"):
+        ChaosSMTPConfig(admin={"host": "0x0"})
 
 
 def test_external_bind_can_be_explicitly_allowed() -> None:
