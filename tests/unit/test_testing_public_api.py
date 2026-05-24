@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+from importlib.metadata import version
+
+import errorworks
+import errorworks.testing as testing
+
 
 def test_testing_exports_documented_fixtures() -> None:
-    from errorworks import testing
-
     assert hasattr(testing, "ChaosLLMFixture")
     assert hasattr(testing, "ChaosWebFixture")
     assert hasattr(testing, "ChaosBlobFixture")
@@ -15,8 +18,4 @@ def test_testing_exports_documented_fixtures() -> None:
 
 
 def test_package_version_matches_metadata() -> None:
-    from importlib.metadata import version
-
-    import errorworks
-
     assert errorworks.__version__ == version("errorworks")

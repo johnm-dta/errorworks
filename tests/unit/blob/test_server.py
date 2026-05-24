@@ -68,7 +68,7 @@ def _exported_request(client: TestClient) -> dict:
     return requests[0]
 
 
-def _capture_get_send_events(app: Starlette, path: str) -> tuple[list[dict[str, Any]], BaseException | None]:
+def _capture_get_send_events(app: Starlette, path: str) -> tuple[list[dict[str, Any]], Exception | None]:
     messages: list[dict[str, Any]] = []
 
     async def receive() -> dict[str, Any]:
@@ -77,7 +77,7 @@ def _capture_get_send_events(app: Starlette, path: str) -> tuple[list[dict[str, 
     async def send(message: dict[str, Any]) -> None:
         messages.append(message)
 
-    async def run() -> BaseException | None:
+    async def run() -> Exception | None:
         try:
             await app(
                 {
@@ -97,7 +97,7 @@ def _capture_get_send_events(app: Starlette, path: str) -> tuple[list[dict[str, 
                 receive,
                 send,
             )
-        except BaseException as exc:
+        except Exception as exc:
             return exc
         return None
 
@@ -111,7 +111,7 @@ def _capture_put_send_events(
     *,
     headers: list[tuple[bytes, bytes]],
     chunks: list[dict[str, Any]],
-) -> tuple[list[dict[str, Any]], BaseException | None]:
+) -> tuple[list[dict[str, Any]], Exception | None]:
     messages: list[dict[str, Any]] = []
     pending = list(chunks)
 
@@ -123,7 +123,7 @@ def _capture_put_send_events(
     async def send(message: dict[str, Any]) -> None:
         messages.append(message)
 
-    async def run() -> BaseException | None:
+    async def run() -> Exception | None:
         try:
             await app(
                 {
@@ -143,7 +143,7 @@ def _capture_put_send_events(
                 receive,
                 send,
             )
-        except BaseException as exc:
+        except Exception as exc:
             return exc
         return None
 

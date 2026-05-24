@@ -17,7 +17,8 @@ def test_put_get_head_delete_round_trip() -> None:
 
     assert store.get("bucket", "a/b.txt") == stored
     assert store.head("bucket", "a/b.txt") == stored
-    assert store.delete("bucket", "a/b.txt") is True
+    deleted = store.delete("bucket", "a/b.txt")
+    assert deleted is True
     assert store.get("bucket", "a/b.txt") is None
 
 
