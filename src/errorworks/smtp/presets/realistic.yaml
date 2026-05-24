@@ -1,0 +1,19 @@
+# ChaosSMTP Preset: realistic
+latency:
+  base_ms: 120
+  jitter_ms: 60
+capture:
+  mode: metadata
+error_injection:
+  selection_mode: priority
+  rate_limit_pct: 3.0
+  rcpt_to_tempfail_pct: 4.0
+  data_tempfail_pct: 3.0
+  data_reject_pct: 1.0
+  slow_response_pct: 2.0
+  burst:
+    enabled: true
+    interval_sec: 60
+    duration_sec: 8
+    tempfail_pct: 50.0
+    rate_limit_pct: 40.0

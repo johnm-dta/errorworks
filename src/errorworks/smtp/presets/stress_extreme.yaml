@@ -1,0 +1,27 @@
+# ChaosSMTP Preset: stress_extreme
+latency:
+  base_ms: 300
+  jitter_ms: 200
+capture:
+  mode: metadata
+error_injection:
+  selection_mode: weighted
+  rate_limit_pct: 15.0
+  mail_from_tempfail_pct: 8.0
+  mail_from_reject_pct: 5.0
+  rcpt_to_tempfail_pct: 15.0
+  rcpt_to_reject_pct: 10.0
+  data_tempfail_pct: 12.0
+  data_reject_pct: 10.0
+  accept_then_drop_pct: 5.0
+  connection_reset_pct: 4.0
+  connection_stall_pct: 3.0
+  slow_response_pct: 8.0
+  malformed_reply_pct: 2.0
+  wrong_reply_code_pct: 2.0
+  burst:
+    enabled: true
+    interval_sec: 30
+    duration_sec: 8
+    tempfail_pct: 90.0
+    rate_limit_pct: 85.0
