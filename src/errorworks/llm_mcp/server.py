@@ -443,29 +443,53 @@ class ChaosLLMAnalyzer:
         cursor = conn.execute("SELECT COUNT(*) FROM requests WHERE latency_ms IS NOT NULL")
         latency_count = cursor.fetchone()[0]
 
-        # Bound rows materialized for percentile reporting.
-        cursor = conn.execute(
-            "SELECT latency_ms FROM requests WHERE latency_ms IS NOT NULL ORDER BY latency_ms LIMIT ?",
-            (self._MAX_QUERY_ROWS,),
-        )
-        latencies = [row["latency_ms"] for row in cursor.fetchall()]
-
-        if not latencies:
+        if latency_count == 0:
             return {"summary": "No latency data recorded.", "status": "NO_DATA"}
 
-        # Percentiles (nearest-rank method: index = ceil(n * p) - 1, clamped)
+        # Compute aggregates server-side so the full population participates in
+        # percentile math. Earlier versions materialized only the smallest
+        # ``_MAX_QUERY_ROWS`` latencies via ``ORDER BY latency_ms LIMIT N`` and
+        # then computed percentiles client-side over that lower-tail slice —
+        # which biased every percentile toward the floor of the distribution.
+        cursor = conn.execute(
+            "SELECT AVG(latency_ms) AS avg_ms, MAX(latency_ms) AS max_ms "
+            "FROM requests WHERE latency_ms IS NOT NULL"
+        )
+        agg_row = cursor.fetchone()
+        avg = agg_row["avg_ms"] if agg_row["avg_ms"] is not None else 0
+        max_lat = agg_row["max_ms"] if agg_row["max_ms"] is not None else 0
+
+        # Nearest-rank percentile: pick the row at index ``ceil(n * p) - 1`` of
+        # the latency_ms-sorted set. Using ``ORDER BY ... LIMIT 1 OFFSET k`` lets
+        # SQLite do the sort once per query without materializing the full set
+        # in Python memory. Mirrors the approach used in
+        # ``engine/metrics_store.MetricsStore._aggregate_bucket`` for p99.
         import math
 
-        n = len(latencies)
-        p50 = latencies[min(max(math.ceil(n * 0.50) - 1, 0), n - 1)] if n > 0 else 0
-        p95 = latencies[min(max(math.ceil(n * 0.95) - 1, 0), n - 1)] if n > 0 else 0
-        p99 = latencies[min(max(math.ceil(n * 0.99) - 1, 0), n - 1)] if n > 0 else 0
-        avg = sum(latencies) / n if n > 0 else 0
-        max_lat = max(latencies) if latencies else 0
+        n = latency_count
 
-        # Slow request threshold (>2x p95)
+        def _percentile(p: float) -> float:
+            offset = min(max(math.ceil(n * p) - 1, 0), n - 1)
+            cur = conn.execute(
+                "SELECT latency_ms FROM requests WHERE latency_ms IS NOT NULL "
+                "ORDER BY latency_ms LIMIT 1 OFFSET ?",
+                (offset,),
+            )
+            row = cur.fetchone()
+            return float(row["latency_ms"]) if row is not None else 0.0
+
+        p50 = _percentile(0.50)
+        p95 = _percentile(0.95)
+        p99 = _percentile(0.99)
+
+        # Slow request threshold (>2x p95) — count over the full population in
+        # SQL rather than over a bounded in-memory slice.
         slow_threshold = p95 * 2
-        slow_count = sum(1 for lat in latencies if lat > slow_threshold)
+        cursor = conn.execute(
+            "SELECT COUNT(*) FROM requests WHERE latency_ms IS NOT NULL AND latency_ms > ?",
+            (slow_threshold,),
+        )
+        slow_count = cursor.fetchone()[0]
 
         # Correlation with errors: check if slow requests correlate with error periods
         cursor = conn.execute(
@@ -519,7 +543,10 @@ class ChaosLLMAnalyzer:
             "slow_threshold_ms": round(slow_threshold, 2),
             "slow_count": slow_count,
             "error_correlation": correlation,
-            "latency_sample_count": len(latencies),
+            # Percentiles are now computed over the full population, so the
+            # "sample" and "total" counts are identical. Both keys retained for
+            # backward-compatible response shape.
+            "latency_sample_count": latency_count,
             "latency_total_count": latency_count,
         }
 

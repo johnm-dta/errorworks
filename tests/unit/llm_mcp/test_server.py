@@ -1073,6 +1073,65 @@ class TestPercentileCalculation:
         # p99 of [1..100] should be 99, not 100 (the max)
         assert result["p99_ms"] < 100.0, f"p99 should not equal the maximum value, got {result['p99_ms']}"
 
+    def test_percentiles_over_full_population_not_smallest_n(self, temp_db: Path) -> None:
+        """Percentiles must be computed over the full population, not a lower-tail sample.
+
+        Regression test for the bug where analyze_latency() ran
+        ``SELECT latency_ms ... ORDER BY latency_ms LIMIT 100`` and computed
+        percentiles over the smallest 100 rows. With 1000 rows of values 1..1000,
+        nearest-rank percentiles should be p50=500, p95=950, p99=990. Under the
+        biased query they came out near 50, 95, and 99 respectively.
+        """
+        conn = sqlite3.connect(str(temp_db))
+        base_time = datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC)
+        # Insert 1000 rows in a single transaction. Values 1..1000 in random-ish
+        # order doesn't matter — SQL sorts internally — but we use a non-sorted
+        # insertion order just to defend against accidental ordering correctness.
+        rows = [
+            (
+                f"req-{i}",
+                (base_time + timedelta(seconds=i)).isoformat(),
+                "/chat/completions",
+                None,
+                None,
+                "success",
+                200,
+                None,
+                None,
+                float(i + 1),  # latency_ms = 1..1000
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            for i in range(1000)
+        ]
+        # Shuffle insertion order so a buggy implementation can't accidentally
+        # benefit from natural row order.
+        import random
+
+        rng = random.Random(0xC0FFEE)
+        rng.shuffle(rows)
+        conn.executemany(
+            "INSERT INTO requests VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            rows,
+        )
+        conn.commit()
+        conn.close()
+
+        analyzer = ChaosLLMAnalyzer(str(temp_db))
+        result = analyzer.analyze_latency()
+        analyzer.close()
+
+        # Nearest-rank: index = ceil(n * p) - 1 over a sorted 1..1000 sequence.
+        # p50 -> idx 499 -> 500; p95 -> idx 949 -> 950; p99 -> idx 989 -> 990.
+        assert abs(result["p50_ms"] - 500) <= 5, f"p50 expected ~500, got {result['p50_ms']}"
+        assert abs(result["p95_ms"] - 950) <= 5, f"p95 expected ~950, got {result['p95_ms']}"
+        assert abs(result["p99_ms"] - 990) <= 5, f"p99 expected ~990, got {result['p99_ms']}"
+        # max should be 1000
+        assert result["max_ms"] == 1000.0, f"max expected 1000, got {result['max_ms']}"
+
 
 class TestBurstDetection:
     """Tests for burst detection in get_burst_events and analyze_aimd_behavior."""
