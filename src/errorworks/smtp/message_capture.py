@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import threading
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -65,7 +66,8 @@ class CapturedMessage:
     message_size_bytes: int
     subject: str | None
     headers: Mapping[str, str]
-    body: bytes | None
+    body: str | None
+    body_encoding: str | None
     truncated: bool
 
 
@@ -92,11 +94,13 @@ class MessageCapture:
         parsed = BytesParser(policy=policy.default).parsebytes(data)
         safe_headers = {name: str(parsed[name]) for name in _SAFE_HEADERS if parsed[name] is not None}
         subject = safe_headers.get("subject")
-        body: bytes | None = None
+        body: str | None = None
+        body_encoding: str | None = None
         truncated = False
         if self._config.mode == "full":
             limit = self._config.max_message_bytes
-            body = data[:limit]
+            body = base64.b64encode(data[:limit]).decode("ascii")
+            body_encoding = "base64"
             truncated = len(data) > limit
 
         record = CapturedMessage(
@@ -107,6 +111,7 @@ class MessageCapture:
             subject=subject if self._config.mode != "discard" else None,
             headers=_ImmutableHeaders(safe_headers if self._config.mode != "discard" else {}),
             body=body,
+            body_encoding=body_encoding,
             truncated=truncated,
         )
 

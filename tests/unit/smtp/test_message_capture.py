@@ -1,5 +1,7 @@
 """Tests for ChaosSMTP message capture."""
 
+import base64
+import json
 from dataclasses import asdict
 from email.message import EmailMessage
 from typing import Any, cast
@@ -102,16 +104,36 @@ def test_listed_record_headers_reject_update_operator_mutation() -> None:
 
 
 def test_full_mode_truncates_body_bytes() -> None:
+    data = _message_bytes()
     capture = MessageCapture(SMTPCaptureConfig(mode="full", max_message_bytes=20))
     record = capture.capture(
         transaction_id="tx-1",
         mail_from="sender@example.com",
         rcpt_tos=["recipient@example.com"],
-        data=_message_bytes(),
+        data=data,
     )
     assert record.body is not None
-    assert len(record.body) == 20
+    assert record.body_encoding == "base64"
+    assert base64.b64decode(record.body) == data[:20]
     assert record.truncated is True
+
+
+def test_full_mode_asdict_exports_json_safe_encoded_body() -> None:
+    data = _message_bytes()
+    capture = MessageCapture(SMTPCaptureConfig(mode="full", max_message_bytes=20))
+    record = capture.capture(
+        transaction_id="tx-1",
+        mail_from="sender@example.com",
+        rcpt_tos=["recipient@example.com"],
+        data=data,
+    )
+
+    exported = asdict(record)
+
+    json.dumps(exported)
+    assert exported["body_encoding"] == "base64"
+    assert exported["body"] == base64.b64encode(data[:20]).decode("ascii")
+    assert base64.b64decode(exported["body"]) == data[:20]
 
 
 def test_reset_clears_captured_messages() -> None:
