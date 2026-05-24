@@ -53,6 +53,11 @@ jobs:
     name: pip-audit
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # On PRs, surface vulnerable dependencies as a warning rather than a
+    # hard block — most findings are pre-existing in transitive deps and
+    # get fixed by Dependabot, not by the PR author. On main/schedule,
+    # the job fails hard so newly introduced CVEs page someone.
+    continue-on-error: ${{ github.event_name == 'pull_request' }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
       - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6
