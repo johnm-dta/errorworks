@@ -718,7 +718,9 @@ def test_unhandled_connection_error_tag_raises_assertion_error(tmp_path: Path, m
 
     # Force the injector to return an unknown connection tag (simulating a future
     # tag added to BLOB_CONNECTION_ERRORS without a matching handler branch).
-    monkeypatch.setattr(injector_module, "BLOB_CONNECTION_ERRORS", {"timeout", "connection_reset", "connection_stall", "slow_response", "future_tag"})
+    monkeypatch.setattr(
+        injector_module, "BLOB_CONNECTION_ERRORS", {"timeout", "connection_reset", "connection_stall", "slow_response", "future_tag"}
+    )
 
     def fake_decide(_op: BlobOperation) -> BlobErrorDecision:
         return BlobErrorDecision(
@@ -736,9 +738,7 @@ def test_unhandled_connection_error_tag_raises_assertion_error(tmp_path: Path, m
         client.get("/bucket/key.txt")
 
 
-def test_blob_metrics_sqlite_error_logged_at_error_level_with_row_payload(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_blob_metrics_sqlite_error_logged_at_error_level_with_row_payload(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """A sqlite3.Error during metrics recording silently desyncs the time-series.
     Surface it at error level (not warning) and include the row payload so the
     metric can be replayed manually."""
@@ -782,9 +782,7 @@ def test_blob_metrics_sqlite_error_logged_at_error_level_with_row_payload(
     assert not [call for call in log_calls if call[0] == "warning"], "sqlite3.Error must not be logged at WARNING"
 
 
-def test_blob_metrics_unexpected_exception_does_not_crash_committed_response(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_blob_metrics_unexpected_exception_does_not_crash_committed_response(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """OSError / MemoryError / RuntimeError from the recorder must not propagate
     out of the handler — the response is already committed and an unhandled ASGI
     exception would mask the actual outcome. Widening the catch to Exception

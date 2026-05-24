@@ -451,10 +451,7 @@ class ChaosLLMAnalyzer:
         # ``_MAX_QUERY_ROWS`` latencies via ``ORDER BY latency_ms LIMIT N`` and
         # then computed percentiles client-side over that lower-tail slice —
         # which biased every percentile toward the floor of the distribution.
-        cursor = conn.execute(
-            "SELECT AVG(latency_ms) AS avg_ms, MAX(latency_ms) AS max_ms "
-            "FROM requests WHERE latency_ms IS NOT NULL"
-        )
+        cursor = conn.execute("SELECT AVG(latency_ms) AS avg_ms, MAX(latency_ms) AS max_ms FROM requests WHERE latency_ms IS NOT NULL")
         agg_row = cursor.fetchone()
         avg = agg_row["avg_ms"] if agg_row["avg_ms"] is not None else 0
         max_lat = agg_row["max_ms"] if agg_row["max_ms"] is not None else 0
@@ -471,8 +468,7 @@ class ChaosLLMAnalyzer:
         def _percentile(p: float) -> float:
             offset = min(max(math.ceil(n * p) - 1, 0), n - 1)
             cur = conn.execute(
-                "SELECT latency_ms FROM requests WHERE latency_ms IS NOT NULL "
-                "ORDER BY latency_ms LIMIT 1 OFFSET ?",
+                "SELECT latency_ms FROM requests WHERE latency_ms IS NOT NULL ORDER BY latency_ms LIMIT 1 OFFSET ?",
                 (offset,),
             )
             row = cur.fetchone()
