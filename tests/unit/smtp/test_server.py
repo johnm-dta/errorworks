@@ -1,6 +1,8 @@
 """Tests for ChaosSMTP server."""
 
 import smtplib
+import threading
+import time
 from email.message import EmailMessage
 
 import pytest
@@ -85,6 +87,53 @@ def test_capture_update_preserves_existing_messages(tmp_path) -> None:
         server.update_config({"capture": {"mode": "full"}})
         assert server.list_messages()[0].subject == "Delivery test"
         assert server.export_metrics()["messages"][0]["subject"] == "Delivery test"
+    finally:
+        server.stop()
+
+
+def test_inflight_data_uses_request_capture_policy_when_config_changes(tmp_path) -> None:
+    config = ChaosSMTPConfig(
+        smtp=SMTPServerConfig(port=0),
+        admin=SMTPAdminConfig(admin_token=TEST_ADMIN_TOKEN),
+        metrics=MetricsConfig(database=str(tmp_path / "smtp-capture-race.db")),
+        latency=LatencyConfig(base_ms=400, jitter_ms=0),
+    )
+    server = ChaosSMTPServer(config)
+    server.start()
+    errors: list[BaseException] = []
+    try:
+        with smtplib.SMTP(server.smtp_host, server.smtp_port, timeout=5) as client:
+            client.ehlo()
+            assert client.mail("sender@example.com")[0] == 250
+            assert client.rcpt("recipient@example.com")[0] == 250
+
+            started = threading.Event()
+
+            def send_data() -> None:
+                started.set()
+                try:
+                    code, message = client.data(_message().as_bytes())
+                    assert code == 250
+                    assert message
+                except BaseException as exc:
+                    errors.append(exc)
+
+            sender = threading.Thread(target=send_data)
+            sender.start()
+            assert started.wait(timeout=1)
+            time.sleep(0.05)
+
+            server.update_config({"capture": {"mode": "discard"}})
+            sender.join(timeout=2)
+            assert not sender.is_alive()
+        if errors:
+            raise errors[0]
+
+        messages = server.list_messages()
+        assert len(messages) == 1
+        assert messages[0].subject == "Delivery test"
+        requests = server.export_metrics()["requests"]
+        assert requests[0]["capture_mode"] == "metadata"
     finally:
         server.stop()
 

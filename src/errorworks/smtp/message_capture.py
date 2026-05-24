@@ -95,9 +95,11 @@ class MessageCapture:
         mail_from: str,
         rcpt_tos: list[str],
         data: bytes,
+        config: SMTPCaptureConfig | None = None,
     ) -> CapturedMessage:
-        with self._lock:
-            config = self._config
+        if config is None:
+            with self._lock:
+                config = self._config
 
         parsed = BytesParser(policy=policy.default).parsebytes(data)
         safe_headers = {name: str(parsed[name]) for name in _SAFE_HEADERS if parsed[name] is not None}

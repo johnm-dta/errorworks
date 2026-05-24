@@ -265,7 +265,8 @@ class ChaosSMTPServer:
             error_injector = self._error_injector
             capture = self._capture
             latency_simulator = self._latency_simulator
-            capture_mode = capture.config.mode
+            capture_config = capture.config
+            capture_mode = capture_config.mode
         decision = error_injector.decide(SMTPStage.DATA)
         delay = latency_simulator.simulate()
         if decision.delay_sec is not None:
@@ -311,6 +312,7 @@ class ChaosSMTPServer:
             mail_from=envelope.mail_from or "",
             rcpt_tos=list(envelope.rcpt_tos),
             data=content,
+            config=capture_config,
         )
         self._record_transaction(
             session=session,
