@@ -162,11 +162,13 @@ jobs:
           source /tmp/smoke/bin/activate
           uv pip install dist/*.whl
           python -c "import errorworks; print('errorworks', errorworks.__version__)"
-          # grep guards against a broken entry point exiting 0 with garbage
-          # output instead of Typer's help banner.
-          chaosengine --help 2>&1 | grep -q "Usage:"
-          chaosllm    --help 2>&1 | grep -q "Usage:"
-          chaosweb    --help 2>&1 | grep -q "Usage:"
+          # Assert non-empty help output. Catches a broken entry point
+          # that exits 0 with nothing on stdout/stderr. Avoids matching
+          # on literal text because Typer/rich's pipe-mode rendering
+          # differs from TTY mode.
+          test -n "$(chaosengine --help 2>&1)"
+          test -n "$(chaosllm    --help 2>&1)"
+          test -n "$(chaosweb    --help 2>&1)"
 
       - name: Upload built distribution
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
