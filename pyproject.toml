@@ -164,6 +164,7 @@ markers = [
     "stress: marks tests as stress tests",
     "chaosllm: Configure ChaosLLM server for the test",
     "chaosweb: Configure ChaosWeb server for the test",
+    "chaosblob: Configure ChaosBlob server for the test",
     "integration: marks tests as integration tests",
 ]
 
