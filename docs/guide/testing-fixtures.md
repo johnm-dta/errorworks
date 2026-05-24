@@ -1,6 +1,6 @@
 # Testing Fixtures Guide
 
-Errorworks provides pytest fixtures that run ChaosLLM, ChaosWeb, and ChaosBlob servers in-process using Starlette's `TestClient`. No real network sockets are opened -- requests go directly through the ASGI stack, making tests fast, isolated, and safe to run in parallel.
+Errorworks provides pytest fixtures for ChaosLLM, ChaosWeb, ChaosBlob, and ChaosSMTP. ChaosLLM, ChaosWeb, and ChaosBlob run in-process using Starlette's `TestClient`, so no real network sockets are opened for HTTP tests. ChaosSMTP uses an ephemeral loopback TCP socket because normal SMTP clients require a real socket and protocol session.
 
 ## Setup
 
@@ -9,6 +9,7 @@ Import the fixtures in your `conftest.py`:
 ```python
 # tests/conftest.py
 from tests.fixtures.chaosllm import chaosllm_server  # noqa: F401
+from tests.fixtures.chaossmtp import chaossmtp_server  # noqa: F401
 from tests.fixtures.chaosweb import chaosweb_server  # noqa: F401
 from tests.fixtures.chaosblob import chaosblob  # noqa: F401
 ```
@@ -19,6 +20,7 @@ Register the custom markers to avoid pytest warnings:
 # tests/conftest.py (or pyproject.toml)
 def pytest_configure(config):
     config.addinivalue_line("markers", "chaosllm: ChaosLLM server configuration")
+    config.addinivalue_line("markers", "chaossmtp: ChaosSMTP server configuration")
     config.addinivalue_line("markers", "chaosweb: ChaosWeb server configuration")
     config.addinivalue_line("markers", "chaosblob: ChaosBlob server configuration")
 ```
@@ -292,6 +294,97 @@ The `ChaosBlobFixture` object provides:
 | `base_url` | Base URL (`http://testserver`) |
 | `admin_headers` | Dict with auth headers for admin endpoints |
 
+## ChaosSMTP Fixture
+
+The `chaossmtp_server` fixture starts a real SMTP listener on `127.0.0.1` with `smtp.port=0`, so the operating system assigns an ephemeral port. This keeps tests isolated while still exercising standard clients like `smtplib`.
+
+### Basic Usage
+
+```python
+from email.message import EmailMessage
+
+def test_sends_message(chaossmtp_server):
+    message = EmailMessage()
+    message["From"] = "sender@example.com"
+    message["To"] = "recipient@example.com"
+    message["Subject"] = "Fixture test"
+    message.set_content("hello")
+
+    assert chaossmtp_server.send_message(message) == {}
+    assert chaossmtp_server.wait_for_messages(1)
+    assert chaossmtp_server.get_stats()["total_requests"] == 1
+```
+
+### Marker-Based Configuration
+
+```python
+from email.message import EmailMessage
+import pytest
+import smtplib
+
+@pytest.mark.chaossmtp(rcpt_to_reject_pct=100.0)
+def test_recipient_rejection(chaossmtp_server):
+    message = EmailMessage()
+    message["From"] = "sender@example.com"
+    message["To"] = "recipient@example.com"
+    message["Subject"] = "Rejected"
+    message.set_content("hello")
+
+    with pytest.raises(smtplib.SMTPRecipientsRefused):
+        chaossmtp_server.send_message(message)
+```
+
+### Available Marker Kwargs
+
+The `chaossmtp` marker accepts these keyword arguments:
+
+| Kwarg | Type | Description |
+|---|---|---|
+| `preset` | str | Base preset name (`silent`, `gentle`, `realistic`, `stress_delivery`, `stress_extreme`) |
+| `rate_limit_pct` | float | SMTP rate limit percentage |
+| `mail_from_tempfail_pct` | float | MAIL FROM temporary failure percentage |
+| `mail_from_reject_pct` | float | MAIL FROM permanent rejection percentage |
+| `rcpt_to_tempfail_pct` | float | RCPT TO temporary failure percentage |
+| `rcpt_to_reject_pct` | float | RCPT TO permanent rejection percentage |
+| `data_tempfail_pct` | float | DATA temporary failure percentage |
+| `data_reject_pct` | float | DATA permanent rejection percentage |
+| `accept_then_drop_pct` | float | Accept message and drop without capture percentage |
+| `banner_reject_pct` | float | Banner-stage rejection config field; current listener does not invoke CONNECT-stage injection |
+| `malformed_reply_pct` | float | Malformed SMTP reply percentage |
+| `wrong_reply_code_pct` | float | Unexpected SMTP reply code percentage |
+| `connection_reset_pct` | float | SMTP transport close percentage |
+| `connection_stall_pct` | float | Stall then close percentage |
+| `slow_response_pct` | float | Slow response percentage |
+| `retry_after_sec` | tuple[int, int] | Validated retry range config; current SMTP replies do not emit a Retry-After header |
+| `connection_stall_sec` | tuple[int, int] | Stall duration range |
+| `slow_response_sec` | tuple[int, int] | Slow response delay range |
+| `selection_mode` | str | `priority` or `weighted` |
+| `base_ms` | int | Base latency in milliseconds |
+| `jitter_ms` | int | Latency jitter in milliseconds |
+| `capture_mode` | str | Capture mode (`discard`, `metadata`, `full`) |
+| `max_message_bytes` | int | Maximum bytes stored in `full` capture mode |
+
+!!! note
+    The fixture sets `smtp.port=0`, `base_ms=0`, `jitter_ms=0`, and a deterministic admin token by default. If you need latency simulation, set latency explicitly in the marker.
+
+### Fixture Helpers
+
+The `ChaosSMTPFixture` object provides:
+
+| Method/Property | Description |
+|---|---|
+| `send_message(message)` | Send an `EmailMessage` with `smtplib.SMTP` |
+| `get_stats()` | Get metrics summary |
+| `export_metrics()` | Export raw metrics data and captured messages |
+| `update_config(rcpt_to_tempfail_pct=..., capture_mode=..., ...)` | Update runtime config |
+| `reset()` | Reset metrics and captured messages |
+| `wait_for_requests(count, timeout=10.0)` | Block until N SMTP transactions are recorded |
+| `wait_for_messages(count, timeout=10.0)` | Block until N messages are captured |
+| `host` | Bound SMTP host |
+| `port` | Ephemeral SMTP port |
+| `metrics_db` | File-backed SQLite metrics path for this test |
+| `run_id` | Current run ID |
+
 ## Complete Working Examples
 
 ### ChaosLLM: Testing Error Recovery
@@ -419,21 +512,54 @@ def test_blob_pipeline_handles_slow_down(chaosblob):
     assert stats["total_requests"] == 3
 ```
 
+### ChaosSMTP: Testing Delivery Failures
+
+```python
+from email.message import EmailMessage
+import pytest
+import smtplib
+
+def _message():
+    message = EmailMessage()
+    message["From"] = "sender@example.com"
+    message["To"] = "recipient@example.com"
+    message["Subject"] = "Delivery test"
+    message.set_content("hello")
+    return message
+
+@pytest.mark.chaossmtp(data_reject_pct=100.0)
+def test_data_rejection(chaossmtp_server):
+    """Verify behavior when every DATA command is rejected."""
+    with pytest.raises(smtplib.SMTPDataError) as exc_info:
+        chaossmtp_server.send_message(_message())
+    assert exc_info.value.smtp_code == 554
+
+def test_capture_metadata(chaossmtp_server):
+    """Verify accepted messages are captured as metadata by default."""
+    assert chaossmtp_server.send_message(_message()) == {}
+    assert chaossmtp_server.wait_for_messages(1)
+    exported = chaossmtp_server.export_metrics()
+    assert exported["messages"][0]["subject"] == "Delivery test"
+```
+
 ## How It Works
 
-The fixtures use Starlette's `TestClient`, which wraps the ASGI application and routes HTTP calls through the stack without opening a network socket. This means:
+The ChaosLLM and ChaosWeb fixtures use Starlette's `TestClient`, which wraps the ASGI application and routes HTTP calls through the stack without opening a network socket. This means:
 
 - **No port conflicts** -- multiple tests can run in parallel
 - **No startup delay** -- the server is ready immediately
 - **Full fidelity** -- the same request handling code runs as in production
 - **Isolated state** -- each test gets a fresh server instance via `tmp_path`
 
-The `_build_config_from_marker()` function translates marker kwargs into a `ChaosLLMConfig`, `ChaosWebConfig`, or `ChaosBlobConfig` object. It applies the same precedence rules as the CLI: marker kwargs override the preset, and the fixture always forces latency to zero and sets a deterministic admin token for test convenience.
+The ChaosSMTP fixture uses the same configuration pattern, but it starts a real `aiosmtpd` listener on an ephemeral loopback port. That keeps tests close to production SMTP client behavior while avoiding fixed-port conflicts.
+
+The `_build_config_from_marker()` function translates marker kwargs into a `ChaosLLMConfig`, `ChaosWebConfig`, `ChaosBlobConfig`, or `ChaosSMTPConfig` object. It applies the same precedence rules as the CLI: marker kwargs override the preset, and the fixture always forces latency to zero and sets a deterministic admin token for test convenience.
 
 ## Related Pages
 
 - [ChaosLLM](chaosllm.md) -- Error types and response modes
 - [ChaosWeb](chaosweb.md) -- Error types and content modes
 - [ChaosBlob](chaosblob.md) -- Object-storage error types and fixture helpers
+- [ChaosSMTP](chaossmtp.md) -- SMTP listener, error types, and capture modes
 - [Metrics](metrics.md) -- Understanding metrics data in tests
 - [Configuration](configuration.md) -- How configuration precedence works

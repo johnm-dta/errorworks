@@ -9,6 +9,7 @@ Presets are pre-built configuration profiles that set error rates, latency, burs
 uv run chaosllm serve --preset=realistic
 uv run chaosweb serve --preset=stress_scraping
 uv run chaosblob serve --preset=stress_storage
+uv run chaossmtp serve --preset=stress_delivery
 
 # Python
 from errorworks.llm.config import load_config
@@ -73,6 +74,18 @@ config = load_config(preset="realistic")
 | `stress_storage` | 8% | 4% not found | 8% slow | 8% truncated, 6% wrong length, 8% checksum, 6% metadata | 12% stale, 4% malformed XML | 60s/12s (60% slow, 20% svc) | 250 +/- 150ms |
 | `stress_extreme` | 20% | 5% access denied, 5% not found, 8% svc, 4% internal, 3% bad gw, 5% gw timeout | 8% timeout, 5% reset, 4% stall, 8% slow | 6% truncated, 5% wrong length, 6% checksum, 4% metadata | 8% stale, 4% malformed XML | 30s/8s (90% slow, 60% svc) | 600 +/- 300ms |
 
+## ChaosSMTP Presets
+
+### Comparison Table
+
+| Preset | MAIL/RCPT Failures | DATA Failures | Protocol/Connection | Burst | Latency | Capture |
+|---|---|---|---|---|---|---|
+| `silent` | 0% | 0% | 0% | Off | 10 +/- 5ms | `metadata` |
+| `gentle` | 1% RCPT tempfail | 1% tempfail | 0% | Off | 50 +/- 20ms | `metadata` |
+| `realistic` | 3% rate limit, 4% RCPT tempfail | 3% tempfail, 1% reject | 2% slow response | 60s/8s (50% tempfail, 40% rate limit) | 120 +/- 60ms | `metadata` |
+| `stress_delivery` | 10% rate limit, 5% MAIL tempfail, 15% RCPT tempfail, 8% RCPT reject | 12% tempfail, 8% reject, 2% accept/drop | 5% slow response | 45s/10s (80% tempfail, 70% rate limit) | 200 +/- 100ms | `metadata` |
+| `stress_extreme` | 15% rate limit, 8% MAIL tempfail, 5% MAIL reject, 15% RCPT tempfail, 10% RCPT reject | 12% tempfail, 10% reject, 5% accept/drop | 4% reset, 3% stall, 8% slow, 2% malformed, 2% wrong code | 30s/8s (90% tempfail, 85% rate limit) | 300 +/- 200ms | `metadata` |
+
 ### When to Use Each
 
 | Preset | Use When |
@@ -82,6 +95,23 @@ config = load_config(preset="realistic")
 | `realistic` | Testing common object-store throttling, stale list, and rare read faults |
 | `stress_storage` | Exercising body integrity, metadata validation, and stale listing recovery |
 | `stress_extreme` | Finding retry, timeout, and corruption handling breakpoints |
+
+### When to Use Each (SMTP)
+
+| Preset | Use When |
+|---|---|
+| `silent` | Verifying SMTP client wiring and baseline throughput with no delivery faults |
+| `gentle` | Checking basic retry paths without making tests noisy |
+| `realistic` | Simulating common transient delivery pressure and occasional DATA rejection |
+| `stress_delivery` | Exercising retry, bounce, and alerting behavior under heavy delivery pressure |
+| `stress_extreme` | Finding SMTP client failure modes across protocol, connection, and delivery errors |
+
+Use SMTP presets from either CLI entry point:
+
+```bash
+uv run chaossmtp serve --preset=realistic
+uv run chaosengine smtp serve --preset=stress_delivery
+```
 
 ## Combining Presets with Overrides
 
@@ -137,9 +167,11 @@ config = load_config(
 ```python
 from errorworks.llm.config import list_presets as list_llm_presets
 from errorworks.blob.config import list_presets as list_blob_presets
+from errorworks.smtp.config import list_presets as list_smtp_presets
 from errorworks.web.config import list_presets as list_web_presets
 
 print(list_llm_presets())  # ['chaos', 'gentle', 'realistic', 'silent', 'stress_aimd', 'stress_extreme']
+print(list_smtp_presets())  # ['gentle', 'realistic', 'silent', 'stress_delivery', 'stress_extreme']
 print(list_web_presets())  # ['gentle', 'realistic', 'silent', 'stress_extreme', 'stress_scraping']
 print(list_blob_presets())  # ['gentle', 'realistic', 'silent', 'stress_extreme', 'stress_storage']
 ```
@@ -149,4 +181,5 @@ print(list_blob_presets())  # ['gentle', 'realistic', 'silent', 'stress_extreme'
 - [ChaosLLM](chaosllm.md) -- Full ChaosLLM endpoint and error injection reference
 - [ChaosWeb](chaosweb.md) -- Full ChaosWeb endpoint and error injection reference
 - [ChaosBlob](chaosblob.md) -- Full ChaosBlob endpoint and error injection reference
+- [ChaosSMTP](chaossmtp.md) -- SMTP listener, error injection, and capture reference
 - [Configuration](configuration.md) -- YAML config file structure and precedence details

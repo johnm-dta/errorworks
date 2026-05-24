@@ -1,10 +1,10 @@
 # CLI Reference
 
-Errorworks provides several CLI entry points, all built with [Typer](https://typer.tiangolo.com/).
+Errorworks provides service-specific CLI entry points plus the unified `chaosengine` command, all built with [Typer](https://typer.tiangolo.com/).
 
 ## `chaosengine` -- Unified CLI
 
-The `chaosengine` command aggregates ChaosLLM, ChaosWeb, and ChaosBlob under a single entry point. It mounts the same Typer apps as subcommands, so all flags are identical to the standalone commands.
+The `chaosengine` command aggregates ChaosLLM, ChaosWeb, ChaosBlob, and ChaosSMTP under a single entry point. It mounts the same Typer apps as subcommands, so all flags are identical to the standalone commands.
 
 ```bash
 chaosengine llm serve --preset=gentle
@@ -13,9 +13,11 @@ chaosengine web serve --preset=stress_scraping
 chaosengine web presets
 chaosengine blob serve --preset=stress_storage
 chaosengine blob presets
+chaosengine smtp serve --preset=stress_delivery
+chaosengine smtp presets
 ```
 
-The standalone entry points (`chaosllm`, `chaosweb`, `chaosblob`) continue to work unchanged.
+The standalone entry points (`chaosllm`, `chaosweb`, `chaosblob`, `chaossmtp`) continue to work unchanged.
 
 ---
 
@@ -331,6 +333,132 @@ Display the effective (merged) configuration.
 | `--preset` | `-p` | `None` | Preset to show configuration for. |
 | `--config` | `-c` | `None` | Config file to show. |
 | `--format` | `-f` | `yaml` | Output format: `json` or `yaml`. |
+
+---
+
+## `chaossmtp` -- ChaosSMTP Server
+
+### `chaossmtp serve`
+
+Start the ChaosSMTP fake SMTP receiving server and its optional HTTP admin sidecar. ChaosSMTP never relays mail; it accepts, rejects, drops, or captures messages locally.
+
+**Configuration precedence** is identical to ChaosLLM and ChaosWeb.
+
+```bash
+chaossmtp serve --preset=realistic
+chaosengine smtp serve --preset=stress_delivery
+```
+
+#### Configuration Source Flags
+
+| Flag | Short | Default | Description |
+|------|-------|---------|-------------|
+| `--preset` | `-p` | `None` | Preset configuration to use. Use `chaossmtp presets` to list available. |
+| `--config` | `-c` | `None` | Path to YAML configuration file. |
+
+#### SMTP Listener Flags
+
+| Flag | Short | Default | Description |
+|------|-------|---------|-------------|
+| `--host` | `-h` | `127.0.0.1` | SMTP host address to bind to. |
+| `--port` | `-P` | `2525` | SMTP port to listen on (1-65535 for CLI; config allows `0` for ephemeral test binding). |
+| `--hostname` | | `chaossmtp.local` | SMTP server hostname announced to clients. |
+| `--data-size-limit` | | `10485760` | Maximum SMTP DATA size in bytes. |
+| `--enable-smtputf8` / `--disable-smtputf8` | | `true` | Enable SMTPUTF8 support. |
+| `--require-starttls` / `--no-require-starttls` | | `false` | Require STARTTLS before mail commands. |
+
+#### Admin Sidecar Flags
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--admin-enabled` / `--no-admin` | `true` | Enable the HTTP admin sidecar. |
+| `--admin-host` | `127.0.0.1` | Admin sidecar host address to bind to. |
+| `--admin-port` | `8525` | Admin sidecar port. |
+| `--admin-token` | Auto-generated | Bearer token for `/admin/*` endpoints. |
+| `--allow-external-bind` / `--no-allow-external-bind` | `false` | Allow SMTP or admin binding to non-loopback hosts. |
+
+#### Metrics and Capture Flags
+
+| Flag | Short | Default | Description |
+|------|-------|---------|-------------|
+| `--database` | `-d` | `file:chaossmtp-metrics?mode=memory&cache=shared` | SQLite database path or URI for metrics. |
+| `--timeseries-bucket-sec` | | `1` | Metrics time-series bucket size in seconds. |
+| `--capture-mode` | | `metadata` | Message capture mode: `discard`, `metadata`, or `full`. |
+| `--max-message-bytes` | | `1048576` | Maximum captured bytes in `full` capture mode. |
+
+#### Error Injection Flags
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--rate-limit-pct` | `0.0` | SMTP rate limit percentage. |
+| `--mail-from-tempfail-pct` | `0.0` | MAIL FROM temporary failure percentage. |
+| `--mail-from-reject-pct` | `0.0` | MAIL FROM permanent rejection percentage. |
+| `--rcpt-to-tempfail-pct` | `0.0` | RCPT TO temporary failure percentage. |
+| `--rcpt-to-reject-pct` | `0.0` | RCPT TO permanent rejection percentage. |
+| `--data-tempfail-pct` | `0.0` | DATA temporary failure percentage. |
+| `--data-reject-pct` | `0.0` | DATA permanent rejection percentage. |
+| `--accept-then-drop-pct` | `0.0` | Accept message, return success, and drop without capture. |
+| `--banner-reject-pct` | `0.0` | Banner-stage rejection percentage field. Current listener does not invoke CONNECT-stage injection. |
+| `--malformed-reply-pct` | `0.0` | Malformed SMTP reply percentage. |
+| `--wrong-reply-code-pct` | `0.0` | Unexpected SMTP reply code percentage. |
+| `--connection-reset-pct` | `0.0` | SMTP transport close percentage. |
+| `--connection-stall-pct` | `0.0` | Stall then close percentage. |
+| `--slow-response-pct` | `0.0` | Slow response percentage. |
+| `--selection-mode` | `priority` | Error selection strategy: `priority` or `weighted`. |
+
+#### Burst and Latency Flags
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--burst-enabled` / `--no-burst` | `false` | Enable burst pattern injection. |
+| `--burst-interval-sec` | `30` | Time between burst starts in seconds. |
+| `--burst-duration-sec` | `5` | Burst duration in seconds. |
+| `--burst-tempfail-pct` | `80.0` | Temporary failure percentage during bursts. |
+| `--burst-rate-limit-pct` | `50.0` | Rate limit percentage during bursts. |
+| `--base-ms` | `50` | Base latency in milliseconds. |
+| `--jitter-ms` | `30` | Latency jitter in milliseconds (+/-). |
+
+**Examples:**
+
+```bash
+# Start with defaults
+chaossmtp serve
+
+# Use a preset
+chaossmtp serve --preset=realistic
+
+# Force temporary recipient failures
+chaossmtp serve --rcpt-to-tempfail-pct=100.0
+
+# Custom listener, admin sidecar, and metrics database
+chaossmtp serve --port=2526 --admin-port=8526 --database=./smtp-metrics.db
+
+# Unified CLI
+chaosengine smtp serve --preset=stress_delivery
+```
+
+### `chaossmtp presets`
+
+List available preset configurations.
+
+```bash
+chaossmtp presets
+```
+
+### `chaossmtp show-config`
+
+Display the effective (merged) configuration. The output redacts `admin_token`; the running admin endpoints still require the bearer token.
+
+| Flag | Short | Default | Description |
+|------|-------|---------|-------------|
+| `--preset` | `-p` | `None` | Preset to show configuration for. |
+| `--config` | `-c` | `None` | Config file to show. |
+| `--format` | `-f` | `yaml` | Output format: `json` or `yaml`. |
+
+```bash
+chaossmtp show-config --preset=realistic
+chaossmtp show-config --preset=stress_delivery --format=json
+```
 
 ---
 
