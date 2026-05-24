@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated, Any, cast
 
 import pydantic
 import typer
@@ -14,6 +15,8 @@ import yaml
 
 from errorworks.smtp.config import list_presets, load_config
 from errorworks.smtp.server import ChaosSMTPServer
+
+_SENSITIVE_KEY_RE = re.compile(r"admin[_-]?token|api[_-]?key|authorization|password|secret|token", re.IGNORECASE)
 
 app = typer.Typer(
     name="chaossmtp",
@@ -252,7 +255,7 @@ def serve(
         typer.secho(f"Error: {e}", fg=typer.colors.RED, err=True)
         raise typer.Exit(1) from e
     except (pydantic.ValidationError, yaml.YAMLError, ValueError) as e:
-        typer.secho(f"Configuration error: {e}", fg=typer.colors.RED, err=True)
+        typer.secho(f"Configuration error: {_format_config_error(e)}", fg=typer.colors.RED, err=True)
         raise typer.Exit(1) from e
 
     server = ChaosSMTPServer(config)
@@ -446,10 +449,10 @@ def show_config(
         typer.secho(f"Error: {e}", fg=typer.colors.RED, err=True)
         raise typer.Exit(1) from e
     except (pydantic.ValidationError, yaml.YAMLError, ValueError) as e:
-        typer.secho(f"Configuration error: {e}", fg=typer.colors.RED, err=True)
+        typer.secho(f"Configuration error: {_format_config_error(e)}", fg=typer.colors.RED, err=True)
         raise typer.Exit(1) from e
 
-    config_dict = config.model_dump(mode="json")
+    config_dict = _safe_config_dict(config)
     if output_format == "json":
         typer.echo(json.dumps(config_dict, indent=2))
     elif output_format == "yaml":
@@ -457,6 +460,39 @@ def show_config(
     else:
         typer.secho(f"Error: unsupported format '{output_format}'. Use 'json' or 'yaml'.", fg=typer.colors.RED, err=True)
         raise typer.Exit(1)
+
+
+def _safe_config_dict(config: Any) -> dict[str, Any]:
+    config_dict = cast(dict[str, Any], config.model_dump(mode="json"))
+    admin_config = config_dict.get("admin")
+    if isinstance(admin_config, dict):
+        admin_config.pop("admin_token", None)
+    return config_dict
+
+
+def _format_config_error(exc: Exception) -> str:
+    if isinstance(exc, pydantic.ValidationError):
+        messages = []
+        for error in exc.errors(include_url=False, include_context=False, include_input=False):
+            location = _format_error_location(error.get("loc", ()))
+            message = _redact_sensitive_text(str(error.get("msg", "Invalid configuration")))
+            error_type = error.get("type")
+            if error_type:
+                messages.append(f"{location}: {message} [{error_type}]")
+            else:
+                messages.append(f"{location}: {message}")
+        return "; ".join(messages) if messages else "Invalid configuration"
+    return _redact_sensitive_text(str(exc)) or type(exc).__name__
+
+
+def _format_error_location(location: Any) -> str:
+    if not isinstance(location, tuple) or not location:
+        return "configuration"
+    return ".".join(_redact_sensitive_text(str(part)) for part in location)
+
+
+def _redact_sensitive_text(value: str) -> str:
+    return _SENSITIVE_KEY_RE.sub("[redacted]", value)
 
 
 def main() -> None:

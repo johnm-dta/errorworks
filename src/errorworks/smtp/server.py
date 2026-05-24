@@ -137,9 +137,13 @@ class ChaosSMTPServer:
         self._controller = controller
 
     def stop(self) -> None:
-        if self._controller is not None:
-            self._controller.stop()
-            self._controller = None
+        try:
+            if self._controller is not None:
+                controller = self._controller
+                self._controller = None
+                controller.stop()
+        finally:
+            self._metrics_recorder.close()
 
     def get_admin_token(self) -> str:
         return self._config.admin.admin_token

@@ -4,6 +4,7 @@ import smtplib
 import threading
 import time
 from email.message import EmailMessage
+from unittest.mock import patch
 
 import pytest
 from starlette.testclient import TestClient
@@ -72,6 +73,31 @@ def test_failed_start_does_not_leave_server_running(tmp_path) -> None:
         with pytest.raises(OSError):
             second.start()
         assert not second.smtp_running
+    finally:
+        first.stop()
+        second.stop()
+
+
+def test_stop_closes_metrics_recorder_idempotently(tmp_path) -> None:
+    server = ChaosSMTPServer(_config(tmp_path))
+
+    with patch.object(server._metrics_recorder, "close", wraps=server._metrics_recorder.close) as close:
+        server.stop()
+        server.stop()
+
+    assert close.call_count == 2
+
+
+def test_stop_after_failed_start_closes_metrics(tmp_path) -> None:
+    first = ChaosSMTPServer(_config(tmp_path))
+    first.start()
+    second = ChaosSMTPServer(_config_for_port(tmp_path, first.smtp_port))
+    try:
+        with patch.object(second._metrics_recorder, "close", wraps=second._metrics_recorder.close) as close:
+            with pytest.raises(OSError):
+                second.start()
+            second.stop()
+        close.assert_called_once()
     finally:
         first.stop()
         second.stop()

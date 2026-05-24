@@ -1,5 +1,6 @@
 """Tests for ChaosSMTP CLI entry points."""
 
+import json
 from unittest.mock import patch
 
 import pytest
@@ -13,6 +14,7 @@ from errorworks.smtp.cli import app
 from errorworks.smtp.config import ChaosSMTPConfig, SMTPAdminConfig
 
 runner = CliRunner()
+SECRET_ADMIN_TOKEN = "review-secret-admin-token"
 
 
 def test_chaossmtp_cli_has_help() -> None:
@@ -61,6 +63,30 @@ def test_show_config_outputs_yaml() -> None:
     assert "error_injection:" in result.stdout
 
 
+def test_show_config_yaml_excludes_admin_token(tmp_path) -> None:
+    config_file = tmp_path / "smtp.yaml"
+    config_file.write_text(yaml.dump({"admin": {"admin_token": SECRET_ADMIN_TOKEN}}))
+
+    result = runner.invoke(app, ["show-config", "--config", str(config_file)])
+
+    assert result.exit_code == 0
+    assert SECRET_ADMIN_TOKEN not in result.stdout
+    data = yaml.safe_load(result.stdout)
+    assert "admin_token" not in data["admin"]
+
+
+def test_show_config_json_excludes_admin_token(tmp_path) -> None:
+    config_file = tmp_path / "smtp.yaml"
+    config_file.write_text(yaml.dump({"admin": {"admin_token": SECRET_ADMIN_TOKEN}}))
+
+    result = runner.invoke(app, ["show-config", "--config", str(config_file), "--format", "json"])
+
+    assert result.exit_code == 0
+    assert SECRET_ADMIN_TOKEN not in result.stdout
+    data = json.loads(result.stdout)
+    assert "admin_token" not in data["admin"]
+
+
 def test_serve_builds_config_and_starts_server() -> None:
     with patch("errorworks.smtp.cli.ChaosSMTPServer") as server_cls:
         server = server_cls.return_value
@@ -77,6 +103,69 @@ def test_serve_builds_config_and_starts_server() -> None:
     config = server_cls.call_args.args[0]
     assert config.smtp.port == 2526
     assert config.admin.port == 8526
+
+
+def test_serve_stops_server_when_admin_sidecar_fails() -> None:
+    config = ChaosSMTPConfig()
+
+    with (
+        patch("errorworks.smtp.cli.load_config", return_value=config),
+        patch("errorworks.smtp.cli.ChaosSMTPServer") as server_cls,
+        patch("errorworks.smtp.cli.uvicorn.run", side_effect=RuntimeError("admin failed")),
+    ):
+        server = server_cls.return_value
+        server.smtp_host = "127.0.0.1"
+        server.smtp_port = 2525
+        server.admin_app = object()
+        result = runner.invoke(app, ["serve", "--preset", "silent"])
+
+    assert result.exit_code == 1
+    assert isinstance(result.exception, RuntimeError)
+    server.start.assert_called_once()
+    server.stop.assert_called_once()
+
+
+def test_serve_stops_server_when_admin_disabled_wait_fails() -> None:
+    async def fail_wait() -> None:
+        raise RuntimeError("wait failed")
+
+    config = ChaosSMTPConfig(admin=SMTPAdminConfig(enabled=False))
+
+    with (
+        patch("errorworks.smtp.cli.load_config", return_value=config),
+        patch("errorworks.smtp.cli.ChaosSMTPServer") as server_cls,
+        patch("errorworks.smtp.cli.uvicorn.run") as uvicorn_run,
+        patch("errorworks.smtp.cli._wait_forever", fail_wait),
+    ):
+        server = server_cls.return_value
+        server.smtp_host = "127.0.0.1"
+        server.smtp_port = 2525
+        result = runner.invoke(app, ["serve", "--preset", "silent"])
+
+    assert result.exit_code == 1
+    assert isinstance(result.exception, RuntimeError)
+    server.start.assert_called_once()
+    uvicorn_run.assert_not_called()
+    server.stop.assert_called_once()
+
+
+def test_serve_stops_server_when_start_fails() -> None:
+    config = ChaosSMTPConfig()
+
+    with (
+        patch("errorworks.smtp.cli.load_config", return_value=config),
+        patch("errorworks.smtp.cli.ChaosSMTPServer") as server_cls,
+        patch("errorworks.smtp.cli.uvicorn.run") as uvicorn_run,
+    ):
+        server = server_cls.return_value
+        server.start.side_effect = RuntimeError("start failed")
+        result = runner.invoke(app, ["serve", "--preset", "silent"])
+
+    assert result.exit_code == 1
+    assert isinstance(result.exception, RuntimeError)
+    server.start.assert_called_once()
+    uvicorn_run.assert_not_called()
+    server.stop.assert_called_once()
 
 
 def test_serve_builds_cli_overrides_for_config_sections() -> None:
@@ -179,3 +268,17 @@ def test_serve_reports_config_errors(exc: Exception) -> None:
     output = _combined_output(result)
     assert "Configuration error:" in output
     assert "bad" in output or "port" in output
+
+
+def test_serve_redacts_admin_token_from_validation_errors(tmp_path) -> None:
+    config_file = tmp_path / "unsafe.yaml"
+    config_file.write_text(yaml.dump({"smtp": {"host": "0.0.0.0"}, "admin": {"admin_token": SECRET_ADMIN_TOKEN}}))
+
+    result = runner.invoke(app, ["serve", "--config", str(config_file)])
+
+    assert result.exit_code == 1
+    output = _combined_output(result)
+    assert "Configuration error:" in output
+    assert "exposes ChaosSMTP" in output
+    assert SECRET_ADMIN_TOKEN not in output
+    assert "admin_token" not in output
