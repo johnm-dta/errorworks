@@ -39,7 +39,7 @@ bearer-token admin endpoints.
 - Malformed responses: invalid JSON, truncated bodies, missing fields, wrong content-type
 - Web-specific: SSRF redirects (private IPs, cloud metadata), encoding mismatches, truncated HTML, charset confusion
 - Blob-specific: S3 `SlowDown`, `AccessDenied`, stale listings, malformed XML, truncated object bodies, ETag mismatch, metadata corruption
-- SMTP-specific: temporary and permanent MAIL/RCPT/DATA failures, banner rejects, malformed replies, slow responses, accepted-but-dropped messages
+- SMTP-specific: temporary and permanent MAIL/RCPT/DATA failures, malformed DATA replies, slow responses, accepted-but-dropped messages
 
 **Latency simulation**
 - Configurable base delay with jitter
