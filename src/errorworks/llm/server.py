@@ -315,6 +315,11 @@ class ChaosLLMServer:
                 {"error": {"type": "invalid_request_error", "message": "Request body must be valid JSON"}},
                 status_code=400,
             )
+        if not isinstance(body, dict):
+            return JSONResponse(
+                {"error": {"type": "invalid_request_error", "message": "Request body must be a JSON object"}},
+                status_code=400,
+            )
         # Metrics recording uses the actual value (None if absent) — don't
         # fabricate "gpt-4" in metrics when no model was requested.
         # The response generator extracts model from `body` itself.

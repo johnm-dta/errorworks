@@ -149,7 +149,7 @@ content:
       <p>{{ random_words(100, 300) }}</p></body></html>
 ```
 
-Template helpers include `random_words`, `random_choice`, `random_float`, `timestamp`, and more. The `path` variable contains the requested URL path.
+Template helpers: `random_choice`, `random_int`, `random_words`, `timestamp`. The `path` variable contains the requested URL path.
 
 ### Echo
 

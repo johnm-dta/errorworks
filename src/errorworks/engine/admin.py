@@ -71,6 +71,33 @@ async def handle_admin_config(request: Request, server: ChaosServer) -> JSONResp
             {"error": {"type": "invalid_request_error", "message": "Request body must be a JSON object"}},
             status_code=400,
         )
+    # Validate shape before handing to update_config: each top-level key must be
+    # a known config section (matches a key in get_current_config()) and its
+    # value must be a dict. Without this, an unknown key silently no-ops and
+    # a null section value raises an uncaught AttributeError inside deep_merge.
+    current_config = server.get_current_config()
+    allowed_sections = set(current_config.keys())
+    for section, value in body.items():
+        if section not in allowed_sections:
+            return JSONResponse(
+                {
+                    "error": {
+                        "type": "invalid_request_error",
+                        "message": f"Unknown config section: {section!r}. Allowed: {sorted(allowed_sections)}",
+                    }
+                },
+                status_code=400,
+            )
+        if not isinstance(value, dict):
+            return JSONResponse(
+                {
+                    "error": {
+                        "type": "invalid_request_error",
+                        "message": f"Config section {section!r} must be a JSON object",
+                    }
+                },
+                status_code=400,
+            )
     try:
         server.update_config(body)
     except (ValueError, TypeError, pydantic.ValidationError) as e:

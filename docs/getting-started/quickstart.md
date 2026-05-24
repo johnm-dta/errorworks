@@ -53,7 +53,7 @@ curl http://localhost:8000/admin/stats \
 !!! note
     The admin token is randomly generated at startup and printed to the server
     log. You can also set it explicitly via the `server.admin_token` config
-    field or the `--admin-token` CLI flag.
+    field in your YAML config file.
 
 The response includes counts of each status code returned, latency percentiles,
 and error category breakdowns.

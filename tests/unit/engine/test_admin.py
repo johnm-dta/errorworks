@@ -165,12 +165,18 @@ class TestHandleAdminConfig:
 
     def test_post_valid_update(self) -> None:
         """POST with valid JSON calls update_config and returns updated config."""
-        server = _make_mock_server()
+        # Mock's current config exposes 'response' as a known section so the
+        # admin handler's shape-validation pass accepts the update.
+        server = _make_mock_server(config={"response": {"mode": "random"}})
         client = _make_app(server)
-        resp = client.post("/admin/config", json={"mode": "echo"}, headers=self._headers())
+        resp = client.post(
+            "/admin/config",
+            json={"response": {"mode": "echo"}},
+            headers=self._headers(),
+        )
         assert resp.status_code == 200
         assert resp.json()["status"] == "updated"
-        server.update_config.assert_called_once_with({"mode": "echo"})
+        server.update_config.assert_called_once_with({"response": {"mode": "echo"}})
 
     def test_post_invalid_json_returns_400(self) -> None:
         """POST with malformed JSON returns 400."""
@@ -186,10 +192,14 @@ class TestHandleAdminConfig:
 
     def test_post_validation_error_returns_422(self) -> None:
         """POST that triggers a ValidationError returns 422."""
-        server = _make_mock_server()
+        server = _make_mock_server(config={"response": {"mode": "random"}})
         server.update_config.side_effect = ValueError("invalid mode")
         client = _make_app(server)
-        resp = client.post("/admin/config", json={"mode": "bogus"}, headers=self._headers())
+        resp = client.post(
+            "/admin/config",
+            json={"response": {"mode": "bogus"}},
+            headers=self._headers(),
+        )
         assert resp.status_code == 422
         assert "invalid mode" in resp.json()["error"]["message"]
 
@@ -210,6 +220,45 @@ class TestHandleAdminConfig:
         resp = client.post("/admin/config", json="hello", headers=self._headers())
         assert resp.status_code == 400
         assert resp.json()["error"]["type"] == "invalid_request_error"
+        server.update_config.assert_not_called()
+
+    def test_post_unknown_section_returns_400(self) -> None:
+        """POST with an unknown top-level section returns 400 and does not call update_config."""
+        server = _make_mock_server(config={"response": {"mode": "random"}})
+        client = _make_app(server)
+        resp = client.post(
+            "/admin/config",
+            json={"typo_section": {"foo": "bar"}},
+            headers=self._headers(),
+        )
+        assert resp.status_code == 400
+        assert "Unknown config section" in resp.json()["error"]["message"]
+        server.update_config.assert_not_called()
+
+    def test_post_null_section_value_returns_400(self) -> None:
+        """POST with a null section value returns 400 (no AttributeError in deep_merge)."""
+        server = _make_mock_server(config={"response": {"mode": "random"}})
+        client = _make_app(server)
+        resp = client.post(
+            "/admin/config",
+            json={"response": None},
+            headers=self._headers(),
+        )
+        assert resp.status_code == 400
+        assert "must be a JSON object" in resp.json()["error"]["message"]
+        server.update_config.assert_not_called()
+
+    def test_post_scalar_section_value_returns_400(self) -> None:
+        """POST with a scalar section value returns 400."""
+        server = _make_mock_server(config={"response": {"mode": "random"}})
+        client = _make_app(server)
+        resp = client.post(
+            "/admin/config",
+            json={"response": "echo"},
+            headers=self._headers(),
+        )
+        assert resp.status_code == 400
+        assert "must be a JSON object" in resp.json()["error"]["message"]
         server.update_config.assert_not_called()
 
 

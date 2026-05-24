@@ -43,8 +43,8 @@ reconfiguration through admin endpoints.
 - ChaosWeb returns HTML pages
 
 **Presets**
-- LLM: `silent`, `gentle`, `realistic`, `chaos`, `stress_aimd`
-- Web: `silent`, `gentle`, `realistic`, `chaos`, `stress_scraping`, `stress_extreme`
+- LLM: `silent`, `gentle`, `realistic`, `chaos`, `stress_aimd`, `stress_extreme`
+- Web: `silent`, `gentle`, `realistic`, `stress_scraping`, `stress_extreme`
 
 **Metrics and admin**
 - SQLite-backed metrics with timeseries aggregation

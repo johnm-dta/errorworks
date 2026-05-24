@@ -506,6 +506,20 @@ class TestQuery:
         result = populated_analyzer.query("SELECT * FROM requests LIMIT 3")
         assert len(result) == 3
 
+    def test_negative_limit_capped_at_max_rows(self, populated_analyzer: ChaosLLMAnalyzer) -> None:
+        """`LIMIT -1` (unlimited in SQLite) must not bypass the row cap.
+
+        The populated fixture has 16 rows, so the assertion would pass trivially
+        against a much larger cap. Patch the cap below the fixture's row count
+        so the fetchmany() defense is the only thing that can keep the result
+        within bounds.
+        """
+        small_cap = 5
+        assert small_cap < 16, "populated_analyzer fixture should have > small_cap rows"
+        with patch.object(ChaosLLMAnalyzer, "_MAX_QUERY_ROWS", small_cap):
+            result = populated_analyzer.query("SELECT * FROM requests LIMIT -1")
+        assert len(result) == small_cap
+
     def test_column_name_false_positive_avoided(self, populated_analyzer: ChaosLLMAnalyzer) -> None:
         """Column names like 'created_at' don't trigger CREATE false positive."""
         # Word-boundary matching should prevent false positives
@@ -513,6 +527,23 @@ class TestQuery:
         # with a SQL error, not a "forbidden keyword" error
         with pytest.raises(sqlite3.OperationalError):
             populated_analyzer.query("SELECT created_at FROM requests")
+
+    def test_analyzer_does_not_mutate_db(self, populated_analyzer: ChaosLLMAnalyzer, temp_db: Path) -> None:
+        """A read-only analyzer must not create WAL/SHM side files or write to the DB."""
+        # Trigger a query so the connection is opened and used.
+        populated_analyzer.query("SELECT 1")
+
+        # The analyzer connection is opened in read-only URI mode. It must not
+        # create -wal or -shm side files alongside the DB.
+        wal = Path(str(temp_db) + "-wal")
+        shm = Path(str(temp_db) + "-shm")
+        assert not wal.exists(), "Read-only analyzer must not create a WAL file"
+        assert not shm.exists(), "Read-only analyzer must not create an SHM file"
+
+        # Attempting to write through the same connection must fail (read-only attempt).
+        conn = populated_analyzer._get_connection()
+        with pytest.raises(sqlite3.OperationalError):
+            conn.execute("INSERT INTO requests (request_id) VALUES ('x')")
 
 
 class TestDescribeSchema:

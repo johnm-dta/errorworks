@@ -18,6 +18,7 @@ import logging
 import re
 import sqlite3
 import sys
+import urllib.parse
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -61,6 +62,10 @@ class ChaosLLMAnalyzer:
     token usage while providing actionable information.
     """
 
+    # Hard cap on rows returned by `query()`. Enforced via fetchmany so that
+    # a user-supplied `LIMIT -1` (unlimited in SQLite) cannot exceed this.
+    _MAX_QUERY_ROWS = 100
+
     def __init__(self, database_path: str) -> None:
         """Initialize analyzer with database connection.
 
@@ -88,15 +93,30 @@ class ChaosLLMAnalyzer:
                 except sqlite3.Error:
                     logger.debug("mcp_database_close_error_during_reconnect", exc_info=True)
                 self._conn = None
-        conn = sqlite3.connect(self._db_path, timeout=30.0)
+        # Open the database as read-only: a SQLite `file:` URI with mode=ro
+        # prevents the analyzer from creating WAL/SHM side files or mutating
+        # the on-disk database. The previous `PRAGMA journal_mode=WAL` was a
+        # write — read-only analyzers should not do that.
+        uri = self._as_readonly_uri(self._db_path)
+        conn = sqlite3.connect(uri, uri=True, timeout=30.0)
         try:
             conn.row_factory = sqlite3.Row
-            conn.execute("PRAGMA journal_mode=WAL")
         except sqlite3.Error:
             conn.close()
             raise
         self._conn = conn
         return self._conn
+
+    @staticmethod
+    def _as_readonly_uri(db_path: str) -> str:
+        """Convert a database path or URI to a read-only SQLite URI."""
+        if db_path.startswith("file:"):
+            # Already a URI — append/replace mode=ro
+            scheme, _, rest = db_path.partition("?")
+            params = [p for p in rest.split("&") if p and not p.startswith("mode=")]
+            params.append("mode=ro")
+            return f"{scheme}?{'&'.join(params)}"
+        return f"file:{urllib.parse.quote(db_path)}?mode=ro"
 
     def close(self) -> None:
         """Close database connection."""
@@ -845,9 +865,11 @@ class ChaosLLMAnalyzer:
             if re.search(rf"\b{keyword}\b", sql_normalized):
                 raise ValueError(f"Query contains forbidden keyword: {keyword}")
 
-        # Auto-add LIMIT if not present
+        # Auto-add LIMIT for query-plan hinting; the actual row cap is enforced
+        # below via fetchmany(_MAX_QUERY_ROWS) so that a user-supplied LIMIT -1
+        # (or any other bypass) still cannot return more than _MAX_QUERY_ROWS.
         if "LIMIT" not in sql_normalized:
-            sql = f"{sql.rstrip(';')} LIMIT 100"
+            sql = f"{sql.rstrip(';')} LIMIT {self._MAX_QUERY_ROWS}"
 
         conn = self._get_connection()
 
@@ -857,7 +879,9 @@ class ChaosLLMAnalyzer:
         try:
             cursor = conn.execute(sql)
             columns = [desc[0] for desc in cursor.description]
-            rows = cursor.fetchall()
+            # Hard cap on rows regardless of LIMIT clause — defends against
+            # `LIMIT -1` (unlimited in SQLite) and missing-LIMIT bypasses.
+            rows = cursor.fetchmany(self._MAX_QUERY_ROWS)
         finally:
             # Reset authorizer so internal queries (diagnose, etc.) still work
             conn.set_authorizer(None)

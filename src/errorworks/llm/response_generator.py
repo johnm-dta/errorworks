@@ -283,16 +283,21 @@ class ResponseGenerator:
         """Jinja2 helper: Generate random integer in range."""
         return self._rng.randint(min_val, max_val)
 
+    _MAX_RANDOM_WORDS = 10_000
+
     def _template_random_words(self, min_count: int = 5, max_count: int | None = None) -> str:
         """Jinja2 helper: Generate random words.
 
         Can be called as random_words(50) for exactly 50 words,
-        or random_words(50, 100) for 50-100 words.
+        or random_words(50, 100) for 50-100 words. Output is hard-capped at
+        ``_MAX_RANDOM_WORDS`` words to prevent header-supplied templates from
+        forcing unbounded work via e.g. ``random_words(100000000)``.
         """
         if max_count is None:
             count = min_count
         else:
             count = self._rng.randint(min_count, max_count)
+        count = max(0, min(count, self._MAX_RANDOM_WORDS))
         vocab = self._get_vocabulary()
         words = [self._rng.choice(vocab) for _ in range(count)]
         return " ".join(words)
@@ -445,9 +450,14 @@ class ResponseGenerator:
                             messages=request.get("messages", []),
                             model=request.get("model"),
                         )
-                    except jinja2.TemplateError as exc:
+                    except Exception as exc:
+                        # Header-supplied templates can fail in many ways beyond
+                        # jinja2.TemplateError — e.g. random_int(10, 1) raises
+                        # ValueError from randint, and helper calls can raise
+                        # arbitrary exceptions. Catch broadly so the server stays
+                        # up and returns a deterministic error marker.
                         logger.warning("template_override_error", error=str(exc), error_type=type(exc).__name__)
-                        content = f"[template_override_error: {exc}]"
+                        content = f"[template_override_error: {type(exc).__name__}: {exc}]"
             else:
                 if self._compiled_template is None:
                     logger.warning("template_mode_unavailable", detail="server not configured for template mode")

@@ -46,9 +46,14 @@ class ServerConfig(BaseModel):
         description="Port to listen on",
     )
     workers: int = Field(
-        default=4,
+        default=1,
         gt=0,
-        description="Number of uvicorn workers",
+        description=(
+            "Number of uvicorn workers. Default 1: workers > 1 forks separate "
+            "processes, so the in-memory metrics database is fragmented per "
+            "worker. To run multi-worker, also configure a file-backed "
+            "metrics.database (see MetricsConfig.is_in_memory)."
+        ),
     )
     admin_token: str = Field(
         default_factory=lambda: secrets.token_urlsafe(32),
@@ -75,6 +80,27 @@ class MetricsConfig(BaseModel):
         gt=0,
         description="Time-series aggregation bucket size in seconds",
     )
+
+    def is_in_memory(self) -> bool:
+        """Return True if the configured database is an in-memory SQLite DB.
+
+        In-memory databases cannot be shared across uvicorn worker processes —
+        each forked worker gets its own private DB, so admin endpoints only
+        see whichever worker handled the admin request. Configurations with
+        workers > 1 must use a file-backed database.
+        """
+        db = self.database
+        if db == ":memory:" or db == "":
+            return True
+        if db.startswith("file:"):
+            _, _, query = db.partition("?")
+            for part in query.split("&"):
+                if part == "mode=memory":
+                    return True
+            # `file::memory:` (with optional ?...) also indicates in-memory
+            if db.startswith("file::memory:"):
+                return True
+        return False
 
 
 class LatencyConfig(BaseModel):

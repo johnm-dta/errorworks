@@ -30,10 +30,10 @@ def test_serve_defaults(mock_run):
     call_kwargs = mock_run.call_args[1]
     assert call_kwargs["host"] == "127.0.0.1"
     assert call_kwargs["port"] == 8200
-    assert call_kwargs["workers"] == 4  # ServerConfig default, not CLI default
-    # Default workers=4 triggers multi-worker factory mode
-    assert isinstance(mock_run.call_args.args[0], str)
-    assert call_kwargs["factory"] is True
+    # ServerConfig defaults to workers=1 (multi-worker requires a file-backed metrics DB).
+    assert call_kwargs["workers"] == 1
+    # workers=1 passes the app object directly (no factory).
+    assert not isinstance(mock_run.call_args.args[0], str)
 
 
 @patch(_UVICORN_RUN)
@@ -131,12 +131,20 @@ def test_serve_selection_mode_flag(mock_run):
 
 
 @patch(_UVICORN_RUN)
-def test_serve_workers_flag(mock_run):
-    """--workers=4 is passed through to uvicorn."""
-    result = runner.invoke(app, ["serve", "--workers=4"])
+def test_serve_workers_flag(mock_run, tmp_path):
+    """--workers=4 is passed through to uvicorn (with a file-backed DB)."""
+    db = str(tmp_path / "m.db")
+    result = runner.invoke(app, ["serve", "--workers=4", f"--database={db}"])
     assert result.exit_code == 0, result.output
     call_kwargs = mock_run.call_args[1]
     assert call_kwargs["workers"] == 4
+
+
+def test_serve_multi_worker_rejects_in_memory_metrics():
+    """workers > 1 with the default in-memory metrics DB must be rejected."""
+    result = runner.invoke(app, ["serve", "--workers=4"])
+    assert result.exit_code != 0
+    assert "file-backed metrics database" in (result.output or "")
 
 
 # ---------------------------------------------------------------------------
@@ -145,9 +153,10 @@ def test_serve_workers_flag(mock_run):
 
 
 @patch(_UVICORN_RUN)
-def test_serve_multi_worker_uses_import_string(mock_run):
+def test_serve_multi_worker_uses_import_string(mock_run, tmp_path):
     """When workers > 1, uvicorn.run receives an import string, not an app object."""
-    result = runner.invoke(app, ["serve", "--workers=4"])
+    db = str(tmp_path / "m.db")
+    result = runner.invoke(app, ["serve", "--workers=4", f"--database={db}"])
     assert result.exit_code == 0, result.output
     first_arg = mock_run.call_args.args[0]
     assert isinstance(first_arg, str), f"Expected import string, got {type(first_arg)}"
@@ -155,9 +164,10 @@ def test_serve_multi_worker_uses_import_string(mock_run):
 
 
 @patch(_UVICORN_RUN)
-def test_serve_multi_worker_uses_factory_flag(mock_run):
+def test_serve_multi_worker_uses_factory_flag(mock_run, tmp_path):
     """When workers > 1, factory=True is passed to uvicorn.run."""
-    result = runner.invoke(app, ["serve", "--workers=4"])
+    db = str(tmp_path / "m.db")
+    result = runner.invoke(app, ["serve", "--workers=4", f"--database={db}"])
     assert result.exit_code == 0, result.output
     assert mock_run.call_args.kwargs.get("factory") is True
 
@@ -284,11 +294,12 @@ def test_show_config_invalid_format():
 
 
 @patch(_UVICORN_RUN)
-def test_serve_multi_worker_cleans_up_env_var(mock_run):
+def test_serve_multi_worker_cleans_up_env_var(mock_run, tmp_path):
     """Env var _ERRORWORKS_WEB_CONFIG is cleaned up after uvicorn.run returns."""
     import os
 
-    result = runner.invoke(app, ["serve", "--workers=2"])
+    db = str(tmp_path / "m.db")
+    result = runner.invoke(app, ["serve", "--workers=2", f"--database={db}"])
     assert result.exit_code == 0, result.output
     assert "_ERRORWORKS_WEB_CONFIG" not in os.environ
 

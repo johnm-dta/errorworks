@@ -960,6 +960,19 @@ class TestMalformedRequestHandling:
         assert response.status_code == 400
         assert response.json()["error"]["type"] == "invalid_request_error"
 
+    def test_non_object_json_array_returns_400(self, client):
+        """POST /v1/chat/completions with a JSON array body returns 400 (not 500)."""
+        response = client.post("/v1/chat/completions", json=[1, 2, 3])
+        assert response.status_code == 400
+        assert response.json()["error"]["type"] == "invalid_request_error"
+        assert "JSON object" in response.json()["error"]["message"]
+
+    def test_non_object_json_string_returns_400(self, client):
+        """POST /v1/chat/completions with a JSON string body returns 400 (not 500)."""
+        response = client.post("/v1/chat/completions", json="hello")
+        assert response.status_code == 400
+        assert response.json()["error"]["type"] == "invalid_request_error"
+
     def test_admin_config_post_invalid_values_returns_422(self, client, admin_headers):
         """POST /admin/config with invalid config values returns 422."""
         response = client.post(

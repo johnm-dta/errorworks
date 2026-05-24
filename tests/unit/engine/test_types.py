@@ -360,7 +360,9 @@ class TestServerConfigValidation:
         config = ServerConfig()
         assert config.host == "127.0.0.1"
         assert config.port == 8000
-        assert config.workers == 4
+        # Default 1: workers > 1 is opt-in because it requires a file-backed
+        # metrics DB (in-memory DBs do not share across worker processes).
+        assert config.workers == 1
 
     def test_valid_custom(self) -> None:
         config = ServerConfig(host="0.0.0.0", port=9090, workers=2)
