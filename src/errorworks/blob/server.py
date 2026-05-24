@@ -25,7 +25,7 @@ from errorworks.blob.xml import error_xml, list_objects_v2_xml
 from errorworks.engine import admin
 from errorworks.engine.config_loader import deep_merge
 from errorworks.engine.latency import LatencySimulator
-from errorworks.engine.request_body import RequestBodyTooLarge, read_limited_body
+from errorworks.engine.request_body import MalformedContentLength, RequestBodyTooLarge, read_limited_body
 from errorworks.engine.types import LatencyConfig
 
 logger = structlog.get_logger(__name__)
@@ -249,6 +249,22 @@ class ChaosBlobServer:
 
         try:
             body = await read_limited_body(request, max_bytes=storage_config.max_object_bytes)
+        except MalformedContentLength:
+            error_body = self._s3_error_body(code="InvalidRequest", resource=f"/{bucket}/{key}", request_id=request_id)
+            elapsed_ms = self._elapsed_ms(start_time)
+            self._record_request(
+                request_id=request_id,
+                timestamp_utc=timestamp_utc,
+                operation=BlobOperation.PUT.value,
+                bucket=bucket,
+                object_key=key,
+                outcome="error_injected",
+                status_code=400,
+                error_type="InvalidRequest",
+                bytes_out=len(error_body),
+                latency_ms=elapsed_ms,
+            )
+            return self._s3_error_response(body=error_body, status_code=400)
         except RequestBodyTooLarge:
             error_body = self._s3_error_body(code="EntityTooLarge", resource=f"/{bucket}/{key}", request_id=request_id)
             elapsed_ms = self._elapsed_ms(start_time)
