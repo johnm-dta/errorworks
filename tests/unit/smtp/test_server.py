@@ -42,7 +42,7 @@ def _config_for_port(tmp_path, port: int) -> ChaosSMTPConfig:
     )
 
 
-def _config_with_error_injection(tmp_path, **overrides: float) -> ChaosSMTPConfig:
+def _config_with_error_injection(tmp_path, **overrides: object) -> ChaosSMTPConfig:
     base = _config(tmp_path)
     return ChaosSMTPConfig(
         **{
@@ -360,5 +360,20 @@ def test_malformed_reply_disconnects_client(tmp_path) -> None:
             client.send_message(_message())
         stats = server.export_metrics()
         assert stats["requests"][0]["outcome"] == "malformed_protocol"
+    finally:
+        server.stop()
+
+
+def test_slow_response_continues_to_successful_delivery(tmp_path) -> None:
+    server = ChaosSMTPServer(_config_with_error_injection(tmp_path, slow_response_pct=100.0, slow_response_sec=(0, 0)))
+    server.start()
+    try:
+        with smtplib.SMTP(server.smtp_host, server.smtp_port, timeout=5) as client:
+            result = client.send_message(_message())
+
+        assert result == {}
+        assert server.list_messages()[0].subject == "Delivery test"
+        assert server.get_stats()["requests_by_outcome"] == {"success": 1}
+        assert server.export_metrics()["requests"][0]["outcome"] == "success"
     finally:
         server.stop()

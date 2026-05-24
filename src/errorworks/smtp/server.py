@@ -57,7 +57,7 @@ class _ChaosSMTPHandler:
 
     async def handle_MAIL(self, server: Any, session: Session, envelope: Envelope, address: str, mail_options: list[str]) -> str:
         decision = await self._owner.handle_stage(SMTPStage.MAIL, session=session, smtp_server=server, mail_from=address)
-        if decision.should_inject:
+        if _is_failure_decision(decision):
             return _reply_for_decision(decision)
         envelope.mail_from = address
         envelope.mail_options.extend(mail_options)
@@ -65,7 +65,7 @@ class _ChaosSMTPHandler:
 
     async def handle_RCPT(self, server: Any, session: Session, envelope: Envelope, address: str, rcpt_options: list[str]) -> str:
         decision = await self._owner.handle_stage(SMTPStage.RCPT, session=session, smtp_server=server, rcpt_to=address)
-        if decision.should_inject:
+        if _is_failure_decision(decision):
             return _reply_for_decision(decision)
         envelope.rcpt_tos.append(address)
         envelope.rcpt_options.extend(rcpt_options)
@@ -245,7 +245,7 @@ class ChaosSMTPServer:
             delay += decision.delay_sec
         if delay > 0:
             await asyncio.sleep(delay)
-        if decision.should_inject:
+        if _is_failure_decision(decision):
             self._record_transaction(
                 session=session,
                 outcome=_outcome_for_decision(decision),
@@ -277,7 +277,7 @@ class ChaosSMTPServer:
             await asyncio.sleep(delay)
         elapsed_ms = (time.monotonic() - start) * 1000
         content = envelope.content if isinstance(envelope.content, bytes) else b""
-        if decision.should_inject:
+        if _is_failure_decision(decision):
             self._record_transaction(
                 session=session,
                 outcome=_outcome_for_decision(decision),
@@ -430,6 +430,10 @@ def _outcome_for_decision(decision: SMTPErrorDecision) -> str:
     if decision.reply_code is not None and 500 <= decision.reply_code < 600:
         return "permfailed"
     return "error_injected"
+
+
+def _is_failure_decision(decision: SMTPErrorDecision) -> bool:
+    return decision.should_inject and decision.error_type != "slow_response"
 
 
 def _transport_from_smtp(smtp_server: Any) -> Any:
