@@ -474,7 +474,7 @@ Range fields must satisfy `min <= max`. They accept both tuples and lists in YAM
 | `enabled` | `bool` | `false` | Enable burst pattern injection. |
 | `interval_sec` | `int` | `30` | Time between burst starts in seconds. Must be > 0. |
 | `duration_sec` | `int` | `5` | How long each burst lasts in seconds. Must be > 0 and < `interval_sec` when enabled. |
-| `tempfail_pct` | `float` | `80.0` | RCPT temporary failure percentage during burst windows. |
+| `rcpt_to_tempfail_pct` | `float` | `80.0` | RCPT TO temporary failure percentage during burst windows. (Renamed from `tempfail_pct` for clarity — only the RCPT TO tempfail weight is overridden.) |
 | `rate_limit_pct` | `float` | `50.0` | Rate-limit percentage during burst windows. |
 
 ---

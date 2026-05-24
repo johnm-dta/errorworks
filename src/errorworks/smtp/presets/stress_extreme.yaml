@@ -23,5 +23,5 @@ error_injection:
     enabled: true
     interval_sec: 30
     duration_sec: 8
-    tempfail_pct: 90.0
+    rcpt_to_tempfail_pct: 90.0
     rate_limit_pct: 85.0

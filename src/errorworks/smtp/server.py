@@ -328,7 +328,7 @@ class ChaosSMTPServer:
             )
             return "250 2.0.0 OK"
         transaction_id = str(uuid.uuid4())
-        captured = capture.capture(
+        captured = await capture.capture(
             transaction_id=transaction_id,
             mail_from=envelope.mail_from or "",
             rcpt_tos=list(envelope.rcpt_tos),
@@ -392,6 +392,17 @@ class ChaosSMTPServer:
         if decision is not None and decision.reply_code is not None:
             reply_code = decision.reply_code
         timestamp_utc = datetime.now(UTC).isoformat()
+        injection_type: str | None
+        error_type: str | None
+        if decision is not None:
+            injection_type = decision.error_type.value if decision.error_type is not None else None
+            if decision.error_type is not None and decision.error_type != SMTPErrorTag.SLOW_RESPONSE:
+                error_type = decision.error_type.value
+            else:
+                error_type = None
+        else:
+            injection_type = None
+            error_type = None
         try:
             self._metrics_recorder.record_transaction(
                 transaction_id=transaction_id,
@@ -407,8 +418,8 @@ class ChaosSMTPServer:
                 smtp_stage=stage.value,
                 reply_code=reply_code,
                 enhanced_status_code=_enhanced_status_code(decision.message) if decision is not None else None,
-                error_type=decision.error_type if decision is not None else None,
-                injection_type=decision.error_type if decision is not None else None,
+                error_type=error_type,
+                injection_type=injection_type,
                 latency_ms=latency_ms,
                 injected_delay_ms=injected_delay_ms,
                 capture_mode=capture_mode,
@@ -417,6 +428,8 @@ class ChaosSMTPServer:
             )
         except sqlite3.Error:
             logger.warning("smtp_metrics_recording_failed", transaction_id=transaction_id, outcome=outcome, exc_info=True)
+        except Exception:
+            logger.error("smtp_metrics_recording_unexpected_error", transaction_id=transaction_id, outcome=outcome, exc_info=True)
 
 
 def create_admin_app(server: ChaosSMTPServer) -> Starlette:
@@ -472,8 +485,12 @@ def _close_smtp_transport(smtp_server: Any) -> None:
 
 def _write_raw_smtp_reply(smtp_server: Any, payload: bytes) -> None:
     transport = _transport_from_smtp(smtp_server)
-    if transport is not None:
+    if transport is None:
+        return
+    try:
         transport.write(payload)
+    except (BrokenPipeError, ConnectionError, OSError):
+        logger.info("smtp_chaos_write_skipped_transport_closed", exc_info=True)
 
 
 def _apply_protocol_failure(smtp_server: Any, decision: SMTPErrorDecision) -> None:

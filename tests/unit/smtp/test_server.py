@@ -1,5 +1,6 @@
 """Tests for ChaosSMTP server."""
 
+import json
 import smtplib
 import threading
 import time
@@ -122,12 +123,21 @@ def test_silent_server_accepts_message(tmp_path) -> None:
     server = ChaosSMTPServer(_config(tmp_path))
     server.start()
     try:
+        message = _message()
+        # Add a second recipient in a different domain so we can pin the
+        # rcpt_domains JSON serialization.
+        message.replace_header("To", "recipient@example.com, other@elsewhere.test")
         with smtplib.SMTP(server.smtp_host, server.smtp_port, timeout=5) as client:
-            result = client.send_message(_message())
+            result = client.send_message(message)
         assert result == {}
         stats = server.get_stats()
         assert stats["total_requests"] == 1
         assert server.list_messages()[0].subject == "Delivery test"
+        # Pin: rcpt_domains is JSON-encoded, sorted, lowercased; tls_used == 0
+        # on a plain-text session.
+        requests = server.export_metrics()["requests"]
+        assert json.loads(requests[0]["rcpt_domains"]) == sorted(["example.com", "elsewhere.test"])
+        assert requests[0]["tls_used"] == 0
     finally:
         server.stop()
 
@@ -322,6 +332,35 @@ def test_rcpt_tempfail_returns_smtp_recipients_refused(tmp_path) -> None:
         refused = exc_info.value.recipients["recipient@example.com"]
         assert refused[0] == 451
         assert server.get_stats()["total_requests"] == 1
+        # Pin: enhanced status code is captured and surfaced on tempfail rows.
+        requests = server.export_metrics()["requests"]
+        assert requests[0]["outcome"] == "tempfailed"
+        assert requests[0]["reply_code"] == 451
+        assert requests[0]["enhanced_status_code"] == "4.3.0"
+    finally:
+        server.stop()
+
+
+def test_rate_limit_returns_smtp_sender_refused(tmp_path) -> None:
+    """rate_limit_pct=100 trips at the MAIL stage (the first stage where
+    RATE_LIMIT appears in priority order), so smtplib raises
+    SMTPSenderRefused with the configured 450 4.7.0 reply."""
+    server = ChaosSMTPServer(_config_with_error_injection(tmp_path, rate_limit_pct=100.0))
+    server.start()
+    try:
+        with (
+            smtplib.SMTP(server.smtp_host, server.smtp_port, timeout=5) as client,
+            pytest.raises(smtplib.SMTPSenderRefused) as exc_info,
+        ):
+            client.send_message(_message())
+        assert exc_info.value.smtp_code == 450
+        assert b"4.7.0" in exc_info.value.smtp_error
+        assert b"rate limiting" in exc_info.value.smtp_error
+        assert server.get_stats()["total_requests"] == 1
+        requests = server.export_metrics()["requests"]
+        assert requests[0]["outcome"] == "tempfailed"
+        assert requests[0]["reply_code"] == 450
+        assert requests[0]["injection_type"] == "rate_limit"
     finally:
         server.stop()
 
@@ -353,7 +392,7 @@ def test_admin_config_update_changes_subsequent_transaction(tmp_path) -> None:
                     enabled=True,
                     interval_sec=37,
                     duration_sec=11,
-                    tempfail_pct=0.0,
+                    rcpt_to_tempfail_pct=0.0,
                     rate_limit_pct=0.0,
                 ),
             ).model_dump(),
@@ -543,6 +582,9 @@ async def test_slow_response_mail_records_successful_stage_with_delay(tmp_path, 
         assert request["outcome"] == "success"
         assert request["reply_code"] == 250
         assert request["injected_delay_ms"] == 1000.0
+        # SLOW_RESPONSE is recorded as an injection but not as an error.
+        assert request["error_type"] is None
+        assert request["injection_type"] == "slow_response"
     finally:
         server.stop()
 
@@ -569,7 +611,9 @@ async def test_slow_response_data_success_records_injected_delay(tmp_path, monke
 
 
 @pytest.mark.asyncio
-async def test_metrics_programming_errors_propagate_from_data_path(tmp_path, monkeypatch) -> None:
+async def test_metrics_programming_errors_do_not_break_smtp_wire(tmp_path, monkeypatch) -> None:
+    """Defense-in-depth: an unexpected metrics-recorder failure must never
+    propagate into the aiosmtpd handler and disrupt the SMTP wire."""
     server = ChaosSMTPServer(_config(tmp_path))
 
     def raise_type_error(**kwargs: object) -> None:
@@ -578,7 +622,7 @@ async def test_metrics_programming_errors_propagate_from_data_path(tmp_path, mon
     monkeypatch.setattr(server._metrics_recorder, "record_transaction", raise_type_error)
 
     try:
-        with pytest.raises(TypeError, match="schema drift"):
-            await server.handle_data(session=_FakeSession(), smtp_server=object(), envelope=_FakeEnvelope())
+        reply = await server.handle_data(session=_FakeSession(), smtp_server=object(), envelope=_FakeEnvelope())
+        assert reply == "250 2.0.0 OK"
     finally:
         server.stop()

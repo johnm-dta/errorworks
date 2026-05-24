@@ -130,7 +130,7 @@ class SMTPErrorInjector:
 
     def _build_specs(self, stage: SMTPStage) -> list[ErrorSpec]:
         in_burst = self._engine.is_in_burst()
-        tempfail_pct = self._config.burst.tempfail_pct if in_burst else self._config.rcpt_to_tempfail_pct
+        tempfail_pct = self._config.burst.rcpt_to_tempfail_pct if in_burst else self._config.rcpt_to_tempfail_pct
         rate_limit_pct = self._config.burst.rate_limit_pct if in_burst else self._config.rate_limit_pct
         weights = {
             SMTPErrorTag.RATE_LIMIT: rate_limit_pct,

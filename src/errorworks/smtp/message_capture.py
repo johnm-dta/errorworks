@@ -2,17 +2,34 @@
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import threading
 from collections.abc import Mapping
 from dataclasses import dataclass
 from email import policy
+from email.errors import MessageError
 from email.parser import BytesParser
 from typing import NoReturn, TypeVar, overload
 
 from errorworks.smtp.config import SMTPCaptureConfig
 
 _SAFE_HEADERS = ("from", "to", "cc", "bcc", "subject", "message-id", "date")
+
+
+def _parse_message_bytes(data: bytes) -> dict[str, str]:
+    """Parse raw SMTP DATA bytes and return safe headers.
+
+    Returns an empty dict on any parse failure — chaos clients deliberately
+    send malformed input, and the caller decides whether to log.
+    """
+    try:
+        parsed = BytesParser(policy=policy.default).parsebytes(data)
+        return {name: str(parsed[name]) for name in _SAFE_HEADERS if parsed[name] is not None}
+    except (MessageError, ValueError, UnicodeDecodeError):
+        return {}
+
+
 _T = TypeVar("_T")
 
 
@@ -93,7 +110,7 @@ class MessageCapture:
             self._config = config
             self._trim_locked(config.max_messages)
 
-    def capture(
+    async def capture(
         self,
         *,
         transaction_id: str,
@@ -106,8 +123,7 @@ class MessageCapture:
             with self._lock:
                 config = self._config
 
-        parsed = BytesParser(policy=policy.default).parsebytes(data)
-        safe_headers = {name: str(parsed[name]) for name in _SAFE_HEADERS if parsed[name] is not None}
+        safe_headers = await asyncio.to_thread(_parse_message_bytes, data)
         subject = safe_headers.get("subject")
         body: str | None = None
         body_encoding: str | None = None

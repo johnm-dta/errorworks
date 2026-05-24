@@ -49,7 +49,7 @@ def test_burst_overrides_tempfail_rates() -> None:
     calls = iter([0.0, 1.0])
     injector = SMTPErrorInjector(
         SMTPErrorInjectionConfig(
-            burst={"enabled": True, "interval_sec": 30, "duration_sec": 5, "tempfail_pct": 100.0},
+            burst={"enabled": True, "interval_sec": 30, "duration_sec": 5, "rcpt_to_tempfail_pct": 100.0},
         ),
         rng=random.Random(1),
         time_func=lambda: next(calls),

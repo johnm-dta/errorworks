@@ -88,7 +88,7 @@ class SMTPBurstConfig(BaseModel):
     enabled: bool = False
     interval_sec: int = Field(default=30, gt=0)
     duration_sec: int = Field(default=5, gt=0)
-    tempfail_pct: float = Field(default=80.0, ge=0.0, le=100.0)
+    rcpt_to_tempfail_pct: float = Field(default=80.0, ge=0.0, le=100.0)
     rate_limit_pct: float = Field(default=50.0, ge=0.0, le=100.0)
 
     @model_validator(mode="after")

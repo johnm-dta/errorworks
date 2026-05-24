@@ -171,9 +171,9 @@ def serve(
         int | None,
         typer.Option("--burst-duration-sec", help="Burst duration in seconds.", min=1),
     ] = None,
-    burst_tempfail_pct: Annotated[
+    burst_rcpt_to_tempfail_pct: Annotated[
         float | None,
-        typer.Option("--burst-tempfail-pct", help="Temporary failure percentage during bursts.", min=0.0, max=100.0),
+        typer.Option("--burst-rcpt-to-tempfail-pct", help="RCPT TO temporary failure percentage during bursts.", min=0.0, max=100.0),
     ] = None,
     burst_rate_limit_pct: Annotated[
         float | None,
@@ -239,7 +239,7 @@ def serve(
         burst_enabled=burst_enabled,
         burst_interval_sec=burst_interval_sec,
         burst_duration_sec=burst_duration_sec,
-        burst_tempfail_pct=burst_tempfail_pct,
+        burst_rcpt_to_tempfail_pct=burst_rcpt_to_tempfail_pct,
         burst_rate_limit_pct=burst_rate_limit_pct,
         base_ms=base_ms,
         jitter_ms=jitter_ms,
@@ -343,7 +343,7 @@ def _build_cli_overrides(**values: Any) -> dict[str, Any]:
             "enabled": values["burst_enabled"],
             "interval_sec": values["burst_interval_sec"],
             "duration_sec": values["burst_duration_sec"],
-            "tempfail_pct": values["burst_tempfail_pct"],
+            "rcpt_to_tempfail_pct": values["burst_rcpt_to_tempfail_pct"],
             "rate_limit_pct": values["burst_rate_limit_pct"],
         }
     )

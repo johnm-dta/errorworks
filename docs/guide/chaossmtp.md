@@ -100,9 +100,11 @@ error_injection:
     enabled: true
     interval_sec: 60
     duration_sec: 8
-    tempfail_pct: 50.0
+    rcpt_to_tempfail_pct: 50.0
     rate_limit_pct: 40.0
 ```
+
+> **Note:** The `burst.tempfail_pct` field was renamed to `burst.rcpt_to_tempfail_pct` — it only overrides the RCPT TO tempfail weight, and the old name was misleading. Update any YAML or CLI flags (`--burst-rcpt-to-tempfail-pct`) accordingly.
 
 ## Capture Modes
 
