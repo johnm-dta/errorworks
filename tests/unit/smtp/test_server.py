@@ -42,6 +42,19 @@ def _config_for_port(tmp_path, port: int) -> ChaosSMTPConfig:
     )
 
 
+def _config_with_error_injection(tmp_path, **overrides: float) -> ChaosSMTPConfig:
+    base = _config(tmp_path)
+    return ChaosSMTPConfig(
+        **{
+            **base.model_dump(),
+            "error_injection": {
+                **base.error_injection.model_dump(),
+                **overrides,
+            },
+        }
+    )
+
+
 def test_server_starts_on_ephemeral_port(tmp_path) -> None:
     server = ChaosSMTPServer(_config(tmp_path))
     server.start()
@@ -170,3 +183,126 @@ def test_health_endpoint_reports_smtp_status(tmp_path) -> None:
     assert data["status"] == "healthy"
     assert "smtp_running" in data
     assert "run_id" in data
+
+
+def test_rcpt_tempfail_returns_smtp_recipients_refused(tmp_path) -> None:
+    server = ChaosSMTPServer(_config_with_error_injection(tmp_path, rcpt_to_tempfail_pct=100.0))
+    server.start()
+    try:
+        with (
+            smtplib.SMTP(server.smtp_host, server.smtp_port, timeout=5) as client,
+            pytest.raises(smtplib.SMTPRecipientsRefused) as exc_info,
+        ):
+            client.send_message(_message())
+        refused = exc_info.value.recipients["recipient@example.com"]
+        assert refused[0] == 451
+        assert server.get_stats()["total_requests"] == 1
+    finally:
+        server.stop()
+
+
+def test_data_reject_returns_smtp_data_error(tmp_path) -> None:
+    server = ChaosSMTPServer(_config_with_error_injection(tmp_path, data_reject_pct=100.0))
+    server.start()
+    try:
+        with (
+            smtplib.SMTP(server.smtp_host, server.smtp_port, timeout=5) as client,
+            pytest.raises(smtplib.SMTPDataError) as exc_info,
+        ):
+            client.send_message(_message())
+        assert exc_info.value.smtp_code == 554
+        assert server.get_stats()["total_requests"] == 1
+    finally:
+        server.stop()
+
+
+def test_admin_config_update_changes_subsequent_transaction(tmp_path) -> None:
+    server = ChaosSMTPServer(_config(tmp_path))
+    server.start()
+    try:
+        with TestClient(server.admin_app) as admin_client:
+            response = admin_client.post(
+                "/admin/config",
+                headers={"Authorization": f"Bearer {TEST_ADMIN_TOKEN}"},
+                json={"error_injection": {"rcpt_to_reject_pct": 100.0}},
+            )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["config"]["error_injection"]["rcpt_to_reject_pct"] == 100.0
+        assert data["config"]["error_injection"]["data_reject_pct"] == 0.0
+
+        with (
+            smtplib.SMTP(server.smtp_host, server.smtp_port, timeout=5) as client,
+            pytest.raises(smtplib.SMTPRecipientsRefused) as exc_info,
+        ):
+            client.send_message(_message())
+        refused = exc_info.value.recipients["recipient@example.com"]
+        assert refused[0] == 550
+    finally:
+        server.stop()
+
+
+def test_admin_reset_clears_metrics_and_capture(tmp_path) -> None:
+    server = ChaosSMTPServer(_config(tmp_path))
+    server.start()
+    try:
+        with smtplib.SMTP(server.smtp_host, server.smtp_port, timeout=5) as client:
+            client.send_message(_message())
+        assert server.get_stats()["total_requests"] == 1
+        assert server.list_messages()
+
+        with TestClient(server.admin_app) as admin_client:
+            response = admin_client.post("/admin/reset", headers={"Authorization": f"Bearer {TEST_ADMIN_TOKEN}"})
+        assert response.status_code == 200
+        assert server.get_stats()["total_requests"] == 0
+        assert server.list_messages() == []
+    finally:
+        server.stop()
+
+
+def test_failed_mail_command_does_not_mutate_envelope_and_records_once(tmp_path) -> None:
+    server = ChaosSMTPServer(_config_with_error_injection(tmp_path, mail_from_reject_pct=100.0))
+    server.start()
+    try:
+        with smtplib.SMTP(server.smtp_host, server.smtp_port, timeout=5) as client:
+            client.ehlo()
+            code, _ = client.mail("sender@example.com")
+            assert code == 550
+
+            server.update_config({"error_injection": {"mail_from_reject_pct": 0.0}})
+            code, _ = client.rcpt("recipient@example.com")
+            assert code == 503
+
+        requests = server.export_metrics()["requests"]
+        assert len(requests) == 1
+        request = requests[0]
+        assert request["smtp_stage"] == "mail"
+        assert request["reply_code"] == 550
+        assert request["outcome"] == "permfailed"
+    finally:
+        server.stop()
+
+
+def test_failed_rcpt_command_does_not_mutate_envelope_and_records_once(tmp_path) -> None:
+    server = ChaosSMTPServer(_config_with_error_injection(tmp_path, rcpt_to_reject_pct=100.0))
+    server.start()
+    try:
+        with smtplib.SMTP(server.smtp_host, server.smtp_port, timeout=5) as client:
+            client.ehlo()
+            assert client.mail("sender@example.com")[0] == 250
+            code, _ = client.rcpt("recipient@example.com")
+            assert code == 550
+
+            server.update_config({"error_injection": {"rcpt_to_reject_pct": 0.0}})
+            with pytest.raises(smtplib.SMTPDataError) as exc_info:
+                client.data(_message().as_bytes())
+            assert exc_info.value.smtp_code == 503
+
+        requests = server.export_metrics()["requests"]
+        assert len(requests) == 1
+        request = requests[0]
+        assert request["smtp_stage"] == "rcpt"
+        assert request["reply_code"] == 550
+        assert request["outcome"] == "permfailed"
+    finally:
+        server.stop()
