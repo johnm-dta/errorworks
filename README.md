@@ -25,11 +25,13 @@ failures, DATA rejections, rate limits, slow replies, and accepted-but-dropped
 messages without relaying mail. Fault rates, error distributions, and latency
 profiles are all configurable via CLI flags, YAML files, or built-in presets.
 
-The HTTP servers run in-process during CI via pytest fixtures with no sockets or
-containers. ChaosSMTP uses an ephemeral loopback TCP socket so standard SMTP
-clients such as `smtplib` can exercise the real protocol. All servers record
-metrics to a thread-safe SQLite store and support live reconfiguration through
-bearer-token admin endpoints.
+All packaged servers record metrics to a thread-safe SQLite store and support
+live reconfiguration through bearer-token admin endpoints. The repository test
+suite also includes maintainer fixtures under `tests/fixtures`: HTTP fixtures run
+through Starlette's `TestClient`, while the ChaosSMTP fixture uses an ephemeral
+loopback TCP socket so standard SMTP clients such as `smtplib` can exercise the
+real protocol. Those fixtures are source-tree test helpers, not installed package
+imports.
 
 ## Features
 
@@ -62,9 +64,9 @@ bearer-token admin endpoints.
 - SQLite-backed metrics with timeseries aggregation
 - Admin endpoints for stats, config, export, and reset (bearer-token auth)
 
-**Testing support**
-- In-process pytest fixtures with marker-based configuration
-- No containers required in CI; SMTP fixture binds an ephemeral loopback port
+**Repository test-suite helpers**
+- Contributor/maintainer pytest fixtures under `tests/fixtures` with marker-based configuration
+- No containers required in CI; the SMTP fixture binds an ephemeral loopback port
 
 ## Quick start
 
@@ -104,14 +106,18 @@ chaosengine blob serve --preset=stress_storage
 chaosengine smtp serve --preset=stress_delivery
 ```
 
-### Pytest fixtures
+### Repository test-suite fixtures
+
+The pytest fixtures in `tests/fixtures` are for contributors running the
+repository test suite from a source checkout. They are not packaged in the
+installed wheel.
 
 ```python
 import pytest
 
 @pytest.mark.chaosllm(preset="realistic", rate_limit_pct=25.0)
-def test_retry_on_rate_limit(chaosllm):
-    response = chaosllm.post_completion(
+def test_retry_on_rate_limit(chaosllm_server):
+    response = chaosllm_server.post_completion(
         model="gpt-4",
         messages=[{"role": "user", "content": "test"}],
     )

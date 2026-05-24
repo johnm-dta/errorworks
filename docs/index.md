@@ -75,13 +75,13 @@ chaossmtp serve --preset=realistic --port=2525
 
 -   **Quick Start**
 
-    Walk through complete scenarios with ChaosLLM, ChaosWeb, ChaosBlob, ChaosSMTP, and pytest fixtures.
+    Walk through ChaosLLM, ChaosWeb, ChaosBlob, and ChaosSMTP CLI scenarios plus source-checkout fixture examples for contributors.
 
     [:octicons-arrow-right-24: Quick Start](getting-started/quickstart.md)
 
 -   **Guide**
 
-    Deep dives into presets, configuration, metrics, and testing fixtures.
+    Deep dives into presets, configuration, metrics, and repository testing fixtures.
 
     [:octicons-arrow-right-24: Guide](guide/chaosllm.md)
 

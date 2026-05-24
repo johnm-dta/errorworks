@@ -1,10 +1,12 @@
-# Testing Fixtures Guide
+# Repository Testing Fixtures Guide
 
-Errorworks provides pytest fixtures for ChaosLLM, ChaosWeb, ChaosBlob, and ChaosSMTP. ChaosLLM, ChaosWeb, and ChaosBlob run in-process using Starlette's `TestClient`, so no real network sockets are opened for HTTP tests. ChaosSMTP uses an ephemeral loopback TCP socket because normal SMTP clients require a real socket and protocol session.
+This page documents pytest fixtures used by the errorworks repository test suite. They live under `tests/fixtures`, outside `src/errorworks`, and are not included in the installed wheel. Use these helpers when developing or maintaining errorworks from a source checkout.
+
+ChaosLLM, ChaosWeb, and ChaosBlob repository fixtures run in-process using Starlette's `TestClient`, so no real network sockets are opened for HTTP tests. The ChaosSMTP repository fixture uses an ephemeral loopback TCP socket because normal SMTP clients require a real socket and protocol session.
 
 ## Setup
 
-Import the fixtures in your `conftest.py`:
+From the errorworks source tree, import the fixtures in the relevant test package `conftest.py`:
 
 ```python
 # tests/conftest.py
@@ -296,7 +298,7 @@ The `ChaosBlobFixture` object provides:
 
 ## ChaosSMTP Fixture
 
-The `chaossmtp_server` fixture starts a real SMTP listener on `127.0.0.1` with `smtp.port=0`, so the operating system assigns an ephemeral port. This keeps tests isolated while still exercising standard clients like `smtplib`.
+The repository's `chaossmtp_server` fixture starts a real SMTP listener on `127.0.0.1` with `smtp.port=0`, so the operating system assigns an ephemeral port. This keeps tests isolated while still exercising standard clients like `smtplib`.
 
 ### Basic Usage
 
@@ -544,14 +546,14 @@ def test_capture_metadata(chaossmtp_server):
 
 ## How It Works
 
-The ChaosLLM and ChaosWeb fixtures use Starlette's `TestClient`, which wraps the ASGI application and routes HTTP calls through the stack without opening a network socket. This means:
+The ChaosLLM and ChaosWeb repository fixtures use Starlette's `TestClient`, which wraps the ASGI application and routes HTTP calls through the stack without opening a network socket. This means:
 
 - **No port conflicts** -- multiple tests can run in parallel
 - **No startup delay** -- the server is ready immediately
 - **Full fidelity** -- the same request handling code runs as in production
 - **Isolated state** -- each test gets a fresh server instance via `tmp_path`
 
-The ChaosSMTP fixture uses the same configuration pattern, but it starts a real `aiosmtpd` listener on an ephemeral loopback port. That keeps tests close to production SMTP client behavior while avoiding fixed-port conflicts.
+The ChaosSMTP repository fixture uses the same configuration pattern, but it starts a real `aiosmtpd` listener on an ephemeral loopback port. That keeps tests close to production SMTP client behavior while avoiding fixed-port conflicts.
 
 The `_build_config_from_marker()` function translates marker kwargs into a `ChaosLLMConfig`, `ChaosWebConfig`, `ChaosBlobConfig`, or `ChaosSMTPConfig` object. It applies the same precedence rules as the CLI: marker kwargs override the preset, and the fixture always forces latency to zero and sets a deterministic admin token for test convenience.
 

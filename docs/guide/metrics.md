@@ -309,4 +309,4 @@ new_run_id = server.reset()
 - [ChaosLLM](chaosllm.md) -- LLM-specific metrics fields
 - [ChaosWeb](chaosweb.md) -- Web-specific metrics fields
 - [ChaosSMTP](chaossmtp.md) -- SMTP-specific metrics and capture modes
-- [Testing Fixtures](testing-fixtures.md) -- Accessing metrics in pytest
+- [Testing Fixtures](testing-fixtures.md) -- Accessing metrics in repository fixture tests

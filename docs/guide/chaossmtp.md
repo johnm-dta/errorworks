@@ -142,9 +142,9 @@ curl -X POST http://127.0.0.1:8525/admin/config \
   -d '{"error_injection": {"rcpt_to_tempfail_pct": 25.0}}'
 ```
 
-## Pytest Fixture
+## Repository Pytest Fixture
 
-The `chaossmtp_server` fixture starts ChaosSMTP on an ephemeral loopback TCP port because standard SMTP clients require a real socket.
+The errorworks repository test suite includes a `chaossmtp_server` fixture under `tests/fixtures`. It is a contributor/maintainer helper for source-checkout tests, not an installed package import. The fixture starts ChaosSMTP on an ephemeral loopback TCP port because standard SMTP clients require a real socket.
 
 ```python
 from email.message import EmailMessage
@@ -185,4 +185,4 @@ def test_recipient_rejection(chaossmtp_server):
 - [Presets](presets.md) -- Full preset comparison and customization
 - [Configuration](configuration.md) -- YAML config file structure and precedence rules
 - [Metrics](metrics.md) -- SMTP metrics fields and captured messages
-- [Testing Fixtures](testing-fixtures.md) -- Fixture setup and marker options
+- [Testing Fixtures](testing-fixtures.md) -- Repository fixture setup and marker options
