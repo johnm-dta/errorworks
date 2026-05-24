@@ -4,7 +4,7 @@ All configuration models use Pydantic with `frozen=True` (immutable) and `extra=
 
 ## Shared Configuration
 
-These models are defined in `errorworks.engine.types` and used by both ChaosLLM and ChaosWeb.
+These models are defined in `errorworks.engine.types` and used by ChaosLLM, ChaosWeb, and ChaosBlob.
 
 ### ServerConfig
 
@@ -13,8 +13,8 @@ Server binding and worker configuration.
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `host` | `str` | `"127.0.0.1"` | Host address to bind to. Must match pattern `^[a-zA-Z0-9.:\[\]-]+$`. |
-| `port` | `int` | `8000` (LLM) / `8200` (Web) | Port to listen on. Range: 1-65535. |
-| `workers` | `int` | `4` | Number of uvicorn workers. Must be > 0. |
+| `port` | `int` | `8000` (LLM) / `8200` (Web) / `8300` (Blob) | Port to listen on. Range: 1-65535. |
+| `workers` | `int` | `1` | Number of uvicorn workers. Must be > 0. Workers > 1 require a file-backed metrics database. |
 | `admin_token` | `str` | Auto-generated | Bearer token for `/admin/*` endpoints. Auto-generated via `secrets.token_urlsafe(32)` if not set. |
 
 **Safety constraint:** Binding to `0.0.0.0`, `::`, or `0:0:0:0:0:0:0:0` is blocked by default. Set `allow_external_bind: true` in the top-level config to override.
@@ -32,6 +32,7 @@ Default database URIs:
 
 - ChaosLLM: `file:chaosllm-metrics?mode=memory&cache=shared`
 - ChaosWeb: `file:chaosweb-metrics?mode=memory&cache=shared`
+- ChaosBlob: `file:chaosblob-metrics?mode=memory&cache=shared`
 
 ### LatencyConfig
 
@@ -284,13 +285,95 @@ All `tuple[int, int]` range fields must satisfy `min <= max`. They accept both t
 
 ---
 
+## ChaosBlob Configuration
+
+### ChaosBlobConfig (top-level)
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `server` | `BlobServerConfig` | Port defaults to `8300` | Server binding configuration. |
+| `metrics` | `MetricsConfig` | See above | Metrics storage configuration. |
+| `storage` | `BlobStorageConfig` | See below | Object storage limits and response defaults. |
+| `latency` | `LatencyConfig` | See above | Latency simulation configuration. |
+| `error_injection` | `BlobErrorInjectionConfig` | See below | Error injection configuration. |
+| `allow_external_bind` | `bool` | `false` | Allow binding to all interfaces (`0.0.0.0`). |
+| `preset_name` | `str \| None` | `None` | Preset name used to build this config (set automatically). |
+
+### BlobErrorInjectionConfig
+
+All percentage fields are floats in the range 0.0-100.0.
+
+#### S3 HTTP Errors
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `slow_down_pct` | `float` | `0.0` | S3 SlowDown percentage. Includes `Retry-After`. |
+| `access_denied_pct` | `float` | `0.0` | 403 AccessDenied percentage. |
+| `not_found_pct` | `float` | `0.0` | 404 NoSuchKey percentage. |
+| `service_unavailable_pct` | `float` | `0.0` | 503 ServiceUnavailable percentage. |
+| `internal_error_pct` | `float` | `0.0` | 500 InternalError percentage. |
+| `bad_gateway_pct` | `float` | `0.0` | 502 BadGateway percentage. |
+| `gateway_timeout_pct` | `float` | `0.0` | 504 GatewayTimeout percentage. |
+| `retry_after_sec` | `tuple[int, int]` | `(1, 30)` | Retry-After header value range [min, max] seconds. |
+
+#### Connection Failures
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `timeout_pct` | `float` | `0.0` | Percentage of requests that hang before a timeout response. |
+| `timeout_sec` | `tuple[int, int]` | `(30, 60)` | How long to hang [min, max] seconds. |
+| `connection_reset_pct` | `float` | `0.0` | Percentage of requests that disconnect mid-response. |
+| `connection_stall_pct` | `float` | `0.0` | Percentage of requests that stall then disconnect. |
+| `connection_stall_start_sec` | `tuple[int, int]` | `(0, 2)` | Initial delay before stalling [min, max]. |
+| `connection_stall_sec` | `tuple[int, int]` | `(30, 60)` | Stall duration [min, max] seconds. |
+| `slow_response_pct` | `float` | `0.0` | Percentage of artificially slow responses. |
+| `slow_response_sec` | `tuple[int, int]` | `(3, 15)` | Slow response delay range [min, max] seconds. |
+
+#### Object and List Corruption
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `truncated_body_pct` | `float` | `0.0` | Percentage of GET responses with truncated object bodies. |
+| `wrong_content_length_pct` | `float` | `0.0` | Percentage of GET responses that declare the full length and disconnect early. |
+| `checksum_mismatch_pct` | `float` | `0.0` | Percentage of GET responses with corrupted ETags. |
+| `metadata_corruption_pct` | `float` | `0.0` | Percentage of GET/HEAD responses with missing metadata. |
+| `stale_list_pct` | `float` | `0.0` | Percentage of list responses that omit the newest object. |
+| `malformed_xml_pct` | `float` | `0.0` | Percentage of list responses with malformed XML. |
+
+#### Selection and Burst
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `selection_mode` | `"priority" \| "weighted"` | `"priority"` | Error selection strategy. Same semantics as ChaosLLM. |
+| `burst` | `BlobBurstConfig` | See below | Burst pattern configuration. |
+
+#### BlobBurstConfig
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `enabled` | `bool` | `false` | Enable burst pattern injection. |
+| `interval_sec` | `int` | `60` | Time between burst starts in seconds. Must be > 0. |
+| `duration_sec` | `int` | `10` | How long each burst lasts in seconds. Must be > 0 and < `interval_sec` when enabled. |
+| `slow_down_pct` | `float` | `80.0` | SlowDown percentage during burst. |
+| `service_unavailable_pct` | `float` | `40.0` | ServiceUnavailable percentage during burst. |
+
+### BlobStorageConfig
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `max_object_bytes` | `int` | `10485760` | Maximum accepted object body size. Must be > 0. |
+| `default_content_type` | `str` | `"application/octet-stream"` | Content-Type used when a PUT has no content-type header. |
+| `expose_s3_xml` | `bool` | `true` | Reserved setting for S3-shaped XML list/error responses. |
+
+---
+
 ## YAML Configuration Example
 
 ```yaml
 server:
   host: 127.0.0.1
   port: 8000
-  workers: 4
+  workers: 1
   admin_token: my-secret-token
 
 metrics:

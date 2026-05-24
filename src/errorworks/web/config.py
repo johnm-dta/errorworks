@@ -142,6 +142,14 @@ class WebContentConfig(BaseModel):
         description="Settings for preset mode",
     )
 
+    @field_validator("default_content_type")
+    @classmethod
+    def validate_default_content_type(cls, value: str) -> str:
+        """Reject control characters that can corrupt HTTP headers."""
+        if any(ch in value for ch in ("\r", "\n", "\x00")):
+            raise ValueError("default_content_type must not contain CR, LF, or NUL characters")
+        return value
+
 
 # === Error Injection ===
 
@@ -492,6 +500,26 @@ class ChaosWebConfig(BaseModel):
         default=None,
         description="Preset name used to build this config (if any)",
     )
+
+    @model_validator(mode="after")
+    def validate_workers_metrics_compatible(self) -> "ChaosWebConfig":
+        """Reject `workers > 1` with an in-memory metrics database.
+
+        uvicorn workers are separate processes; SQLite's in-memory databases
+        (including shared-cache `mode=memory` URIs) live inside one process
+        only. With multiple workers, each gets its own private DB and the
+        admin endpoints reflect whichever worker happened to handle the
+        admin request. Force the user to pick a file-backed database when
+        running multi-worker.
+        """
+        if self.server.workers > 1 and self.metrics.is_in_memory():
+            raise ValueError(
+                f"workers={self.server.workers} requires a file-backed metrics database; "
+                f"the configured in-memory database ({self.metrics.database!r}) cannot be "
+                "shared across worker processes. Set metrics.database to a file path "
+                "(e.g. 'metrics.db') or set server.workers=1."
+            )
+        return self
 
     @model_validator(mode="after")
     def validate_host_binding(self) -> "ChaosWebConfig":

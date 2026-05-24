@@ -5,6 +5,64 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **ChaosBlob**: S3-compatible-ish path-style object storage chaos server with
+  PUT/GET/HEAD/DELETE/ListObjectsV2 support, blob-specific fault injection,
+  metrics, CLI, presets, pytest fixture, and documentation.
+
+### Changed (breaking)
+
+- **`server.workers` default is now 1** (was 4). Multi-worker mode is now
+  opt-in and requires a file-backed `metrics.database`; the previous default
+  combination silently fragmented metrics across worker processes (each
+  uvicorn worker is a separate process and could not share an in-memory
+  SQLite DB). All bundled presets now also default to `workers: 1`.
+- **Top-level config validators (`ChaosLLMConfig`, `ChaosWebConfig`) reject
+  `workers > 1` combined with an in-memory metrics database.** Set
+  `metrics.database` to a file path (e.g. `metrics.db`) or keep `workers: 1`.
+
+### Fixed (security / robustness)
+
+- **LLM completions endpoint**: a JSON body that is not a JSON object (array,
+  string, etc.) now returns `400 invalid_request_error` instead of `500`.
+- **Admin `/admin/config` POST**: unknown top-level config sections and
+  non-object section values are now rejected with `400 invalid_request_error`
+  before reaching `deep_merge`. Previously, `{"typo_section": ...}` silently
+  no-op'd (returning 200) and `{"error_injection": null}` raised an uncaught
+  `AttributeError` (returning 500). Applies to both ChaosLLM and ChaosWeb.
+- **LLM `X-Fake-Template` override hardening**: the runtime template now
+  catches any exception (not just `jinja2.TemplateError`), so helper-raised
+  errors such as `random_int(10, 1)` are reported as content rather than
+  crashing the worker. `random_words(...)` output is hard-capped to
+  `_MAX_RANDOM_WORDS = 10_000` words to defend against requests like
+  `random_words(100000000)`.
+- **MCP analyzer SQL `query()`**: the row cap is now enforced via
+  `fetchmany(_MAX_QUERY_ROWS)` so that user-supplied `LIMIT -1` (or any other
+  bypass of the keyword check) cannot return more than `_MAX_QUERY_ROWS` rows.
+- **MCP analyzer is now truly read-only**: the SQLite connection is opened via
+  a `file:...?mode=ro` URI and no longer executes `PRAGMA journal_mode=WAL`,
+  so it does not create WAL/SHM side files or mutate the on-disk database.
+
+### Removed (security)
+
+- Removed an explicit `rm -rf $REPO/.git && git init` permission entry from
+  `.claude/settings.local.json` — a destructive command that should never
+  have been pre-authorized.
+
+### Documentation
+
+- README: removed the non-existent `chaos` Web preset and added the
+  `stress_extreme` LLM preset, matching what ships in
+  `src/errorworks/{llm,web}/presets/`.
+- Quickstart: removed reference to a non-existent `--admin-token` CLI flag
+  (use `server.admin_token` in YAML config instead).
+- ChaosWeb guide: fixed the template helper list to match what is actually
+  registered (`random_choice`, `random_int`, `random_words`, `timestamp` —
+  no `random_float`).
+
 ## [0.1.3] - 2026-05-24
 
 ### Changed

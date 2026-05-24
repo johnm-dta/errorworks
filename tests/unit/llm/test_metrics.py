@@ -218,6 +218,57 @@ class TestMetricsRecorderBasic:
         started = datetime.fromisoformat(recorder.started_utc)
         assert before <= started <= after
 
+    def test_failed_aggregation_rolls_back_raw_request_insert(self, tmp_path: Path) -> None:
+        """A failed aggregate update cannot be committed by a later good request."""
+        db_path = tmp_path / "metrics.db"
+        recorder = MetricsRecorder(MetricsConfig(database=str(db_path)))
+
+        with pytest.raises(ValueError):
+            recorder.record_request(
+                request_id="bad-timestamp",
+                timestamp_utc="not-a-timestamp",
+                endpoint="/v1/chat/completions",
+                outcome="success",
+                status_code=200,
+            )
+
+        recorder.record_request(
+            request_id="good",
+            timestamp_utc="2024-01-15T10:30:45+00:00",
+            endpoint="/v1/chat/completions",
+            outcome="success",
+            status_code=200,
+            latency_ms=100.0,
+        )
+
+        conn = sqlite3.connect(str(db_path))
+        try:
+            rows = conn.execute("SELECT request_id FROM requests ORDER BY request_id").fetchall()
+            assert rows == [("good",)]
+        finally:
+            conn.close()
+            recorder.close()
+
+    def test_rebuild_timeseries_groups_offset_timestamps_by_utc_bucket(self, tmp_path: Path) -> None:
+        """Offset-aware request timestamps are aggregated into their UTC buckets."""
+        db_path = tmp_path / "metrics.db"
+        recorder = MetricsRecorder(MetricsConfig(database=str(db_path), timeseries_bucket_sec=60))
+        recorder.record_request(
+            request_id="offset",
+            timestamp_utc="2024-01-15T10:30:45+05:30",
+            endpoint="/v1/chat/completions",
+            outcome="success",
+            status_code=200,
+            latency_ms=100.0,
+        )
+        recorder.update_timeseries()
+
+        rows = recorder.get_timeseries()
+        assert len(rows) == 1
+        assert rows[0]["bucket_utc"].startswith("2024-01-15T05:00:00")
+        assert rows[0]["requests_total"] == 1
+        recorder.close()
+
         recorder.close()
 
     def test_creates_parent_directory(self, tmp_path: Path) -> None:

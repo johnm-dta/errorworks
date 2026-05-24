@@ -226,6 +226,8 @@ class ContentGenerator:
         """Jinja2 helper: Generate random integer in range."""
         return self._rng.randint(min_val, max_val)
 
+    _MAX_RANDOM_WORDS = 10_000
+
     def _template_random_words(self, min_count: int = 5, max_count: int | None = None) -> str:
         """Jinja2 helper: Generate random words.
 
@@ -236,6 +238,7 @@ class ContentGenerator:
             count = min_count
         else:
             count = self._rng.randint(min_count, max_count)
+        count = max(0, min(count, self._MAX_RANDOM_WORDS))
         vocab = self._get_vocabulary()
         words = [self._rng.choice(vocab) for _ in range(count)]
         return " ".join(words)
@@ -296,7 +299,8 @@ class ContentGenerator:
                 sentences_count = self._rng.randint(1, min(4, max(1, remaining // 5)))
                 sentences = []
                 for _ in range(sentences_count):
-                    max_sent = max(5, min(20, remaining - words_used + 5))
+                    remaining = total_words - words_used
+                    max_sent = max(5, min(20, remaining + 5))
                     s = self._random_sentence(5, max_sent)
                     words_used += len(s.split())
                     sentences.append(html.escape(s))
@@ -370,7 +374,7 @@ class ContentGenerator:
                 headers=headers,
                 query_params={},
             )
-        except jinja2.TemplateError as exc:
+        except Exception as exc:
             if is_header_override:
                 logger.error(
                     "template_rendering_failed",
@@ -474,7 +478,11 @@ class ContentGenerator:
         elif mode == "echo":
             content = self._generate_echo_html(path, headers)
         elif mode == "preset":
-            return self._generate_preset_html()
+            if mode_override is not None and self._config.mode != "preset" and not Path(self._config.preset.file).exists():
+                logger.warning("preset_mode_unavailable", detail="server not configured for preset mode")
+                content = "<html><body>[preset_mode_unavailable: server not configured for preset mode]</body></html>"
+            else:
+                return self._generate_preset_html()
         else:
             # Config mode is Pydantic Literal-validated, so invalid config mode
             # is impossible. This branch is only reachable via mode_override from

@@ -1,5 +1,5 @@
 site_name: errorworks
-site_description: Composable chaos-testing services for LLM and web scraping pipelines
+site_description: Composable chaos-testing services for LLM, web scraping, and object storage pipelines
 site_url: https://johnm-dta.github.io/errorworks
 repo_url: https://github.com/johnm-dta/errorworks
 repo_name: johnm-dta/errorworks
@@ -46,6 +46,7 @@ nav:
   - Guide:
     - ChaosLLM: guide/chaosllm.md
     - ChaosWeb: guide/chaosweb.md
+    - ChaosBlob: guide/chaosblob.md
     - Presets: guide/presets.md
     - Configuration: guide/configuration.md
     - Metrics: guide/metrics.md

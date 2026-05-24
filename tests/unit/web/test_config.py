@@ -154,6 +154,15 @@ class TestChaosWebConfigDefaults:
         assert config.server.host == "0.0.0.0"
 
 
+class TestWebContentTypeConfig:
+    """Tests for content generation config validation."""
+
+    @pytest.mark.parametrize("content_type", ["text/html\r\nX-Injected: yes", "text/html\nX: yes", "text/html\x00"])
+    def test_default_content_type_rejects_header_control_chars(self, content_type: str) -> None:
+        with pytest.raises(ValidationError, match="default_content_type"):
+            WebContentConfig(default_content_type=content_type)
+
+
 class TestWebErrorInjectionConfig:
     """Tests for WebErrorInjectionConfig validation."""
 

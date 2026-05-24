@@ -1,19 +1,21 @@
 # CLI Reference
 
-Errorworks provides three CLI entry points, all built with [Typer](https://typer.tiangolo.com/).
+Errorworks provides several CLI entry points, all built with [Typer](https://typer.tiangolo.com/).
 
 ## `chaosengine` -- Unified CLI
 
-The `chaosengine` command aggregates both ChaosLLM and ChaosWeb under a single entry point. It mounts the same Typer apps as subcommands, so all flags are identical to the standalone commands.
+The `chaosengine` command aggregates ChaosLLM, ChaosWeb, and ChaosBlob under a single entry point. It mounts the same Typer apps as subcommands, so all flags are identical to the standalone commands.
 
 ```bash
 chaosengine llm serve --preset=gentle
 chaosengine llm presets
 chaosengine web serve --preset=stress_scraping
 chaosengine web presets
+chaosengine blob serve --preset=stress_storage
+chaosengine blob presets
 ```
 
-The standalone entry points (`chaosllm`, `chaosweb`) continue to work unchanged.
+The standalone entry points (`chaosllm`, `chaosweb`, `chaosblob`) continue to work unchanged.
 
 ---
 
@@ -43,7 +45,8 @@ Start the ChaosLLM fake LLM server with OpenAI and Azure OpenAI compatible endpo
 |------|-------|---------|-------------|
 | `--host` | `-h` | `127.0.0.1` | Host address to bind to. |
 | `--port` | `-P` | `8000` | Port to listen on (1-65535). |
-| `--workers` | `-w` | `4` (or from preset) | Number of uvicorn workers. |
+| `--workers` | `-w` | `1` (or from preset) | Number of uvicorn workers. Workers > 1 require `--database` to point at a file-backed SQLite database. |
+| `--allow-external-bind` | | `false` | Permit binding to all interfaces such as `0.0.0.0`. |
 
 #### Metrics Flags
 
@@ -150,7 +153,8 @@ Start the ChaosWeb fake web server for scraping pipeline resilience testing. Ser
 |------|-------|---------|-------------|
 | `--host` | `-h` | `127.0.0.1` | Host address to bind to. |
 | `--port` | `-P` | `8200` | Port to listen on (1-65535). |
-| `--workers` | `-w` | `4` (or from preset) | Number of uvicorn workers. |
+| `--workers` | `-w` | `1` (or from preset) | Number of uvicorn workers. Workers > 1 require `--database` to point at a file-backed SQLite database. |
+| `--allow-external-bind` | | `false` | Permit binding to all interfaces such as `0.0.0.0`. |
 
 #### Metrics Flags
 
@@ -170,6 +174,8 @@ Start the ChaosWeb fake web server for scraping pipeline resilience testing. Ser
 | `--timeout-pct` | `0.0` | Connection timeout percentage (0-100). |
 | `--ssrf-redirect-pct` | `0.0` | SSRF redirect injection percentage (0-100). |
 | `--selection-mode` | `priority` | Error selection: `priority` or `weighted`. |
+
+The ChaosWeb CLI exposes the most common fault percentages. Configure the full fault surface, including content malformations and advanced redirect/stall ranges, through a YAML config file passed with `--config`.
 
 #### Latency Flags
 
@@ -212,6 +218,111 @@ chaosweb serve --port=9000 --database=./web-metrics.db
 List available preset configurations.
 
 ### `chaosweb show-config`
+
+Display the effective (merged) configuration.
+
+| Flag | Short | Default | Description |
+|------|-------|---------|-------------|
+| `--preset` | `-p` | `None` | Preset to show configuration for. |
+| `--config` | `-c` | `None` | Config file to show. |
+| `--format` | `-f` | `yaml` | Output format: `json` or `yaml`. |
+
+---
+
+## `chaosblob` -- ChaosBlob Server
+
+### `chaosblob serve`
+
+Start the ChaosBlob fake object-storage server for S3-style blob pipeline resilience testing.
+
+**Configuration precedence** is identical to ChaosLLM and ChaosWeb.
+
+#### Configuration Source Flags
+
+| Flag | Short | Default | Description |
+|------|-------|---------|-------------|
+| `--preset` | `-p` | `None` | Preset configuration to use. Use `chaosblob presets` to list available. |
+| `--config` | `-c` | `None` | Path to YAML configuration file. |
+
+#### Server Binding Flags
+
+| Flag | Short | Default | Description |
+|------|-------|---------|-------------|
+| `--host` | `-h` | `127.0.0.1` | Host address to bind to. |
+| `--port` | `-P` | `8300` | Port to listen on (1-65535). |
+| `--workers` | `-w` | `1` (or from preset) | Number of uvicorn workers. Multi-worker mode requires a file-backed metrics database. |
+| `--allow-external-bind` | | `false` | Permit binding to all interfaces such as `0.0.0.0`. |
+
+#### Metrics Flags
+
+| Flag | Short | Default | Description |
+|------|-------|---------|-------------|
+| `--database` | `-d` | In-memory SQLite | SQLite database path for metrics. |
+
+#### Error Injection Flags
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--slow-down-pct` | `0.0` | S3 SlowDown percentage (0-100). |
+| `--access-denied-pct` | `0.0` | 403 AccessDenied percentage (0-100). |
+| `--not-found-pct` | `0.0` | 404 NoSuchKey percentage (0-100). |
+| `--service-unavailable-pct` | `0.0` | 503 ServiceUnavailable percentage (0-100). |
+| `--internal-error-pct` | `0.0` | 500 InternalError percentage (0-100). |
+| `--bad-gateway-pct` | `0.0` | 502 BadGateway percentage (0-100). |
+| `--gateway-timeout-pct` | `0.0` | 504 GatewayTimeout percentage (0-100). |
+| `--timeout-pct` | `0.0` | Connection timeout percentage (0-100). |
+| `--connection-reset-pct` | `0.0` | Connection reset percentage (0-100). |
+| `--connection-stall-pct` | `0.0` | Connection stall percentage (0-100). |
+| `--slow-response-pct` | `0.0` | Slow response percentage (0-100). |
+| `--truncated-body-pct` | `0.0` | Truncated object body percentage (0-100). |
+| `--wrong-content-length-pct` | `0.0` | Wrong Content-Length percentage (0-100). |
+| `--checksum-mismatch-pct` | `0.0` | ETag/checksum mismatch percentage (0-100). |
+| `--metadata-corruption-pct` | `0.0` | Object metadata corruption percentage (0-100). |
+| `--stale-list-pct` | `0.0` | Stale list response percentage (0-100). |
+| `--malformed-xml-pct` | `0.0` | Malformed XML response percentage (0-100). |
+| `--selection-mode` | `priority` | Error selection: `priority` or `weighted`. |
+
+#### Latency Flags
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--base-ms` | `50` | Base latency in milliseconds. |
+| `--jitter-ms` | `30` | Latency jitter in milliseconds (+/-). |
+
+#### Burst Flags
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--burst-enabled` / `--no-burst` | `False` | Enable burst pattern injection. |
+| `--burst-interval-sec` | `60` | Time between burst starts. |
+| `--burst-duration-sec` | `10` | Burst duration in seconds. |
+
+#### Storage Flags
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--max-object-bytes` | `10485760` | Maximum accepted object size in bytes. |
+
+#### Misc Flags
+
+| Flag | Short | Description |
+|------|-------|-------------|
+| `--version` | `-v` | Show version. |
+
+**Examples:**
+
+```bash
+chaosblob serve
+chaosblob serve --preset=realistic
+chaosblob serve --slow-down-pct=10 --stale-list-pct=5
+chaosblob serve --port=8300 --database=./blob-metrics.db
+```
+
+### `chaosblob presets`
+
+List available preset configurations.
+
+### `chaosblob show-config`
 
 Display the effective (merged) configuration.
 

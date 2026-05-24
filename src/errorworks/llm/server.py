@@ -33,6 +33,7 @@ from starlette.routing import Route
 from errorworks.engine import admin
 from errorworks.engine.config_loader import deep_merge
 from errorworks.engine.latency import LatencySimulator
+from errorworks.engine.request_body import RequestBodyTooLarge, read_limited_json
 from errorworks.engine.types import LatencyConfig
 from errorworks.llm.config import (
     ChaosLLMConfig,
@@ -181,28 +182,26 @@ class ChaosLLMServer:
         Args:
             updates: Dict with sections to update (error_injection, response, latency)
         """
-        # Build new components outside the lock (validation may be expensive)
-        new_error: ErrorInjector | None = None
-        new_response: ResponseGenerator | None = None
-        new_latency: LatencySimulator | None = None
-
-        if "error_injection" in updates:
-            current_error = self._error_injector.config.model_dump()
-            merged = deep_merge(current_error, updates["error_injection"])
-            new_error = ErrorInjector(ErrorInjectionConfig(**merged))
-
-        if "response" in updates:
-            current_response = self._response_generator.config.model_dump()
-            merged = deep_merge(current_response, updates["response"])
-            new_response = ResponseGenerator(ResponseConfig(**merged))
-
-        if "latency" in updates:
-            current_latency = self._latency_simulator.config.model_dump()
-            merged = deep_merge(current_latency, updates["latency"])
-            new_latency = LatencySimulator(LatencyConfig(**merged))
-
-        # Swap atomically under lock
         with self._config_lock:
+            new_error: ErrorInjector | None = None
+            new_response: ResponseGenerator | None = None
+            new_latency: LatencySimulator | None = None
+
+            if "error_injection" in updates:
+                current_error = self._error_injector.config.model_dump()
+                merged = deep_merge(current_error, updates["error_injection"])
+                new_error = ErrorInjector(ErrorInjectionConfig(**merged))
+
+            if "response" in updates:
+                current_response = self._response_generator.config.model_dump()
+                merged = deep_merge(current_response, updates["response"])
+                new_response = ResponseGenerator(ResponseConfig(**merged))
+
+            if "latency" in updates:
+                current_latency = self._latency_simulator.config.model_dump()
+                merged = deep_merge(current_latency, updates["latency"])
+                new_latency = LatencySimulator(LatencyConfig(**merged))
+
             if new_error is not None:
                 self._error_injector = new_error
             if new_response is not None:
@@ -309,10 +308,20 @@ class ChaosLLMServer:
 
         # Parse request body
         try:
-            body = await request.json()
+            body = await read_limited_json(request)
+        except RequestBodyTooLarge:
+            return JSONResponse(
+                {"error": {"type": "request_too_large", "message": "Request body exceeds maximum size"}},
+                status_code=413,
+            )
         except (json.JSONDecodeError, ValueError, UnicodeDecodeError):
             return JSONResponse(
                 {"error": {"type": "invalid_request_error", "message": "Request body must be valid JSON"}},
+                status_code=400,
+            )
+        if not isinstance(body, dict):
+            return JSONResponse(
+                {"error": {"type": "invalid_request_error", "message": "Request body must be a JSON object"}},
                 status_code=400,
             )
         # Metrics recording uses the actual value (None if absent) — don't
@@ -320,6 +329,12 @@ class ChaosLLMServer:
         # The response generator extracts model from `body` itself.
         model_for_metrics: str | None = body.get("model")
         messages = body.get("messages", [])
+        if not isinstance(messages, list) or any(not isinstance(message, dict) for message in messages):
+            return JSONResponse(
+                {"error": {"type": "invalid_request_error", "message": "messages must be a list of JSON objects"}},
+                status_code=400,
+            )
+        body["messages"] = messages
 
         # Extract override headers (only if config allows)
         if response_generator.config.allow_header_overrides:
@@ -487,7 +502,17 @@ class ChaosLLMServer:
                 injected_delay_ms=lead_delay * 1000 if lead_delay > 0 else None,
                 message_count=message_count,
             )
-            raise ConnectionResetError("Connection failed after lead time")
+            return JSONResponse(
+                {
+                    "error": {
+                        "message": "Connection failed after lead time",
+                        "type": "transport_error",
+                        "param": None,
+                        "code": "connection_failed",
+                    }
+                },
+                status_code=503,
+            )
 
         if error_type == "connection_stall":
             start_delay = decision.start_delay_sec if decision.start_delay_sec is not None else 0.0
@@ -512,7 +537,17 @@ class ChaosLLMServer:
                 injected_delay_ms=injected_delay_ms if injected_delay_ms > 0 else None,
                 message_count=message_count,
             )
-            raise ConnectionResetError("Connection stalled and was closed by server")
+            return JSONResponse(
+                {
+                    "error": {
+                        "message": "Connection stalled and was closed by server",
+                        "type": "transport_error",
+                        "param": None,
+                        "code": "connection_stall",
+                    }
+                },
+                status_code=503,
+            )
 
         if error_type == "timeout":
             # Delay, then either return 504 or drop the connection
@@ -541,7 +576,10 @@ class ChaosLLMServer:
                     {"error": {"message": "Request timed out", "type": "server_error", "param": None, "code": "timeout"}},
                     status_code=504,
                 )
-            raise ConnectionResetError("Request timed out")
+            return JSONResponse(
+                {"error": {"message": "Request timed out", "type": "transport_error", "param": None, "code": "timeout"}},
+                status_code=503,
+            )
 
         if error_type == "connection_reset":
             elapsed_ms = (time.monotonic() - start_time) * 1000
@@ -558,7 +596,17 @@ class ChaosLLMServer:
                 latency_ms=elapsed_ms,
                 message_count=message_count,
             )
-            raise ConnectionResetError("Connection reset by server")
+            return JSONResponse(
+                {
+                    "error": {
+                        "message": "Connection reset by server",
+                        "type": "transport_error",
+                        "param": None,
+                        "code": "connection_reset",
+                    }
+                },
+                status_code=503,
+            )
 
         raise ValueError(f"Unknown connection error type: {error_type}")
 
@@ -820,11 +868,17 @@ def create_app(config: ChaosLLMConfig) -> Starlette:
 def _create_app_from_env() -> Starlette:
     """Factory for uvicorn multi-worker mode.
 
-    Reads serialized config from the _ERRORWORKS_LLM_CONFIG environment
-    variable and returns a fully configured Starlette app. Each forked
-    worker calls this independently to build its own app instance.
+    Reads serialized config from a private config file path in
+    _ERRORWORKS_LLM_CONFIG_FILE. The legacy _ERRORWORKS_LLM_CONFIG variable is
+    still accepted for compatibility.
     """
     import os
 
-    config = ChaosLLMConfig.model_validate_json(os.environ["_ERRORWORKS_LLM_CONFIG"])
+    if config_file := os.environ.get("_ERRORWORKS_LLM_CONFIG_FILE"):
+        from pathlib import Path
+
+        config_json = Path(config_file).read_text()
+    else:
+        config_json = os.environ["_ERRORWORKS_LLM_CONFIG"]
+    config = ChaosLLMConfig.model_validate_json(config_json)
     return create_app(config)

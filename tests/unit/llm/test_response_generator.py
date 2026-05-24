@@ -593,6 +593,55 @@ class TestTemplateMode:
         assert isinstance(response, OpenAIResponse)
         assert "template_override_error" in response.content
 
+    def test_template_override_helper_value_error_returns_error_content(self) -> None:
+        """Helper-raised ValueError (e.g. random_int(10, 1)) returns marker, not 500."""
+        config = ResponseConfig(
+            mode="template",
+            template=TemplateResponseConfig(body="Normal response"),
+        )
+        generator = ResponseGenerator(config)
+
+        request = {"model": "gpt-4", "messages": []}
+        # random_int(10, 1) -> randint with empty range -> ValueError, which is
+        # NOT a jinja2.TemplateError. The override path must still catch it.
+        response = generator.generate(request, template_override="{{ random_int(10, 1) }}")
+
+        assert isinstance(response, OpenAIResponse)
+        assert "template_override_error" in response.content
+
+    def test_template_override_random_words_is_capped(self) -> None:
+        """random_words count is hard-capped to defend against `random_words(huge)`."""
+        config = ResponseConfig(
+            mode="template",
+            template=TemplateResponseConfig(body="Normal response"),
+        )
+        generator = ResponseGenerator(config)
+
+        request = {"model": "gpt-4", "messages": []}
+        # Without a cap, this would allocate ~10^8 words and OOM.
+        response = generator.generate(request, template_override="{{ random_words(100000000) }}")
+
+        assert isinstance(response, OpenAIResponse)
+        # Cap is _MAX_RANDOM_WORDS (10_000); each word averages ~6 chars + space.
+        # The exact length depends on vocabulary, but it must be far below the
+        # 100M-word request and finite.
+        assert 0 < len(response.content) < 200_000
+
+    def test_template_override_rendered_output_is_capped(self) -> None:
+        """Short header templates cannot expand into unbounded rendered output."""
+        config = ResponseConfig(
+            mode="template",
+            template=TemplateResponseConfig(body="Normal response"),
+            max_template_length=100,
+        )
+        generator = ResponseGenerator(config)
+
+        request = {"model": "gpt-4", "messages": []}
+        response = generator.generate(request, template_override="{% for _ in range(10000) %}x{% endfor %}")
+
+        assert isinstance(response, OpenAIResponse)
+        assert len(response.content) <= 200
+
     def test_unknown_mode_override_returns_error_content(self) -> None:
         """Unknown mode override returns error in content, not crash."""
         config = ResponseConfig(mode="random")
@@ -738,7 +787,7 @@ class TestPresetMode:
         assert len(results) >= 2
 
     def test_preset_file_not_found(self, tmp_path: Path) -> None:
-        """Preset with missing file raises error on first generate."""
+        """Preset with missing file raises during generator construction."""
         config = ResponseConfig(
             mode="preset",
             preset=PresetResponseConfig(
@@ -746,12 +795,8 @@ class TestPresetMode:
                 selection="random",
             ),
         )
-        generator = ResponseGenerator(config)
-
-        request = {"model": "gpt-4", "messages": []}
-
         with pytest.raises(FileNotFoundError):
-            generator.generate(request)
+            ResponseGenerator(config)
 
     def test_preset_reset(self, tmp_path: Path) -> None:
         """Reset restarts preset sequential selection."""

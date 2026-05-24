@@ -1,0 +1,26 @@
+# ChaosBlob Preset: gentle
+# Purpose: Minimal failures for happy-path object storage testing.
+
+server:
+  host: "127.0.0.1"
+  port: 8300
+  workers: 1
+
+metrics:
+  database: "file:chaosblob-metrics?mode=memory&cache=shared"
+  timeseries_bucket_sec: 1
+
+storage:
+  max_object_bytes: 10485760
+  default_content_type: "application/octet-stream"
+  expose_s3_xml: true
+
+latency:
+  base_ms: 100
+  jitter_ms: 50
+
+error_injection:
+  slow_down_pct: 1.0
+  not_found_pct: 0.5
+  retry_after_sec: [1, 3]
+

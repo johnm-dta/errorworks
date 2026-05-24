@@ -11,10 +11,13 @@ import json
 import sqlite3
 from typing import Any, Protocol, runtime_checkable
 
+import jinja2
 import pydantic
 import structlog
 from starlette.requests import Request
 from starlette.responses import JSONResponse
+
+from errorworks.engine.request_body import RequestBodyTooLarge, read_limited_json
 
 logger = structlog.get_logger(__name__)
 
@@ -45,7 +48,11 @@ def check_admin_auth(request: Request, token: str) -> JSONResponse | None:
             {"error": {"type": "authentication_error", "message": "Missing Authorization: Bearer <token> header"}},
             status_code=401,
         )
-    if not hmac.compare_digest(auth_header[7:], token):
+    try:
+        valid_token = hmac.compare_digest(auth_header[7:], token)
+    except TypeError:
+        valid_token = False
+    if not valid_token:
         return JSONResponse(
             {"error": {"type": "authorization_error", "message": "Invalid admin token"}},
             status_code=403,
@@ -60,7 +67,12 @@ async def handle_admin_config(request: Request, server: ChaosServer) -> JSONResp
     if request.method == "GET":
         return JSONResponse(server.get_current_config())
     try:
-        body = await request.json()
+        body = await read_limited_json(request)
+    except RequestBodyTooLarge:
+        return JSONResponse(
+            {"error": {"type": "request_too_large", "message": "Request body exceeds maximum size"}},
+            status_code=413,
+        )
     except (json.JSONDecodeError, ValueError, UnicodeDecodeError):
         return JSONResponse(
             {"error": {"type": "invalid_request_error", "message": "Request body must be valid JSON"}},
@@ -71,9 +83,36 @@ async def handle_admin_config(request: Request, server: ChaosServer) -> JSONResp
             {"error": {"type": "invalid_request_error", "message": "Request body must be a JSON object"}},
             status_code=400,
         )
+    # Validate shape before handing to update_config: each top-level key must be
+    # a known config section (matches a key in get_current_config()) and its
+    # value must be a dict. Without this, an unknown key silently no-ops and
+    # a null section value raises an uncaught AttributeError inside deep_merge.
+    current_config = server.get_current_config()
+    allowed_sections = set(current_config.keys())
+    for section, value in body.items():
+        if section not in allowed_sections:
+            return JSONResponse(
+                {
+                    "error": {
+                        "type": "invalid_request_error",
+                        "message": f"Unknown config section: {section!r}. Allowed: {sorted(allowed_sections)}",
+                    }
+                },
+                status_code=400,
+            )
+        if not isinstance(value, dict):
+            return JSONResponse(
+                {
+                    "error": {
+                        "type": "invalid_request_error",
+                        "message": f"Config section {section!r} must be a JSON object",
+                    }
+                },
+                status_code=400,
+            )
     try:
         server.update_config(body)
-    except (ValueError, TypeError, pydantic.ValidationError) as e:
+    except (FileNotFoundError, ValueError, TypeError, jinja2.TemplateError, pydantic.ValidationError) as e:
         return JSONResponse(
             {"error": {"type": "validation_error", "message": str(e)}},
             status_code=422,

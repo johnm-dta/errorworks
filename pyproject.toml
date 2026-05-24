@@ -62,6 +62,7 @@ docs = [
 
 [project.scripts]
 chaosengine = "errorworks.engine.cli:main"
+chaosblob = "errorworks.blob.cli:main"
 chaosllm = "errorworks.llm.cli:main"
 chaosllm-mcp = "errorworks.llm.cli:mcp_main_entry"
 chaosweb = "errorworks.web.cli:main"
@@ -163,6 +164,7 @@ markers = [
     "stress: marks tests as stress tests",
     "chaosllm: Configure ChaosLLM server for the test",
     "chaosweb: Configure ChaosWeb server for the test",
+    "chaosblob: Configure ChaosBlob server for the test",
     "integration: marks tests as integration tests",
 ]
 

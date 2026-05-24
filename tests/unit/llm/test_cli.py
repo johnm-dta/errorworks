@@ -31,10 +31,10 @@ def test_serve_defaults(mock_run):
     call_kwargs = mock_run.call_args
     assert call_kwargs.kwargs["host"] == "127.0.0.1"
     assert call_kwargs.kwargs["port"] == 8000
-    assert call_kwargs.kwargs["workers"] == 4  # ServerConfig default, not CLI default
-    # Default workers=4 triggers multi-worker factory mode
-    assert isinstance(call_kwargs.args[0], str)
-    assert call_kwargs.kwargs["factory"] is True
+    # ServerConfig defaults to workers=1 (multi-worker requires a file-backed metrics DB).
+    assert call_kwargs.kwargs["workers"] == 1
+    # workers=1 passes the app object directly (no factory).
+    assert not isinstance(call_kwargs.args[0], str)
 
 
 @_patch_uvicorn_run
@@ -130,12 +130,20 @@ def test_serve_selection_mode_flag(mock_run):
 
 
 @_patch_uvicorn_run
-def test_serve_workers_flag(mock_run):
-    """serve --workers=4 passes workers=4 to uvicorn."""
-    result = runner.invoke(app, ["serve", "--workers=4"])
+def test_serve_workers_flag(mock_run, tmp_path):
+    """serve --workers=4 passes workers=4 to uvicorn (with a file-backed DB)."""
+    db = str(tmp_path / "m.db")
+    result = runner.invoke(app, ["serve", "--workers=4", f"--database={db}"])
     assert result.exit_code == 0, result.output
     mock_run.assert_called_once()
     assert mock_run.call_args.kwargs["workers"] == 4
+
+
+def test_serve_multi_worker_rejects_in_memory_metrics():
+    """workers > 1 with the default in-memory metrics DB must be rejected."""
+    result = runner.invoke(app, ["serve", "--workers=4"])
+    assert result.exit_code != 0
+    assert "file-backed metrics database" in (result.output or "")
 
 
 # ---------------------------------------------------------------------------
@@ -144,9 +152,10 @@ def test_serve_workers_flag(mock_run):
 
 
 @_patch_uvicorn_run
-def test_serve_multi_worker_uses_import_string(mock_run):
+def test_serve_multi_worker_uses_import_string(mock_run, tmp_path):
     """When workers > 1, uvicorn.run receives an import string, not an app object."""
-    result = runner.invoke(app, ["serve", "--workers=4"])
+    db = str(tmp_path / "m.db")
+    result = runner.invoke(app, ["serve", "--workers=4", f"--database={db}"])
     assert result.exit_code == 0, result.output
     first_arg = mock_run.call_args.args[0]
     assert isinstance(first_arg, str), f"Expected import string, got {type(first_arg)}"
@@ -154,9 +163,10 @@ def test_serve_multi_worker_uses_import_string(mock_run):
 
 
 @_patch_uvicorn_run
-def test_serve_multi_worker_uses_factory_flag(mock_run):
+def test_serve_multi_worker_uses_factory_flag(mock_run, tmp_path):
     """When workers > 1, factory=True is passed to uvicorn.run."""
-    result = runner.invoke(app, ["serve", "--workers=4"])
+    db = str(tmp_path / "m.db")
+    result = runner.invoke(app, ["serve", "--workers=4", f"--database={db}"])
     assert result.exit_code == 0, result.output
     assert mock_run.call_args.kwargs.get("factory") is True
 
@@ -171,15 +181,25 @@ def test_serve_single_worker_uses_app_object(mock_run):
 
 
 @_patch_uvicorn_run
-def test_serve_multi_worker_sets_config_env_var(mock_run):
-    """When workers > 1, config is serialized to _ERRORWORKS_LLM_CONFIG env var."""
+def test_serve_multi_worker_sets_config_env_var(mock_run, tmp_path):
+    """When workers > 1, config is passed through a private file, not env JSON."""
     import os
+    from pathlib import Path
 
-    result = runner.invoke(app, ["serve", "--workers=2"])
+    db = str(tmp_path / "m.db")
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text("server:\n  admin_token: secret-token\n")
+
+    def inspect_env(*args, **kwargs):
+        assert "_ERRORWORKS_LLM_CONFIG" not in os.environ
+        config_path = os.environ["_ERRORWORKS_LLM_CONFIG_FILE"]
+        assert "secret-token" not in "\n".join(f"{k}={v}" for k, v in os.environ.items())
+        assert "secret-token" in Path(config_path).read_text()
+
+    mock_run.side_effect = inspect_env
+    result = runner.invoke(app, ["serve", "--workers=2", f"--database={db}", f"--config={config_file}"])
     assert result.exit_code == 0, result.output
-    # The env var should have been set before uvicorn.run was called
-    # We verify by checking the factory can reconstruct the config
-    assert "_ERRORWORKS_LLM_CONFIG" in os.environ or mock_run.called
+    assert mock_run.called
 
 
 @_patch_uvicorn_run
@@ -190,6 +210,14 @@ def test_serve_custom_host_port(mock_run):
     mock_run.assert_called_once()
     assert mock_run.call_args.kwargs["host"] == "10.0.0.1"
     assert mock_run.call_args.kwargs["port"] == 9999
+
+
+@_patch_uvicorn_run
+def test_serve_allow_external_bind_flag(mock_run):
+    """--allow-external-bind permits an all-interface bind."""
+    result = runner.invoke(app, ["serve", "--host=0.0.0.0", "--allow-external-bind"])
+    assert result.exit_code == 0, result.output
+    assert mock_run.call_args.kwargs["host"] == "0.0.0.0"
 
 
 @_patch_uvicorn_run
@@ -278,14 +306,14 @@ def test_cli_flags_propagate_to_server_config(mock_run):
 
 @_patch_uvicorn_run
 def test_preset_values_not_overridden_by_cli_defaults(mock_run):
-    """Preset workers=4 is preserved when no --workers flag is given."""
+    """Preset values (host/port/workers) are preserved when no flags override them."""
     result = runner.invoke(app, ["serve", "--preset=gentle"])
     assert result.exit_code == 0, result.output
 
-    # gentle preset sets workers=4 — CLI should NOT override to 1
-    assert mock_run.call_args.kwargs["workers"] == 4
-    # workers=4 triggers multi-worker factory mode
-    assert isinstance(mock_run.call_args.args[0], str)
+    # gentle preset sets workers=1 — CLI default must not override it.
+    assert mock_run.call_args.kwargs["workers"] == 1
+    # workers=1 passes the app object directly (no factory).
+    assert not isinstance(mock_run.call_args.args[0], str)
 
 
 # ---------------------------------------------------------------------------
@@ -352,13 +380,15 @@ def test_show_config_invalid_format():
 
 
 @_patch_uvicorn_run
-def test_serve_multi_worker_cleans_up_env_var(mock_run):
+def test_serve_multi_worker_cleans_up_env_var(mock_run, tmp_path):
     """Env var _ERRORWORKS_LLM_CONFIG is cleaned up after uvicorn.run returns."""
     import os
 
-    result = runner.invoke(app, ["serve", "--workers=2"])
+    db = str(tmp_path / "m.db")
+    result = runner.invoke(app, ["serve", "--workers=2", f"--database={db}"])
     assert result.exit_code == 0, result.output
     assert "_ERRORWORKS_LLM_CONFIG" not in os.environ
+    assert "_ERRORWORKS_LLM_CONFIG_FILE" not in os.environ
 
 
 # ---------------------------------------------------------------------------
@@ -418,15 +448,17 @@ def test_mcp_database_not_exists():
 # ---------------------------------------------------------------------------
 
 
-def test_create_app_from_env_builds_valid_app(monkeypatch):
-    """_create_app_from_env reads config from env var and returns a Starlette app."""
+def test_create_app_from_env_builds_valid_app(monkeypatch, tmp_path):
+    """_create_app_from_env reads config from a private config file env var."""
     from starlette.applications import Starlette
 
     from errorworks.llm.config import ChaosLLMConfig
     from errorworks.llm.server import _create_app_from_env
 
     config = ChaosLLMConfig()
-    monkeypatch.setenv("_ERRORWORKS_LLM_CONFIG", config.model_dump_json())
+    config_file = tmp_path / "llm-config.json"
+    config_file.write_text(config.model_dump_json())
+    monkeypatch.setenv("_ERRORWORKS_LLM_CONFIG_FILE", str(config_file))
 
     result_app = _create_app_from_env()
     assert isinstance(result_app, Starlette)

@@ -1,6 +1,6 @@
 # errorworks
 
-**Composable chaos-testing services for LLM and web scraping pipelines.**
+**Composable chaos-testing services for LLM, web scraping, and object storage pipelines.**
 
 errorworks gives you drop-in fake servers that inject faults, simulate latency,
 generate realistic responses, and record metrics -- so you can test how your
@@ -42,6 +42,12 @@ A fake web server for scraping resilience tests. Serves HTML pages that
 intermittently break with encoding mismatches, truncated content, SSRF redirects,
 and other real-world failure modes that trip up web scrapers.
 
+### ChaosBlob
+
+A fake object-storage server for blob pipeline resilience tests. Stores objects
+in memory and injects S3-style throttling, stale listings, corrupted object
+bodies, metadata loss, malformed XML, and connection failures.
+
 ## Next steps
 
 <div class="grid cards" markdown>
@@ -54,7 +60,7 @@ and other real-world failure modes that trip up web scrapers.
 
 -   **Quick Start**
 
-    Walk through a complete scenario with ChaosLLM, ChaosWeb, and pytest fixtures.
+    Walk through a complete scenario with ChaosLLM, ChaosWeb, ChaosBlob, and pytest fixtures.
 
     [:octicons-arrow-right-24: Quick Start](getting-started/quickstart.md)
 

@@ -1,0 +1,21 @@
+# ChaosBlob Preset: silent
+# Purpose: Zero errors, just latency. For baseline object-store measurements.
+
+server:
+  host: "127.0.0.1"
+  port: 8300
+  workers: 1
+
+metrics:
+  database: "file:chaosblob-metrics?mode=memory&cache=shared"
+  timeseries_bucket_sec: 1
+
+storage:
+  max_object_bytes: 10485760
+  default_content_type: "application/octet-stream"
+  expose_s3_xml: true
+
+latency:
+  base_ms: 50
+  jitter_ms: 25
+

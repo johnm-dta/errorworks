@@ -6,8 +6,10 @@ Aggregates ChaosLLM and ChaosWeb under a single ``chaosengine`` command:
     chaosengine llm presets
     chaosengine web serve --preset=stress_scraping
     chaosengine web presets
+    chaosengine blob serve --preset=realistic
+    chaosengine blob presets
 
-Standalone entry points (``chaosllm``, ``chaosweb``) continue to work
+Standalone entry points (``chaosllm``, ``chaosweb``, ``chaosblob``) continue to work
 unchanged — this CLI simply mounts the same Typer apps as sub-commands.
 """
 
@@ -15,6 +17,7 @@ from __future__ import annotations
 
 import typer
 
+from errorworks.blob.cli import app as blob_app
 from errorworks.llm.cli import app as llm_app
 from errorworks.web.cli import app as web_app
 
@@ -26,6 +29,7 @@ app = typer.Typer(
 
 app.add_typer(llm_app, name="llm", help="ChaosLLM: Fake LLM server for load testing and fault injection.")
 app.add_typer(web_app, name="web", help="ChaosWeb: Fake web server for scraping pipeline resilience testing.")
+app.add_typer(blob_app, name="blob", help="ChaosBlob: Fake object storage server for blob pipeline resilience testing.")
 
 
 def main() -> None:

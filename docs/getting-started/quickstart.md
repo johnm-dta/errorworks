@@ -51,9 +51,9 @@ curl http://localhost:8000/admin/stats \
 ```
 
 !!! note
-    The admin token is randomly generated at startup and printed to the server
-    log. You can also set it explicitly via the `server.admin_token` config
-    field or the `--admin-token` CLI flag.
+    The admin token is randomly generated if omitted, but generated tokens are
+    not printed. Set `server.admin_token` explicitly in your YAML config when
+    you need to call `/admin/*` endpoints.
 
 The response includes counts of each status code returned, latency percentiles,
 and error category breakdowns.

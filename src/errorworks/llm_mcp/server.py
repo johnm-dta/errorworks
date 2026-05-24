@@ -18,6 +18,7 @@ import logging
 import re
 import sqlite3
 import sys
+import urllib.parse
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -61,6 +62,10 @@ class ChaosLLMAnalyzer:
     token usage while providing actionable information.
     """
 
+    # Hard cap on rows returned by `query()`. Enforced via fetchmany so that
+    # a user-supplied `LIMIT -1` (unlimited in SQLite) cannot exceed this.
+    _MAX_QUERY_ROWS = 100
+
     def __init__(self, database_path: str) -> None:
         """Initialize analyzer with database connection.
 
@@ -88,15 +93,30 @@ class ChaosLLMAnalyzer:
                 except sqlite3.Error:
                     logger.debug("mcp_database_close_error_during_reconnect", exc_info=True)
                 self._conn = None
-        conn = sqlite3.connect(self._db_path, timeout=30.0)
+        # Open the database as read-only: a SQLite `file:` URI with mode=ro
+        # prevents the analyzer from creating WAL/SHM side files or mutating
+        # the on-disk database. The previous `PRAGMA journal_mode=WAL` was a
+        # write — read-only analyzers should not do that.
+        uri = self._as_readonly_uri(self._db_path)
+        conn = sqlite3.connect(uri, uri=True, timeout=30.0)
         try:
             conn.row_factory = sqlite3.Row
-            conn.execute("PRAGMA journal_mode=WAL")
         except sqlite3.Error:
             conn.close()
             raise
         self._conn = conn
         return self._conn
+
+    @staticmethod
+    def _as_readonly_uri(db_path: str) -> str:
+        """Convert a database path or URI to a read-only SQLite URI."""
+        if db_path.startswith("file:"):
+            # Already a URI — append/replace mode=ro
+            scheme, _, rest = db_path.partition("?")
+            params = [p for p in rest.split("&") if p and not p.startswith("mode=")]
+            params.append("mode=ro")
+            return f"{scheme}?{'&'.join(params)}"
+        return f"file:{urllib.parse.quote(db_path)}?mode=ro"
 
     def close(self) -> None:
         """Close database connection."""
@@ -257,7 +277,7 @@ class ChaosLLMAnalyzer:
         # Track whether the last burst is unfinished
         unfinished_burst = in_burst
         if in_burst:
-            burst_ends.append(len(buckets) - 1)
+            burst_ends.append(len(buckets))
 
         # Calculate recovery times — exclude unfinished trailing burst
         recovery_times = []
@@ -420,8 +440,14 @@ class ChaosLLMAnalyzer:
         """
         conn = self._get_connection()
 
-        # Get all latencies
-        cursor = conn.execute("SELECT latency_ms FROM requests WHERE latency_ms IS NOT NULL ORDER BY latency_ms")
+        cursor = conn.execute("SELECT COUNT(*) FROM requests WHERE latency_ms IS NOT NULL")
+        latency_count = cursor.fetchone()[0]
+
+        # Bound rows materialized for percentile reporting.
+        cursor = conn.execute(
+            "SELECT latency_ms FROM requests WHERE latency_ms IS NOT NULL ORDER BY latency_ms LIMIT ?",
+            (self._MAX_QUERY_ROWS,),
+        )
         latencies = [row["latency_ms"] for row in cursor.fetchall()]
 
         if not latencies:
@@ -466,7 +492,9 @@ class ChaosLLMAnalyzer:
             avg_error_lat = sum(latency_during_errors) / len(latency_during_errors) if latency_during_errors else 0
             avg_clean_lat = sum(latency_during_clean) / len(latency_during_clean) if latency_during_clean else 0
 
-            if avg_error_lat > avg_clean_lat * 1.5:
+            if not latency_during_errors or not latency_during_clean:
+                correlation = "INSUFFICIENT_DATA"
+            elif avg_error_lat > avg_clean_lat * 1.5:
                 correlation = "HIGH: Latency increases during error periods"
             elif avg_error_lat > avg_clean_lat * 1.2:
                 correlation = "MODERATE: Some latency increase during errors"
@@ -491,6 +519,8 @@ class ChaosLLMAnalyzer:
             "slow_threshold_ms": round(slow_threshold, 2),
             "slow_count": slow_count,
             "error_correlation": correlation,
+            "latency_sample_count": len(latencies),
+            "latency_total_count": latency_count,
         }
 
     def find_anomalies(self) -> dict[str, Any]:
@@ -730,6 +760,9 @@ class ChaosLLMAnalyzer:
             error_type: Error type to filter by (e.g., 'rate_limit', 'timeout')
             limit: Maximum number of samples (default 5)
         """
+        if limit < 1 or limit > self._MAX_QUERY_ROWS:
+            raise ValueError(f"limit must be between 1 and {self._MAX_QUERY_ROWS}")
+
         conn = self._get_connection()
 
         cursor = conn.execute(
@@ -845,9 +878,11 @@ class ChaosLLMAnalyzer:
             if re.search(rf"\b{keyword}\b", sql_normalized):
                 raise ValueError(f"Query contains forbidden keyword: {keyword}")
 
-        # Auto-add LIMIT if not present
+        # Auto-add LIMIT for query-plan hinting; the actual row cap is enforced
+        # below via fetchmany(_MAX_QUERY_ROWS) so that a user-supplied LIMIT -1
+        # (or any other bypass) still cannot return more than _MAX_QUERY_ROWS.
         if "LIMIT" not in sql_normalized:
-            sql = f"{sql.rstrip(';')} LIMIT 100"
+            sql = f"{sql.rstrip(';')} LIMIT {self._MAX_QUERY_ROWS}"
 
         conn = self._get_connection()
 
@@ -857,7 +892,9 @@ class ChaosLLMAnalyzer:
         try:
             cursor = conn.execute(sql)
             columns = [desc[0] for desc in cursor.description]
-            rows = cursor.fetchall()
+            # Hard cap on rows regardless of LIMIT clause — defends against
+            # `LIMIT -1` (unlimited in SQLite) and missing-LIMIT bypasses.
+            rows = cursor.fetchmany(self._MAX_QUERY_ROWS)
         finally:
             # Reset authorizer so internal queries (diagnose, etc.) still work
             conn.set_authorizer(None)
@@ -987,6 +1024,8 @@ def create_server(database_path: str) -> tuple[Server, ChaosLLMAnalyzer]:
                             "type": "integer",
                             "description": "Max samples to return (default 5)",
                             "default": 5,
+                            "minimum": 1,
+                            "maximum": ChaosLLMAnalyzer._MAX_QUERY_ROWS,
                         },
                     },
                     "required": ["error_type"],
@@ -1189,11 +1228,37 @@ def _find_metrics_databases(search_dir: str, max_depth: int = 3) -> list[str]:
         except OSError:
             logger.debug("Skipping unreadable database file: %s", db_file)
             continue
+        if not _is_chaosllm_metrics_database(db_file):
+            continue
 
         found.append((priority, -mtime, str(db_file)))
 
     found.sort(key=lambda x: (x[0], x[1]))
     return [path for _, _, path in found]
+
+
+def _is_chaosllm_metrics_database(path: Path) -> bool:
+    """Return True when a SQLite file has the expected ChaosLLM metrics tables."""
+    try:
+        conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+    except sqlite3.Error:
+        return False
+    try:
+        rows = conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+        tables = {row[0] for row in rows}
+        required = {"requests", "timeseries", "run_info"}
+        if not required <= tables:
+            return False
+        request_cols = {row[1] for row in conn.execute("PRAGMA table_info(requests)").fetchall()}
+        timeseries_cols = {row[1] for row in conn.execute("PRAGMA table_info(timeseries)").fetchall()}
+        return {"request_id", "timestamp_utc", "endpoint", "outcome"} <= request_cols and {
+            "bucket_utc",
+            "requests_total",
+        } <= timeseries_cols
+    except sqlite3.Error:
+        return False
+    finally:
+        conn.close()
 
 
 def main() -> None:

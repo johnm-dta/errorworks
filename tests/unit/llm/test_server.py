@@ -806,7 +806,7 @@ class TestConnectionErrors:
     """Tests for connection-level error injection (timeout, reset, stall, failed)."""
 
     def test_connection_reset_raises(self, tmp_metrics_db):
-        """100% connection_reset raises ConnectionResetError."""
+        """100% connection_reset returns an explicit chaos transport error."""
         config = ChaosLLMConfig(
             server=ServerConfig(admin_token=TEST_ADMIN_TOKEN),
             metrics=MetricsConfig(database=tmp_metrics_db),
@@ -820,7 +820,8 @@ class TestConnectionErrors:
             "/v1/chat/completions",
             json={"model": "gpt-4", "messages": []},
         )
-        assert response.status_code == 500
+        assert response.status_code == 503
+        assert response.json()["error"]["code"] == "connection_reset"
 
     def test_connection_reset_records_metrics(self, tmp_metrics_db):
         """Connection reset records metrics before raising."""
@@ -844,7 +845,7 @@ class TestConnectionErrors:
         assert stats["requests_by_outcome"].get("error_injected", 0) == 1
 
     def test_connection_failed_raises(self, tmp_metrics_db):
-        """100% connection_failed raises ConnectionResetError."""
+        """100% connection_failed returns an explicit chaos transport error."""
         config = ChaosLLMConfig(
             server=ServerConfig(admin_token=TEST_ADMIN_TOKEN),
             metrics=MetricsConfig(database=tmp_metrics_db),
@@ -861,7 +862,8 @@ class TestConnectionErrors:
             "/v1/chat/completions",
             json={"model": "gpt-4", "messages": []},
         )
-        assert response.status_code == 500
+        assert response.status_code == 503
+        assert response.json()["error"]["code"] == "connection_failed"
 
     def test_timeout_returns_504_or_raises(self, tmp_metrics_db):
         """100% timeout with zero delay produces 504 or connection reset."""
@@ -881,8 +883,8 @@ class TestConnectionErrors:
             "/v1/chat/completions",
             json={"model": "gpt-4", "messages": []},
         )
-        # Timeout either returns 504 (50%) or drops connection (50% -> 500 in TestClient)
-        assert response.status_code in {500, 504}
+        # Timeout either returns 504 or an explicit chaos transport error.
+        assert response.status_code in {503, 504}
 
     def test_timeout_504_body_matches_standard_format(self, tmp_metrics_db):
         """When timeout returns 504, body format must match other HTTP errors (type, message, param, code)."""
@@ -921,7 +923,7 @@ class TestConnectionErrors:
         pytest.skip("Could not hit 504 path in 20 attempts")
 
     def test_connection_stall_raises(self, tmp_metrics_db):
-        """100% connection_stall with zero delays raises ConnectionResetError."""
+        """100% connection_stall returns an explicit chaos transport error."""
         config = ChaosLLMConfig(
             server=ServerConfig(admin_token=TEST_ADMIN_TOKEN),
             metrics=MetricsConfig(database=tmp_metrics_db),
@@ -939,7 +941,8 @@ class TestConnectionErrors:
             "/v1/chat/completions",
             json={"model": "gpt-4", "messages": []},
         )
-        assert response.status_code == 500
+        assert response.status_code == 503
+        assert response.json()["error"]["code"] == "connection_stall"
 
 
 # =============================================================================
@@ -960,6 +963,36 @@ class TestMalformedRequestHandling:
         assert response.status_code == 400
         assert response.json()["error"]["type"] == "invalid_request_error"
 
+    def test_non_object_json_array_returns_400(self, client):
+        """POST /v1/chat/completions with a JSON array body returns 400 (not 500)."""
+        response = client.post("/v1/chat/completions", json=[1, 2, 3])
+        assert response.status_code == 400
+        assert response.json()["error"]["type"] == "invalid_request_error"
+        assert "JSON object" in response.json()["error"]["message"]
+
+    def test_non_object_json_string_returns_400(self, client):
+        """POST /v1/chat/completions with a JSON string body returns 400 (not 500)."""
+        response = client.post("/v1/chat/completions", json="hello")
+        assert response.status_code == 400
+        assert response.json()["error"]["type"] == "invalid_request_error"
+
+    @pytest.mark.parametrize("messages", [None, "hello", [None], [{"role": "user"}, "bad"]])
+    def test_malformed_messages_returns_400(self, client, messages):
+        """Malformed messages payloads return controlled 400s, not unhandled 500s."""
+        response = client.post("/v1/chat/completions", json={"model": "gpt-4", "messages": messages})
+        assert response.status_code == 400
+        assert response.json()["error"]["type"] == "invalid_request_error"
+
+    def test_oversized_completion_body_returns_413(self, client):
+        """POST /v1/chat/completions rejects oversized bodies before buffering JSON."""
+        response = client.post(
+            "/v1/chat/completions",
+            content=b" " * (1_048_576 + 1),
+            headers={"content-type": "application/json"},
+        )
+        assert response.status_code == 413
+        assert response.json()["error"]["type"] == "request_too_large"
+
     def test_admin_config_post_invalid_values_returns_422(self, client, admin_headers):
         """POST /admin/config with invalid config values returns 422."""
         response = client.post(
@@ -979,6 +1012,43 @@ class TestMalformedRequestHandling:
         )
         assert response.status_code == 400
         assert response.json()["error"]["type"] == "invalid_request_error"
+
+    def test_admin_config_invalid_template_returns_422(self, client, admin_headers):
+        """Invalid Jinja syntax in a response update returns validation_error."""
+        response = client.post(
+            "/admin/config",
+            json={"response": {"mode": "template", "template": {"body": "{% if unclosed %}"}}},
+            headers=admin_headers,
+        )
+        assert response.status_code == 422
+        assert response.json()["error"]["type"] == "validation_error"
+
+    def test_admin_config_missing_preset_file_returns_422(self, client, admin_headers, tmp_path):
+        """Preset mode validates the JSONL file before accepting runtime config."""
+        response = client.post(
+            "/admin/config",
+            json={"response": {"mode": "preset", "preset": {"file": str(tmp_path / "missing.jsonl")}}},
+            headers=admin_headers,
+        )
+        assert response.status_code == 422
+        assert response.json()["error"]["type"] == "validation_error"
+
+    def test_multimodal_null_text_does_not_500(self, tmp_metrics_db):
+        """Multimodal content parts with text:null are treated as empty text."""
+        config = ChaosLLMConfig(
+            server=ServerConfig(admin_token=TEST_ADMIN_TOKEN),
+            metrics=MetricsConfig(database=tmp_metrics_db),
+            latency=LatencyConfig(base_ms=0, jitter_ms=0),
+            response=ResponseConfig(mode="echo"),
+        )
+        app = create_app(config)
+        client = TestClient(app, raise_server_exceptions=False)
+
+        response = client.post(
+            "/v1/chat/completions",
+            json={"model": "gpt-4", "messages": [{"role": "user", "content": [{"type": "text", "text": None}]}]},
+        )
+        assert response.status_code == 200
 
 
 # =============================================================================

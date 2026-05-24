@@ -142,7 +142,7 @@ Example response:
     }
   ],
   "config": {
-    "server": {"host": "127.0.0.1", "port": 8000, "workers": 4},
+    "server": {"host": "127.0.0.1", "port": 8000, "workers": 1},
     "metrics": {"database": "file:chaosllm-metrics?mode=memory&cache=shared", "timeseries_bucket_sec": 1},
     "error_injection": {"rate_limit_pct": 5.0, "...": "..."},
     "response": {"mode": "random", "...": "..."},

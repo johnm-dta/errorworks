@@ -16,6 +16,7 @@ from errorworks.engine.types import (
     BurstConfig,
     ColumnDef,
     ErrorSpec,
+    MetricsConfig,
     MetricsSchema,
     ServerConfig,
     SqlType,
@@ -119,6 +120,41 @@ class TestBurstConfigValidation:
 
 
 # =============================================================================
+# MetricsConfig helpers
+# =============================================================================
+
+
+class TestMetricsConfig:
+    """Tests for metrics database helper behavior."""
+
+    @pytest.mark.parametrize(
+        "database",
+        [
+            ":memory:",
+            "",
+            "file:chaos?mode=memory&cache=shared",
+            "file:chaos?mode=MEMORY&cache=shared",
+            "file:chaos?cache=shared&mode=Memory",
+            "file::memory:?cache=shared",
+        ],
+    )
+    def test_is_in_memory_detects_sqlite_memory_modes(self, database: str) -> None:
+        assert MetricsConfig(database=database).is_in_memory() is True
+
+    @pytest.mark.parametrize(
+        "database",
+        [
+            "metrics.db",
+            "./fixtures/mode=memory_baseline.db",
+            "file:metrics.db?cache=shared",
+            "file:metrics.db?mode=rwc",
+        ],
+    )
+    def test_is_in_memory_does_not_substring_match_file_paths(self, database: str) -> None:
+        assert MetricsConfig(database=database).is_in_memory() is False
+
+
+# =============================================================================
 # ColumnDef validation
 # =============================================================================
 
@@ -212,6 +248,12 @@ class TestColumnDefValidation:
         with pytest.raises(ValueError, match="default must be NULL, a numeric literal, or a single-quoted string"):
             ColumnDef(name="col", sql_type=SqlType.TEXT, default=default)
 
+    @pytest.mark.parametrize("name", ["select", "from", "table", "where", "index"])
+    def test_sql_keywords_rejected_as_column_names(self, name: str) -> None:
+        """SQLite keywords are rejected even though they match identifier syntax."""
+        with pytest.raises(ValueError, match="reserved SQL keyword"):
+            ColumnDef(name=name, sql_type=SqlType.TEXT)
+
 
 # =============================================================================
 # MetricsSchema validation
@@ -220,7 +262,7 @@ class TestColumnDefValidation:
 
 def _minimal_request_columns() -> tuple[ColumnDef, ...]:
     """Return the minimum required request columns."""
-    return (ColumnDef(name="timestamp_utc", sql_type=SqlType.TEXT),)
+    return (ColumnDef(name="timestamp_utc", sql_type=SqlType.TEXT, nullable=False),)
 
 
 def _minimal_timeseries_columns() -> tuple[ColumnDef, ...]:
@@ -293,6 +335,46 @@ class TestMetricsSchemaValidation:
         )
         assert len(schema.request_indexes) == 1
 
+    def test_empty_index_entry_raises_value_error(self) -> None:
+        with pytest.raises(ValueError, match="must include an index name and at least one request column"):
+            MetricsSchema(
+                request_columns=_minimal_request_columns(),
+                timeseries_columns=_minimal_timeseries_columns(),
+                request_indexes=((),),
+            )
+
+    def test_one_element_index_entry_raises_value_error(self) -> None:
+        with pytest.raises(ValueError, match="must include an index name and at least one request column"):
+            MetricsSchema(
+                request_columns=_minimal_request_columns(),
+                timeseries_columns=_minimal_timeseries_columns(),
+                request_indexes=(("idx_timestamp",),),
+            )
+
+    def test_valid_composite_index_referencing_existing_columns(self) -> None:
+        schema = MetricsSchema(
+            request_columns=(
+                ColumnDef(name="timestamp_utc", sql_type=SqlType.TEXT, nullable=False),
+                ColumnDef(name="bucket", sql_type=SqlType.TEXT),
+                ColumnDef(name="object_key", sql_type=SqlType.TEXT),
+            ),
+            timeseries_columns=_minimal_timeseries_columns(),
+            request_indexes=(("idx_bucket_key", "bucket", "object_key"),),
+        )
+
+        assert schema.request_indexes == (("idx_bucket_key", "bucket", "object_key"),)
+
+    def test_composite_index_referencing_nonexistent_column_raises(self) -> None:
+        with pytest.raises(ValueError, match=r"references column 'missing'.*does not exist"):
+            MetricsSchema(
+                request_columns=(
+                    ColumnDef(name="timestamp_utc", sql_type=SqlType.TEXT),
+                    ColumnDef(name="bucket", sql_type=SqlType.TEXT),
+                ),
+                timeseries_columns=_minimal_timeseries_columns(),
+                request_indexes=(("idx_bucket_missing", "bucket", "missing"),),
+            )
+
     def test_invalid_index_name_raises(self) -> None:
         with pytest.raises(ValueError, match="Index name must be a valid SQL identifier"):
             MetricsSchema(
@@ -319,6 +401,14 @@ class TestMetricsSchemaValidation:
         with pytest.raises(ValueError, match="request_columns must include 'timestamp_utc'"):
             MetricsSchema(
                 request_columns=(ColumnDef(name="other_col", sql_type=SqlType.TEXT),),
+                timeseries_columns=_minimal_timeseries_columns(),
+            )
+
+    def test_timestamp_utc_must_be_not_nullable(self) -> None:
+        """Nullable timestamp_utc would crash time-series rebuild."""
+        with pytest.raises(ValueError, match=r"timestamp_utc.*nullable=False"):
+            MetricsSchema(
+                request_columns=(ColumnDef(name="timestamp_utc", sql_type=SqlType.TEXT, nullable=True),),
                 timeseries_columns=_minimal_timeseries_columns(),
             )
 
@@ -360,7 +450,9 @@ class TestServerConfigValidation:
         config = ServerConfig()
         assert config.host == "127.0.0.1"
         assert config.port == 8000
-        assert config.workers == 4
+        # Default 1: workers > 1 is opt-in because it requires a file-backed
+        # metrics DB (in-memory DBs do not share across worker processes).
+        assert config.workers == 1
 
     def test_valid_custom(self) -> None:
         config = ServerConfig(host="0.0.0.0", port=9090, workers=2)

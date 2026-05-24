@@ -1,6 +1,6 @@
 # Testing Fixtures Guide
 
-Errorworks provides pytest fixtures that run ChaosLLM and ChaosWeb servers in-process using Starlette's `TestClient`. No real network sockets are opened -- requests go directly through the ASGI stack, making tests fast, isolated, and safe to run in parallel.
+Errorworks provides pytest fixtures that run ChaosLLM, ChaosWeb, and ChaosBlob servers in-process using Starlette's `TestClient`. No real network sockets are opened -- requests go directly through the ASGI stack, making tests fast, isolated, and safe to run in parallel.
 
 ## Setup
 
@@ -10,6 +10,7 @@ Import the fixtures in your `conftest.py`:
 # tests/conftest.py
 from tests.fixtures.chaosllm import chaosllm_server  # noqa: F401
 from tests.fixtures.chaosweb import chaosweb_server  # noqa: F401
+from tests.fixtures.chaosblob import chaosblob  # noqa: F401
 ```
 
 Register the custom markers to avoid pytest warnings:
@@ -19,6 +20,7 @@ Register the custom markers to avoid pytest warnings:
 def pytest_configure(config):
     config.addinivalue_line("markers", "chaosllm: ChaosLLM server configuration")
     config.addinivalue_line("markers", "chaosweb: ChaosWeb server configuration")
+    config.addinivalue_line("markers", "chaosblob: ChaosBlob server configuration")
 ```
 
 ## ChaosLLM Fixture
@@ -199,6 +201,97 @@ The `ChaosWebFixture` object provides:
 | `base_url` | Base URL (`http://testserver`) |
 | `admin_headers` | Dict with auth headers for admin endpoints |
 
+## ChaosBlob Fixture
+
+### Basic Usage
+
+```python
+def test_object_round_trip(chaosblob):
+    """Test a simple object-storage round trip."""
+    put = chaosblob.put_object(
+        "bucket",
+        "incoming/item.json",
+        b'{"id": 1}',
+        headers={"content-type": "application/json"},
+    )
+    assert put.status_code == 200
+
+    get = chaosblob.get_object("bucket", "incoming/item.json")
+    assert get.status_code == 200
+    assert get.json() == {"id": 1}
+    assert get.headers["etag"] == put.headers["etag"]
+```
+
+### Marker-Based Configuration
+
+```python
+import pytest
+
+@pytest.mark.chaosblob(preset="silent", slow_down_pct=100.0)
+def test_blob_retry_on_slow_down(chaosblob):
+    """Test that the pipeline handles object-store throttling."""
+    response = chaosblob.put_object("bucket", "key", b"data")
+    assert response.status_code == 503
+    assert "retry-after" in response.headers
+
+    chaosblob.update_config(slow_down_pct=0.0)
+    assert chaosblob.put_object("bucket", "key", b"data").status_code == 200
+```
+
+### Available Marker Kwargs
+
+The `chaosblob` marker accepts these keyword arguments:
+
+| Kwarg | Type | Description |
+|---|---|---|
+| `preset` | str | Base preset name (`silent`, `gentle`, `realistic`, etc.) |
+| `slow_down_pct` | float | S3 SlowDown percentage |
+| `access_denied_pct` | float | 403 AccessDenied percentage |
+| `not_found_pct` | float | 404 NoSuchKey percentage |
+| `service_unavailable_pct` | float | 503 ServiceUnavailable percentage |
+| `internal_error_pct` | float | 500 InternalError percentage |
+| `bad_gateway_pct` | float | 502 BadGateway percentage |
+| `gateway_timeout_pct` | float | 504 GatewayTimeout percentage |
+| `timeout_pct` | float | Timeout percentage |
+| `connection_reset_pct` | float | Connection reset percentage |
+| `connection_stall_pct` | float | Connection stall percentage |
+| `slow_response_pct` | float | Slow response percentage |
+| `truncated_body_pct` | float | Truncated object body percentage |
+| `wrong_content_length_pct` | float | Wrong Content-Length percentage |
+| `checksum_mismatch_pct` | float | ETag/checksum mismatch percentage |
+| `metadata_corruption_pct` | float | Metadata corruption percentage |
+| `stale_list_pct` | float | Stale list response percentage |
+| `malformed_xml_pct` | float | Malformed XML response percentage |
+| `selection_mode` | str | `priority` or `weighted` |
+| `base_ms` | int | Base latency in milliseconds |
+| `jitter_ms` | int | Latency jitter in milliseconds |
+| `max_object_bytes` | int | Maximum stored object size |
+
+Unknown marker kwargs fail fast so misspelled settings do not silently turn into happy-path tests.
+
+!!! note
+    The fixture sets `base_ms=0` and `jitter_ms=0` by default so tests run without artificial delays. If you need latency simulation, set these explicitly in the marker.
+
+### Fixture Helpers
+
+The `ChaosBlobFixture` object provides:
+
+| Method/Property | Description |
+|---|---|
+| `put_object(bucket, key, body, headers=...)` | PUT object bytes |
+| `get_object(bucket, key, headers=...)` | GET object bytes |
+| `head_object(bucket, key, headers=...)` | HEAD object metadata |
+| `delete_object(bucket, key)` | DELETE an object |
+| `list_objects(bucket, prefix="", max_keys=1000)` | List objects through `ListObjectsV2` |
+| `get_stats()` | Get metrics summary |
+| `export_metrics()` | Export raw metrics data |
+| `update_config(slow_down_pct=..., updates=..., ...)` | Update config at runtime |
+| `reset()` | Reset metrics, stored objects, and start a new run |
+| `wait_for_requests(count, timeout=10.0)` | Block until N requests recorded |
+| `run_id` | Current run ID |
+| `base_url` | Base URL (`http://testserver`) |
+| `admin_headers` | Dict with auth headers for admin endpoints |
+
 ## Complete Working Examples
 
 ### ChaosLLM: Testing Error Recovery
@@ -302,6 +395,30 @@ def test_realistic_scraping(chaosweb_server):
     assert results["success"] > 50
 ```
 
+### ChaosBlob: Testing Blob Pipeline Recovery
+
+```python
+import pytest
+
+@pytest.mark.chaosblob(preset="silent")
+def test_blob_pipeline_handles_slow_down(chaosblob):
+    """Verify a blob pipeline can retry after object-store throttling."""
+    chaosblob.put_object("bucket", "incoming/1.json", b'{"id": 1}')
+    chaosblob.update_config(slow_down_pct=100.0, updates={"error_injection": {"retry_after_sec": [0, 0]}})
+
+    response = chaosblob.get_object("bucket", "incoming/1.json")
+    assert response.status_code == 503
+    assert response.headers["retry-after"] == "0"
+
+    chaosblob.update_config(slow_down_pct=0.0)
+    response = chaosblob.get_object("bucket", "incoming/1.json")
+    assert response.status_code == 200
+    assert response.json() == {"id": 1}
+
+    stats = chaosblob.get_stats()
+    assert stats["total_requests"] == 3
+```
+
 ## How It Works
 
 The fixtures use Starlette's `TestClient`, which wraps the ASGI application and routes HTTP calls through the stack without opening a network socket. This means:
@@ -311,11 +428,12 @@ The fixtures use Starlette's `TestClient`, which wraps the ASGI application and 
 - **Full fidelity** -- the same request handling code runs as in production
 - **Isolated state** -- each test gets a fresh server instance via `tmp_path`
 
-The `_build_config_from_marker()` function translates marker kwargs into a `ChaosLLMConfig` or `ChaosWebConfig` object. It applies the same precedence rules as the CLI: marker kwargs override the preset, and the fixture always forces latency to zero and sets a deterministic admin token for test convenience.
+The `_build_config_from_marker()` function translates marker kwargs into a `ChaosLLMConfig`, `ChaosWebConfig`, or `ChaosBlobConfig` object. It applies the same precedence rules as the CLI: marker kwargs override the preset, and the fixture always forces latency to zero and sets a deterministic admin token for test convenience.
 
 ## Related Pages
 
 - [ChaosLLM](chaosllm.md) -- Error types and response modes
 - [ChaosWeb](chaosweb.md) -- Error types and content modes
+- [ChaosBlob](chaosblob.md) -- Object-storage error types and fixture helpers
 - [Metrics](metrics.md) -- Understanding metrics data in tests
 - [Configuration](configuration.md) -- How configuration precedence works

@@ -69,8 +69,10 @@ def _generate_ddl(schema: MetricsSchema) -> str:
     )
 
     # --- indexes ---
-    for index_name, column_name in schema.request_indexes:
-        parts.append(f"CREATE INDEX IF NOT EXISTS {index_name} ON requests({column_name});")
+    for index in schema.request_indexes:
+        index_name, *column_names = index
+        column_list = ", ".join(column_names)
+        parts.append(f"CREATE INDEX IF NOT EXISTS {index_name} ON requests({column_list});")
 
     return "\n\n".join(parts)
 
@@ -131,6 +133,7 @@ class MetricsStore:
         self._schema = schema
         self._run_id = run_id if run_id is not None else str(uuid.uuid4())
         self._started_utc = datetime.now(UTC).isoformat()
+        self._database = config.database
 
         # Thread-local storage for connections, keyed by thread ID
         self._local = threading.local()
@@ -138,12 +141,16 @@ class MetricsStore:
         self._connections: dict[int, sqlite3.Connection] = {}
 
         # Detect in-memory databases and URI usage
-        self._use_uri = config.database.startswith("file:")
-        self._is_memory_db = config.database == ":memory:" or "mode=memory" in config.database
+        self._is_memory_db = config.is_in_memory()
+        if config.database in {":memory:", ""}:
+            self._database = f"file:errorworks-{uuid.uuid4().hex}?mode=memory&cache=shared"
+            self._use_uri = True
+        else:
+            self._use_uri = config.database.startswith("file:")
 
         # Ensure database directory exists for file-backed databases
         if not self._is_memory_db and not self._use_uri:
-            db_path = Path(config.database)
+            db_path = Path(self._database)
             if db_path.parent != Path("."):
                 db_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -165,7 +172,7 @@ class MetricsStore:
         except AttributeError:
             self._cleanup_stale_connections()
             conn = sqlite3.connect(
-                self._config.database,
+                self._database,
                 check_same_thread=False,
                 timeout=30.0,
                 uri=self._use_uri,
@@ -248,6 +255,11 @@ class MetricsStore:
         """
         conn = self._get_connection()
         conn.commit()
+
+    def rollback(self) -> None:
+        """Roll back the current transaction on the thread-local connection."""
+        conn = self._get_connection()
+        conn.rollback()
 
     def record(self, **kwargs: Any) -> None:
         """Insert a row into the requests table.
@@ -393,28 +405,12 @@ class MetricsStore:
         try:
             conn.execute("DELETE FROM timeseries")
 
-            cursor = conn.execute(
-                "SELECT DISTINCT timestamp_utc FROM requests ORDER BY timestamp_utc",
-            )
-            timestamps = [row[0] for row in cursor.fetchall()]
+            rows_by_bucket: dict[str, list[sqlite3.Row]] = {}
+            for row in conn.execute("SELECT * FROM requests ORDER BY timestamp_utc").fetchall():
+                bucket = _get_bucket_utc(row["timestamp_utc"], bucket_sec)
+                rows_by_bucket.setdefault(bucket, []).append(row)
 
-            seen_buckets: set[str] = set()
-            for ts in timestamps:
-                bucket = _get_bucket_utc(ts, bucket_sec)
-                if bucket in seen_buckets:
-                    continue
-                seen_buckets.add(bucket)
-
-                bucket_end = (datetime.fromisoformat(bucket) + timedelta(seconds=bucket_sec)).isoformat()
-
-                rows = conn.execute(
-                    """
-                    SELECT * FROM requests
-                    WHERE timestamp_utc >= ? AND timestamp_utc < ?
-                    """,
-                    (bucket, bucket_end),
-                ).fetchall()
-
+            for bucket, rows in rows_by_bucket.items():
                 if not rows:
                     continue
 
@@ -631,30 +627,38 @@ class MetricsStore:
         preset_name: str | None = None,
     ) -> None:
         """Reset all metrics tables and start a new run."""
-        with self._lock:
-            self._run_id = str(uuid.uuid4())
-            self._started_utc = datetime.now(UTC).isoformat()
-
+        old_run_id = self._run_id
+        old_started_utc = self._started_utc
+        new_run_id = str(uuid.uuid4())
+        new_started_utc = datetime.now(UTC).isoformat()
         conn = self._get_connection()
+        with self._lock:
+            try:
+                if config_json is None:
+                    cursor = conn.execute("SELECT config_json, preset_name FROM run_info ORDER BY started_utc DESC LIMIT 1")
+                    row = cursor.fetchone()
+                    if row is not None:
+                        config_json = row["config_json"]
+                        if preset_name is None:
+                            preset_name = row["preset_name"]
 
-        if config_json is None:
-            cursor = conn.execute("SELECT config_json, preset_name FROM run_info ORDER BY started_utc DESC LIMIT 1")
-            row = cursor.fetchone()
-            if row is not None:
-                config_json = row["config_json"]
-                if preset_name is None:
-                    preset_name = row["preset_name"]
+                conn.execute("DELETE FROM requests")
+                conn.execute("DELETE FROM timeseries")
 
-        conn.execute("DELETE FROM requests")
-        conn.execute("DELETE FROM timeseries")
-
-        if config_json is not None:
-            conn.execute("DELETE FROM run_info")
-            conn.execute(
-                "INSERT INTO run_info (run_id, started_utc, config_json, preset_name) VALUES (?, ?, ?, ?)",
-                (self._run_id, self._started_utc, config_json, preset_name),
-            )
-        conn.commit()
+                self._run_id = new_run_id
+                self._started_utc = new_started_utc
+                if config_json is not None:
+                    conn.execute("DELETE FROM run_info")
+                    conn.execute(
+                        "INSERT INTO run_info (run_id, started_utc, config_json, preset_name) VALUES (?, ?, ?, ?)",
+                        (self._run_id, self._started_utc, config_json, preset_name),
+                    )
+                conn.commit()
+            except Exception:
+                conn.rollback()
+                self._run_id = old_run_id
+                self._started_utc = old_started_utc
+                raise
 
     def close(self) -> None:
         """Close all database connections across all threads."""

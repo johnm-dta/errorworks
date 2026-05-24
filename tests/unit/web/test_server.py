@@ -298,9 +298,7 @@ class TestConnectionErrorInjection:
         client = TestClient(app, raise_server_exceptions=False)
 
         response = client.get("/test")
-        # The streaming disconnect may or may not raise depending on the test client;
-        # either way, the response should be truncated or the connection reset
-        assert response.status_code == 200 or response.status_code == 500
+        assert response.status_code == 200
 
     def test_connection_reset_raises(self, tmp_metrics_db: str) -> None:
         """100% connection_reset_pct causes connection reset."""
@@ -312,10 +310,18 @@ class TestConnectionErrorInjection:
         app = create_app(config)
         client = TestClient(app, raise_server_exceptions=False)
 
-        # Connection reset produces an error when reading the streaming body
         response = client.get("/test")
-        # The status code is 200 (headers sent before disconnect) or error
-        assert response.status_code in (200, 500)
+        assert response.status_code == 200
+
+    def test_streaming_disconnect_initializes_response_headers(self) -> None:
+        """Streaming disconnect responses expose normal Starlette header state."""
+        from errorworks.web.server import _StreamingDisconnect
+
+        async def chunks():
+            yield b"partial"
+
+        response = _StreamingDisconnect(chunks(), media_type="text/html")
+        assert response.raw_headers
 
     def test_slow_response_returns_200(self, tmp_metrics_db: str) -> None:
         """100% slow_response_pct returns 200 with delayed content."""
@@ -446,6 +452,7 @@ class TestRedirectHopEndpoint:
         config = ChaosWebConfig(
             metrics=MetricsConfig(database=tmp_metrics_db),
             latency=LatencyConfig(base_ms=0, jitter_ms=0),
+            error_injection=WebErrorInjectionConfig(redirect_loop_pct=100.0),
         )
         app = create_app(config)
         client = TestClient(app, follow_redirects=False)
@@ -461,6 +468,7 @@ class TestRedirectHopEndpoint:
         config = ChaosWebConfig(
             metrics=MetricsConfig(database=tmp_metrics_db),
             latency=LatencyConfig(base_ms=0, jitter_ms=0),
+            error_injection=WebErrorInjectionConfig(redirect_loop_pct=100.0),
         )
         app = create_app(config)
         client = TestClient(app, follow_redirects=False)
@@ -473,6 +481,7 @@ class TestRedirectHopEndpoint:
         config = ChaosWebConfig(
             metrics=MetricsConfig(database=tmp_metrics_db),
             latency=LatencyConfig(base_ms=0, jitter_ms=0),
+            error_injection=WebErrorInjectionConfig(redirect_loop_pct=100.0),
         )
         app = create_app(config)
         client = TestClient(app, follow_redirects=False)
@@ -485,7 +494,7 @@ class TestRedirectHopEndpoint:
         config = ChaosWebConfig(
             metrics=MetricsConfig(database=tmp_metrics_db),
             latency=LatencyConfig(base_ms=0, jitter_ms=0),
-            error_injection=WebErrorInjectionConfig(max_redirect_loop_hops=5),
+            error_injection=WebErrorInjectionConfig(redirect_loop_pct=100.0, max_redirect_loop_hops=5),
         )
         app = create_app(config)
         client = TestClient(app, follow_redirects=False)
@@ -493,6 +502,36 @@ class TestRedirectHopEndpoint:
         # Request with max=100 but config limits to 5
         response = client.get("/redirect?hop=5&max=100&target=/page")
         assert response.status_code == 200
+
+    def test_direct_redirect_disabled_does_not_record_chaos_metrics(self, tmp_metrics_db: str) -> None:
+        """GET /redirect is inert unless redirect_loop_pct is configured."""
+        config = ChaosWebConfig(
+            server=ServerConfig(admin_token=TEST_ADMIN_TOKEN),
+            metrics=MetricsConfig(database=tmp_metrics_db),
+            latency=LatencyConfig(base_ms=0, jitter_ms=0),
+        )
+        app = create_app(config)
+        client = TestClient(app)
+
+        response = client.get("/redirect")
+        assert response.status_code == 404
+        stats = client.get("/admin/stats", headers={"Authorization": f"Bearer {TEST_ADMIN_TOKEN}"}).json()
+        assert stats["total_requests"] == 0
+
+    def test_redirect_hop_metric_is_clamped_to_configured_max(self, tmp_metrics_db: str) -> None:
+        """Attacker-controlled hop query values cannot poison redirect_hops metrics."""
+        config = ChaosWebConfig(
+            server=ServerConfig(admin_token=TEST_ADMIN_TOKEN),
+            metrics=MetricsConfig(database=tmp_metrics_db),
+            latency=LatencyConfig(base_ms=0, jitter_ms=0),
+            error_injection=WebErrorInjectionConfig(redirect_loop_pct=100.0, max_redirect_loop_hops=10),
+        )
+        app = create_app(config)
+        client = TestClient(app)
+
+        client.get("/redirect?hop=999999&max=999999", follow_redirects=False)
+        data = client.get("/admin/export", headers={"Authorization": f"Bearer {TEST_ADMIN_TOKEN}"}).json()
+        assert data["requests"][0]["redirect_hops"] == 10
 
 
 class TestAdminConfigUpdate:

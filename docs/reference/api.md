@@ -1,6 +1,6 @@
 # HTTP API Reference
 
-Both ChaosLLM and ChaosWeb are Starlette ASGI applications. This page documents every HTTP endpoint exposed by each server.
+ChaosLLM, ChaosWeb, and ChaosBlob are Starlette ASGI applications. This page documents every HTTP endpoint exposed by each server.
 
 ## Authentication
 
@@ -10,7 +10,7 @@ All `/admin/*` endpoints require a Bearer token in the `Authorization` header:
 Authorization: Bearer <admin_token>
 ```
 
-The `admin_token` is auto-generated at startup (printed to the console) or set explicitly via config. Requests without a valid token receive:
+The `admin_token` is auto-generated if omitted, but generated tokens are not printed. Set `server.admin_token` explicitly in config when you need to call the admin API. Requests without a valid token receive:
 
 - **401** if the `Authorization: Bearer` header is missing
 - **403** if the token does not match
@@ -159,9 +159,82 @@ Internal redirect hop handler used by redirect loop injection. Tracks hops via q
 
 ---
 
+## ChaosBlob Endpoints
+
+ChaosBlob exposes path-style S3-compatible-ish object operations. Object data is stored in memory.
+
+### `PUT /{bucket}/{key:path}`
+
+Store an object body under a bucket and key. `Content-Type` is preserved, and any `x-amz-meta-*` headers are returned on future `GET` and `HEAD` requests.
+
+**Success response** (200): empty body with an `ETag` header.
+
+```bash
+curl -X PUT http://localhost:8300/my-bucket/data/1.json \
+  -H "Content-Type: application/json" \
+  -H "x-amz-meta-source: test" \
+  -d '{"id": 1}'
+```
+
+### `GET /{bucket}/{key:path}`
+
+Return object bytes and metadata.
+
+**Success response** (200): object body with `Content-Type`, `Content-Length`, `ETag`, and stored `x-amz-meta-*` headers.
+
+### `HEAD /{bucket}/{key:path}`
+
+Return object metadata without the object body.
+
+### `DELETE /{bucket}/{key:path}`
+
+Delete an object. Returns `204 No Content` whether or not the object existed.
+
+### `GET /{bucket}?list-type=2`
+
+List objects using a `ListObjectsV2` style XML response.
+
+**Query parameters:**
+
+| Parameter | Description |
+|-----------|-------------|
+| `list-type=2` | Required. Other values return `InvalidRequest`. |
+| `prefix` | Optional key prefix filter. |
+| `max-keys` | Optional maximum number of keys to return. Defaults to `1000`; must be at least `1`; values above `1000` are capped. |
+| `continuation-token` | Optional opaque token from `NextContinuationToken`. |
+
+**Success response** (200): XML `ListBucketResult` with `Contents`, `IsTruncated`, and optional `NextContinuationToken` elements.
+
+```bash
+curl "http://localhost:8300/my-bucket?list-type=2&prefix=data/&max-keys=10"
+```
+
+**Error responses** include:
+
+| Injection | Status | Response |
+|-----------|--------|----------|
+| `slow_down` | 503 | S3 XML error with `Retry-After` header |
+| `access_denied` | 403 | S3 XML `AccessDenied` error |
+| `not_found` | 404 | S3 XML `NoSuchKey` error |
+| `service_unavailable` | 503 | S3 XML `ServiceUnavailable` error |
+| `internal_error` | 500 | S3 XML `InternalError` error |
+| `bad_gateway` | 502 | S3 XML `BadGateway` error |
+| `gateway_timeout` | 504 | S3 XML `GatewayTimeout` error |
+| `timeout` | 504 | S3 XML `RequestTimeout` error after delay |
+| `connection_reset` | N/A | Response starts, then disconnects |
+| `connection_stall` | N/A | Delays and disconnects |
+| `truncated_body` | 200 | Partial object body |
+| `wrong_content_length` | 200 | Declares full length, sends partial body, then disconnects |
+| `checksum_mismatch` | 200 | Corrupted ETag |
+| `metadata_corruption` | 200 | Missing stored metadata header |
+| `stale_list` | 200 | List omits the newest object |
+| `malformed_xml` | 200 | Broken list XML |
+
+---
+
 ## Shared Endpoints
 
-These endpoints are available on both ChaosLLM and ChaosWeb servers.
+These endpoints are available on ChaosLLM, ChaosWeb, and ChaosBlob servers.
 
 ### `GET /health`
 
@@ -230,7 +303,7 @@ curl -H "Authorization: Bearer $ADMIN_TOKEN" \
 
 ### `GET /admin/config`
 
-Returns the current runtime configuration (error injection, response/content, and latency settings).
+Returns the current runtime configuration (error injection, response/content/storage, and latency settings).
 
 **Response** (200):
 
@@ -382,7 +455,7 @@ Export all raw metrics data for external analysis or archival. Returns the compl
     }
   ],
   "config": {
-    "server": { "host": "127.0.0.1", "port": 8000, "workers": 4 },
+    "server": { "host": "127.0.0.1", "port": 8000, "workers": 1 },
     "metrics": { "database": "file:chaosllm-metrics?mode=memory&cache=shared" },
     "error_injection": { "..." : "..." },
     "response": { "..." : "..." },
@@ -424,6 +497,19 @@ HTTP-level errors return HTML error pages:
 
 ```html
 <html><body><h1>429 Too Many Requests -- You are being rate limited.</h1></body></html>
+```
+
+### ChaosBlob Error Bodies
+
+HTTP-level errors return S3-shaped XML:
+
+```xml
+<Error>
+  <Code>SlowDown</Code>
+  <Message>Please reduce your request rate.</Message>
+  <Resource>/bucket/key</Resource>
+  <RequestId>...</RequestId>
+</Error>
 ```
 
 ### Admin Error Bodies

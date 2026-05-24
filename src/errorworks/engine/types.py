@@ -12,6 +12,7 @@ import re
 import secrets
 from dataclasses import dataclass
 from enum import StrEnum
+from urllib.parse import parse_qsl
 
 from pydantic import BaseModel, Field
 
@@ -46,9 +47,14 @@ class ServerConfig(BaseModel):
         description="Port to listen on",
     )
     workers: int = Field(
-        default=4,
+        default=1,
         gt=0,
-        description="Number of uvicorn workers",
+        description=(
+            "Number of uvicorn workers. Default 1: workers > 1 forks separate "
+            "processes, so the in-memory metrics database is fragmented per "
+            "worker. To run multi-worker, also configure a file-backed "
+            "metrics.database (see MetricsConfig.is_in_memory)."
+        ),
     )
     admin_token: str = Field(
         default_factory=lambda: secrets.token_urlsafe(32),
@@ -75,6 +81,27 @@ class MetricsConfig(BaseModel):
         gt=0,
         description="Time-series aggregation bucket size in seconds",
     )
+
+    def is_in_memory(self) -> bool:
+        """Return True if the configured database is an in-memory SQLite DB.
+
+        In-memory databases cannot be shared across uvicorn worker processes —
+        each forked worker gets its own private DB, so admin endpoints only
+        see whichever worker handled the admin request. Configurations with
+        workers > 1 must use a file-backed database.
+        """
+        db = self.database
+        if db == ":memory:" or db == "":
+            return True
+        if db.startswith("file:"):
+            _, _, query = db.partition("?")
+            for key, value in parse_qsl(query, keep_blank_values=True):
+                if key.casefold() == "mode" and value.casefold() == "memory":
+                    return True
+            # `file::memory:` (with optional ?...) also indicates in-memory
+            if db.startswith("file::memory:"):
+                return True
+        return False
 
 
 class LatencyConfig(BaseModel):
@@ -177,6 +204,35 @@ class SqlType(StrEnum):
 
 _VALID_SQL_TYPES = frozenset(SqlType)
 _VALID_COLUMN_NAME = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
+_RESERVED_SQL_KEYWORDS = frozenset(
+    {
+        "select",
+        "from",
+        "table",
+        "where",
+        "index",
+        "insert",
+        "update",
+        "delete",
+        "create",
+        "drop",
+        "alter",
+        "join",
+        "group",
+        "order",
+        "by",
+        "limit",
+        "primary",
+        "key",
+        "not",
+        "null",
+        "default",
+        "constraint",
+        "references",
+        "unique",
+        "values",
+    }
+)
 
 # Safe DEFAULT expressions: NULL, numeric literals, quoted strings.
 # Prevents SQL injection in DDL generation where defaults are interpolated via f-string.
@@ -213,6 +269,8 @@ class ColumnDef:
             raise ValueError("ColumnDef name must not be empty")
         if not _VALID_COLUMN_NAME.match(self.name):
             raise ValueError(f"ColumnDef name must be a valid SQL identifier (letters, digits, underscores), got {self.name!r}")
+        if self.name.casefold() in _RESERVED_SQL_KEYWORDS:
+            raise ValueError(f"ColumnDef name {self.name!r} is a reserved SQL keyword")
         if self.sql_type not in _VALID_SQL_TYPES:
             raise ValueError(f"ColumnDef sql_type must be one of {sorted(_VALID_SQL_TYPES)}, got {self.sql_type!r}")
         if self.primary_key and self.nullable:
@@ -235,12 +293,12 @@ class MetricsSchema:
         request_columns: Column definitions for the requests table.
         timeseries_columns: Column definitions for the timeseries table.
         request_indexes: Additional indexes on the requests table.
-            Each entry is (index_name, column_name).
+            Each entry is (index_name, column_name, ...).
     """
 
     request_columns: tuple[ColumnDef, ...]
     timeseries_columns: tuple[ColumnDef, ...]
-    request_indexes: tuple[tuple[str, str], ...] = ()
+    request_indexes: tuple[tuple[str, ...], ...] = ()
 
     def __post_init__(self) -> None:
         if not self.request_columns:
@@ -259,20 +317,26 @@ class MetricsSchema:
         if ts_dupes:
             raise ValueError(f"Duplicate timeseries column names: {sorted(ts_dupes)}")
 
+        for index in self.request_indexes:
+            if len(index) < 2:
+                raise ValueError("MetricsSchema request_indexes entries must include an index name and at least one request column")
+
         # Check for duplicate index names
-        idx_names = [name for name, _col in self.request_indexes]
+        idx_names = [index[0] for index in self.request_indexes]
         idx_dupes = {n for n in idx_names if idx_names.count(n) > 1}
         if idx_dupes:
             raise ValueError(f"Duplicate index names: {sorted(idx_dupes)}")
 
         # Validate that index columns reference actual request columns
         req_name_set = set(req_names)
-        for index_name, col_name in self.request_indexes:
-            if col_name not in req_name_set:
-                raise ValueError(f"Index '{index_name}' references column '{col_name}' which does not exist in request_columns")
+        for index in self.request_indexes:
+            index_name, *col_names = index
+            for col_name in col_names:
+                if col_name not in req_name_set:
+                    raise ValueError(f"Index '{index_name}' references column '{col_name}' which does not exist in request_columns")
 
         # Validate index names against _VALID_COLUMN_NAME to prevent DDL injection
-        for index_name, _col_name in self.request_indexes:
+        for index_name in idx_names:
             if not _VALID_COLUMN_NAME.match(index_name):
                 raise ValueError(f"Index name must be a valid SQL identifier (letters, digits, underscores), got {index_name!r}")
 
@@ -283,6 +347,9 @@ class MetricsSchema:
             raise ValueError(f"MetricsSchema timeseries_columns must include {sorted(missing_ts)} (required by update_timeseries)")
         if "timestamp_utc" not in req_name_set:
             raise ValueError("MetricsSchema request_columns must include 'timestamp_utc' (required by rebuild_timeseries)")
+        timestamp_utc_col = next(c for c in self.request_columns if c.name == "timestamp_utc")
+        if timestamp_utc_col.nullable:
+            raise ValueError("MetricsSchema request column 'timestamp_utc' must have nullable=False")
 
         # Verify bucket_utc is a primary key (required by ON CONFLICT(bucket_utc) in update_timeseries)
         bucket_utc_col = next(c for c in self.timeseries_columns if c.name == "bucket_utc")
