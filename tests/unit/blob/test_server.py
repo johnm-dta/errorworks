@@ -326,6 +326,19 @@ def test_storage_config_update_clears_existing_objects(tmp_path: Path) -> None:
     assert _xml_code(missing) == "NoSuchKey"
 
 
+def test_admin_config_rejects_storage_content_type_header_injection(tmp_path: Path) -> None:
+    client = _client_for(tmp_path)
+    headers = _admin_headers(client)
+
+    response = client.post(
+        "/admin/config",
+        headers=headers,
+        json={"storage": {"default_content_type": "text/plain\r\nx-evil: 1"}},
+    )
+
+    assert response.status_code == 422
+
+
 def test_slow_down_injection_returns_s3_error_with_retry_after(tmp_path: Path) -> None:
     client = _client_for(tmp_path, error_injection=BlobErrorInjectionConfig(slow_down_pct=100.0, retry_after_sec=(3, 3)))
     client.put("/bucket/key.txt", content=b"hello")
@@ -610,7 +623,7 @@ def test_put_stops_streaming_when_body_exceeds_limit(tmp_path: Path) -> None:
     assert messages[0]["status"] == 413
 
 
-def test_blob_metrics_type_errors_propagate(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_blob_metrics_type_errors_do_not_replace_success_response(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     app = _app_for(tmp_path)
     server = app.state.server
 
@@ -620,5 +633,22 @@ def test_blob_metrics_type_errors_propagate(tmp_path: Path, monkeypatch: pytest.
     monkeypatch.setattr(server._metrics_recorder, "record_request", raise_type_error)
     client = TestClient(app)
 
-    with pytest.raises(TypeError, match="schema mismatch"):
-        client.put("/bucket/key.txt", content=b"hello")
+    response = client.put("/bucket/key.txt", content=b"hello")
+
+    assert response.status_code == 200
+
+
+def test_blob_metrics_type_errors_do_not_replace_error_response(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    app = _app_for(tmp_path, error_injection=BlobErrorInjectionConfig(access_denied_pct=100.0))
+    server = app.state.server
+
+    def raise_type_error(**_kwargs: Any) -> None:
+        raise TypeError("schema mismatch")
+
+    monkeypatch.setattr(server._metrics_recorder, "record_request", raise_type_error)
+    client = TestClient(app)
+
+    response = client.get("/bucket/key.txt")
+
+    assert response.status_code == 403
+    assert _xml_code(response) == "AccessDenied"

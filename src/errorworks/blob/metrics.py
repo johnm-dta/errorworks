@@ -94,10 +94,10 @@ def _classify_blob_outcome(
         return BlobOutcomeClassification(BlobOutcomeCounter.CONNECTION_ERROR)
     if error_type == "stale_list":
         return BlobOutcomeClassification(BlobOutcomeCounter.STALE_LIST)
-    if outcome == "error_corrupted" or error_type in _BLOB_CORRUPTION_ERROR_TYPES:
-        return BlobOutcomeClassification(BlobOutcomeCounter.CORRUPTED)
     if status_code == 404 or error_type in _BLOB_NOT_FOUND_ERROR_TYPES:
         return BlobOutcomeClassification(BlobOutcomeCounter.NOT_FOUND)
+    if outcome == "error_corrupted" or error_type in _BLOB_CORRUPTION_ERROR_TYPES:
+        return BlobOutcomeClassification(BlobOutcomeCounter.CORRUPTED)
     if status_code == 403 or error_type == "access_denied":
         return BlobOutcomeClassification(BlobOutcomeCounter.ACCESS_DENIED)
     if status_code is not None and 500 <= status_code < 600:

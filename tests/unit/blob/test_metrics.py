@@ -54,6 +54,9 @@ class TestClassifyBlobOutcome:
         assert _classify_blob_outcome("error_injected", 200, "checksum_mismatch").counter is BlobOutcomeCounter.CORRUPTED
         assert _classify_blob_outcome("error_corrupted", 200, None).counter is BlobOutcomeCounter.CORRUPTED
 
+    def test_not_found_status_takes_precedence_over_corruption_error_type(self) -> None:
+        assert _classify_blob_outcome("error_injected", 404, "checksum_mismatch").counter is BlobOutcomeCounter.NOT_FOUND
+
     def test_stale_list(self) -> None:
         result = _classify_blob_outcome("error_injected", 200, "stale_list")
         assert result.counter is BlobOutcomeCounter.STALE_LIST

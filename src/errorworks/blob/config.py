@@ -139,6 +139,13 @@ class BlobStorageConfig(BaseModel):
     default_content_type: str = Field(default="application/octet-stream", min_length=1, description="Default object content type")
     expose_s3_xml: bool = Field(default=True, description="Return S3-shaped XML error/list responses")
 
+    @field_validator("default_content_type")
+    @classmethod
+    def validate_default_content_type(cls, value: str) -> str:
+        if any(ch in value for ch in ("\r", "\n", "\x00")):
+            raise ValueError("default_content_type must not contain CR, LF, or NUL characters")
+        return value
+
 
 class ChaosBlobConfig(BaseModel):
     """Top-level ChaosBlob server configuration."""

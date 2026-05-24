@@ -836,7 +836,6 @@ class ChaosBlobServer:
             logger.warning("metrics_recording_failed", request_id=request_id, bucket=bucket, outcome=outcome, exc_info=True)
         except (ValueError, TypeError):
             logger.error("metrics_recording_unexpected_error", request_id=request_id, bucket=bucket, outcome=outcome, exc_info=True)
-            raise
 
     @staticmethod
     def _request_context() -> tuple[str, str, float]:

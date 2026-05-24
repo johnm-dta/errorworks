@@ -44,6 +44,12 @@ def test_rejects_invalid_object_size_limit() -> None:
         BlobStorageConfig(max_object_bytes=0)
 
 
+@pytest.mark.parametrize("value", ["text/plain\r\nx-evil: 1", "text/plain\nx-evil: 1", "text/plain\x00"])
+def test_rejects_default_content_type_header_control_characters(value: str) -> None:
+    with pytest.raises(ValidationError, match="default_content_type"):
+        BlobStorageConfig(default_content_type=value)
+
+
 def test_rejects_workers_with_memory_metrics_database() -> None:
     with pytest.raises(ValidationError, match="requires a file-backed metrics database"):
         ChaosBlobConfig(server={"workers": 2})
