@@ -40,7 +40,12 @@ jobs:
   # a green main — branch protection can be bypassed by admins, and the
   # release author may not be the merge author.
   # ---------------------------------------------------------------------------
+  # Run the cheap version-consistency check FIRST. The full CI matrix is
+  # the most expensive job in this workflow; making it wait on the 30-
+  # second tag check means a misconfigured release tag fails in seconds
+  # instead of burning ~15 minutes of runner time.
   ci:
+    needs: verify-version
     uses: ./.github/workflows/ci.yml
     with:
       ref: ${{ inputs.ref || github.event.release.tag_name }}
@@ -68,6 +73,17 @@ jobs:
         run: |
           set -euo pipefail
           tag="${INPUT_REF}"
+          # Strip refs/tags/ prefix if a full git ref was supplied via
+          # workflow_dispatch with `ref: refs/tags/vX.Y.Z`.
+          tag="${tag##refs/tags/}"
+          # Enforce v-prefixed release tag. Without this, an unprefixed
+          # tag like `0.1.4` would silently match pyproject's `0.1.4`
+          # after a no-op `${tag#v}` strip — which violates the project's
+          # tag-naming convention even though the version numbers align.
+          if [[ ! "${tag}" =~ ^v[0-9] ]]; then
+            echo "::error::Release tag must be v-prefixed (e.g. v0.1.4). Got: '${tag}'"
+            exit 1
+          fi
           tag_version="${tag#v}"
           pkg_version=$(uv run --no-project --python 3.12 python -c \
             "import tomllib, pathlib; print(tomllib.loads(pathlib.Path('pyproject.toml').read_text())['project']['version'])")
@@ -84,7 +100,8 @@ jobs:
   # ---------------------------------------------------------------------------
   build:
     name: build distribution
-    needs: [ci, verify-version]
+    # verify-version is transitively required via ci -> verify-version.
+    needs: ci
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -109,10 +126,12 @@ jobs:
           # shellcheck disable=SC1091
           source /tmp/smoke/bin/activate
           uv pip install dist/*.whl
-          python -c "import errorworks"
-          chaosengine --help > /dev/null
-          chaosllm --help > /dev/null
-          chaosweb --help > /dev/null
+          python -c "import errorworks; print('errorworks', errorworks.__version__)"
+          # grep guards against a broken entry point exiting 0 with garbage
+          # output instead of Typer's help banner.
+          chaosengine --help 2>&1 | grep -q "Usage:"
+          chaosllm    --help 2>&1 | grep -q "Usage:"
+          chaosweb    --help 2>&1 | grep -q "Usage:"
 
       - name: Upload distribution
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
