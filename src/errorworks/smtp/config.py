@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import ipaddress
 import secrets
+import socket
 import warnings
 from pathlib import Path
 from typing import Any, Literal
@@ -17,6 +19,25 @@ from errorworks.engine.validators import parse_range as _parse_range
 from errorworks.engine.validators import validate_ranges as _validate_ranges
 
 DEFAULT_MEMORY_DB = "file:chaossmtp-metrics?mode=memory&cache=shared"
+
+
+def _is_dangerous_bind_host(host: str) -> bool:
+    if host in DANGEROUS_BIND_HOSTS:
+        return True
+
+    address = host.removeprefix("[").removesuffix("]")
+    try:
+        return ipaddress.ip_address(address).is_unspecified
+    except ValueError:
+        pass
+
+    if not all(char.isdigit() or char == "." for char in host):
+        return False
+
+    try:
+        return socket.inet_ntoa(socket.inet_aton(host)) == "0.0.0.0"
+    except OSError:
+        return False
 
 
 class SMTPServerConfig(BaseModel):
@@ -142,7 +163,7 @@ class ChaosSMTPConfig(BaseModel):
 
     @model_validator(mode="after")
     def validate_host_binding(self) -> ChaosSMTPConfig:
-        dangerous = self.smtp.host in DANGEROUS_BIND_HOSTS or self.admin.host in DANGEROUS_BIND_HOSTS
+        dangerous = _is_dangerous_bind_host(self.smtp.host) or _is_dangerous_bind_host(self.admin.host)
         if dangerous and not self.allow_external_bind:
             raise ValueError(
                 "Binding ChaosSMTP to all interfaces exposes ChaosSMTP to the network. "

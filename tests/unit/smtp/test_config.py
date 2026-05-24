@@ -36,9 +36,29 @@ def test_external_bind_blocked_by_default() -> None:
         ChaosSMTPConfig(smtp={"host": "0.0.0.0"})
 
 
+def test_smtp_wildcard_alias_blocked_by_default() -> None:
+    with pytest.raises(ValidationError, match="exposes ChaosSMTP"):
+        ChaosSMTPConfig(smtp={"host": "0"})
+
+
+def test_admin_external_bind_blocked_by_default() -> None:
+    with pytest.raises(ValidationError, match="exposes ChaosSMTP"):
+        ChaosSMTPConfig(admin={"host": "0.0.0.0"})
+
+
+def test_admin_wildcard_alias_blocked_by_default() -> None:
+    with pytest.raises(ValidationError, match="exposes ChaosSMTP"):
+        ChaosSMTPConfig(admin={"host": "0"})
+
+
 def test_external_bind_can_be_explicitly_allowed() -> None:
     config = ChaosSMTPConfig(smtp=SMTPServerConfig(host="0.0.0.0"), allow_external_bind=True)
     assert config.smtp.host == "0.0.0.0"
+
+
+def test_admin_external_bind_can_be_explicitly_allowed() -> None:
+    config = ChaosSMTPConfig(admin=SMTPAdminConfig(host="0.0.0.0"), allow_external_bind=True)
+    assert config.admin.host == "0.0.0.0"
 
 
 def test_workers_are_not_part_of_smtp_config() -> None:
