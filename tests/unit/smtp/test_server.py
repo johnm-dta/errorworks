@@ -163,7 +163,10 @@ def test_explicit_memory_database_is_shared_with_smtp_thread(tmp_path) -> None:
 def test_concurrent_smtp_sessions_record_each_message(tmp_path) -> None:
     server = ChaosSMTPServer(_config(tmp_path))
     server.start()
-    errors: list[BaseException] = []
+    # Capture worker failures so the main thread can re-raise. Exception is
+    # sufficient: KeyboardInterrupt is signal-routed to the main thread only,
+    # and SystemExit in a worker kills only that worker.
+    errors: list[Exception] = []
 
     def send_message(index: int) -> None:
         message = _message()
@@ -171,7 +174,7 @@ def test_concurrent_smtp_sessions_record_each_message(tmp_path) -> None:
         try:
             with smtplib.SMTP(server.smtp_host, server.smtp_port, timeout=5) as client:
                 client.send_message(message)
-        except BaseException as exc:
+        except Exception as exc:
             errors.append(exc)
 
     try:
@@ -212,7 +215,7 @@ def test_inflight_data_uses_request_capture_policy_when_config_changes(tmp_path)
     )
     server = ChaosSMTPServer(config)
     server.start()
-    errors: list[BaseException] = []
+    errors: list[Exception] = []
     try:
         with smtplib.SMTP(server.smtp_host, server.smtp_port, timeout=5) as client:
             client.ehlo()
@@ -227,7 +230,7 @@ def test_inflight_data_uses_request_capture_policy_when_config_changes(tmp_path)
                     code, message = client.data(_message().as_bytes())
                     assert code == 250
                     assert message
-                except BaseException as exc:
+                except Exception as exc:
                     errors.append(exc)
 
             sender = threading.Thread(target=send_data)

@@ -52,13 +52,16 @@ class _ImmutableHeaders(dict[str, str]):
         self._readonly()
 
     @overload
-    def pop(self, key: str, /) -> str: ...
+    def pop(self, key: str, /) -> str:
+        pass
 
     @overload
-    def pop(self, key: str, default: str, /) -> str: ...
+    def pop(self, key: str, default: str, /) -> str:
+        pass
 
     @overload
-    def pop(self, key: str, default: _T, /) -> str | _T: ...
+    def pop(self, key: str, default: _T, /) -> str | _T:
+        pass
 
     def pop(self, key: str, default: object = None, /) -> NoReturn:
         self._readonly()
