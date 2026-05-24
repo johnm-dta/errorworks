@@ -53,11 +53,6 @@ jobs:
     name: pip-audit
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # On PRs, surface vulnerable dependencies as a warning rather than a
-    # hard block — most findings are pre-existing in transitive deps and
-    # get fixed by Dependabot, not by the PR author. On main/schedule,
-    # the job fails hard so newly introduced CVEs page someone.
-    continue-on-error: ${{ github.event_name == 'pull_request' }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
       - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6
@@ -72,9 +67,13 @@ jobs:
             --format requirements-txt \
             > /tmp/requirements.txt
       - name: Run pip-audit
-        # --disable-pip would be ideal but it requires either hashes in the
-        # requirements file or --no-deps; we resolve with uv (no hashes) and
-        # let pip-audit shell out to pip for vulnerability lookups.
+        # On PRs, surface vulnerable deps as a warning rather than a hard
+        # block — transitive-dep CVEs are pre-existing on main and fixed
+        # by Dependabot, not the PR author. On main/schedule/dispatch the
+        # step fails hard so newly introduced CVEs page someone.
+        # --disable-pip would be ideal but requires hashed requirements;
+        # uv export emits hashless, so we let pip-audit shell out to pip.
+        continue-on-error: ${{ github.event_name == 'pull_request' }}
         run: |
           uvx --from pip-audit pip-audit \
             --requirement /tmp/requirements.txt \
