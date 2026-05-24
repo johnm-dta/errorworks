@@ -26,7 +26,7 @@ from errorworks.engine.config_loader import deep_merge
 from errorworks.engine.latency import LatencySimulator
 from errorworks.engine.types import LatencyConfig
 from errorworks.smtp.config import ChaosSMTPConfig, SMTPCaptureConfig, SMTPErrorInjectionConfig
-from errorworks.smtp.error_injector import SMTPErrorCategory, SMTPErrorDecision, SMTPErrorInjector, SMTPStage
+from errorworks.smtp.error_injector import SMTPErrorCategory, SMTPErrorDecision, SMTPErrorInjector, SMTPErrorTag, SMTPStage
 from errorworks.smtp.message_capture import CapturedMessage, MessageCapture
 from errorworks.smtp.metrics import SMTPMetricsRecorder
 
@@ -55,7 +55,7 @@ class _ChaosSMTPHandler:
     def __init__(self, owner: ChaosSMTPServer) -> None:
         self._owner = owner
 
-    async def handle_MAIL(self, server: Any, session: Session, envelope: Envelope, address: str, mail_options: list[str]) -> str:
+    async def handle_MAIL(self, server: Any, session: Session, envelope: Envelope, address: str, mail_options: list[str]) -> str | bytes:
         decision = await self._owner.handle_stage(SMTPStage.MAIL, session=session, smtp_server=server, mail_from=address)
         if _is_failure_decision(decision):
             return _reply_for_decision(decision)
@@ -63,7 +63,7 @@ class _ChaosSMTPHandler:
         envelope.mail_options.extend(mail_options)
         return "250 2.1.0 OK"
 
-    async def handle_RCPT(self, server: Any, session: Session, envelope: Envelope, address: str, rcpt_options: list[str]) -> str:
+    async def handle_RCPT(self, server: Any, session: Session, envelope: Envelope, address: str, rcpt_options: list[str]) -> str | bytes:
         decision = await self._owner.handle_stage(SMTPStage.RCPT, session=session, smtp_server=server, rcpt_to=address)
         if _is_failure_decision(decision):
             return _reply_for_decision(decision)
@@ -71,7 +71,7 @@ class _ChaosSMTPHandler:
         envelope.rcpt_options.extend(rcpt_options)
         return "250 2.1.5 OK"
 
-    async def handle_DATA(self, server: Any, session: Session, envelope: Envelope) -> str:
+    async def handle_DATA(self, server: Any, session: Session, envelope: Envelope) -> str | bytes:
         return await self._owner.handle_data(session=session, smtp_server=server, envelope=envelope)
 
 
@@ -263,9 +263,23 @@ class ChaosSMTPServer:
                 injected_delay_ms=decision.delay_sec * 1000 if decision.delay_sec else None,
             )
             _apply_protocol_failure(smtp_server, decision)
+        elif decision.error_type == SMTPErrorTag.SLOW_RESPONSE:
+            self._record_transaction(
+                session=session,
+                outcome="success",
+                stage=stage,
+                decision=decision,
+                mail_from=mail_from,
+                rcpt_count=1 if rcpt_to else None,
+                rcpt_tos=[rcpt_to] if rcpt_to else None,
+                reply_code=250,
+                capture_mode=capture_mode,
+                latency_ms=delay * 1000,
+                injected_delay_ms=decision.delay_sec * 1000 if decision.delay_sec else None,
+            )
         return decision
 
-    async def handle_data(self, *, session: Session, smtp_server: Any, envelope: Envelope) -> str:
+    async def handle_data(self, *, session: Session, smtp_server: Any, envelope: Envelope) -> str | bytes:
         start = time.monotonic()
         with self._config_lock:
             error_injector = self._error_injector
@@ -326,6 +340,7 @@ class ChaosSMTPServer:
             outcome="success",
             stage=SMTPStage.DATA,
             transaction_id=transaction_id,
+            decision=decision if decision.error_type == SMTPErrorTag.SLOW_RESPONSE else None,
             mail_from=envelope.mail_from,
             rcpt_count=len(envelope.rcpt_tos),
             rcpt_tos=list(envelope.rcpt_tos),
@@ -334,6 +349,7 @@ class ChaosSMTPServer:
             reply_code=250,
             capture_mode=capture_mode,
             latency_ms=elapsed_ms,
+            injected_delay_ms=decision.delay_sec * 1000 if decision.delay_sec else None,
         )
         return "250 2.0.0 OK"
 
@@ -373,7 +389,7 @@ class ChaosSMTPServer:
         injected_delay_ms: float | None = None,
     ) -> None:
         transaction_id = transaction_id or str(uuid.uuid4())
-        if decision is not None:
+        if decision is not None and decision.reply_code is not None:
             reply_code = decision.reply_code
         timestamp_utc = datetime.now(UTC).isoformat()
         try:
@@ -401,8 +417,6 @@ class ChaosSMTPServer:
             )
         except sqlite3.Error:
             logger.warning("smtp_metrics_recording_failed", transaction_id=transaction_id, outcome=outcome, exc_info=True)
-        except (ValueError, TypeError):
-            logger.error("smtp_metrics_recording_unexpected_error", transaction_id=transaction_id, outcome=outcome, exc_info=True)
 
 
 def create_admin_app(server: ChaosSMTPServer) -> Starlette:
@@ -427,7 +441,7 @@ def _outcome_for_decision(decision: SMTPErrorDecision) -> str:
         return "connection_error"
     if decision.category == SMTPErrorCategory.MALFORMED:
         return "malformed_protocol"
-    if decision.error_type == "accept_then_drop":
+    if decision.error_type == SMTPErrorTag.ACCEPT_THEN_DROP:
         return "accepted_then_dropped"
     if decision.reply_code is not None and 400 <= decision.reply_code < 500:
         return "tempfailed"
@@ -437,7 +451,7 @@ def _outcome_for_decision(decision: SMTPErrorDecision) -> str:
 
 
 def _is_failure_decision(decision: SMTPErrorDecision) -> bool:
-    return decision.should_inject and decision.error_type != "slow_response"
+    return decision.should_inject and decision.error_type != SMTPErrorTag.SLOW_RESPONSE
 
 
 def _transport_from_smtp(smtp_server: Any) -> Any:
@@ -463,19 +477,21 @@ def _write_raw_smtp_reply(smtp_server: Any, payload: bytes) -> None:
 
 
 def _apply_protocol_failure(smtp_server: Any, decision: SMTPErrorDecision) -> None:
-    if decision.error_type in {"connection_reset", "connection_stall"}:
+    if decision.error_type in {SMTPErrorTag.CONNECTION_RESET, SMTPErrorTag.CONNECTION_STALL}:
         _close_smtp_transport(smtp_server)
-    elif decision.error_type == "malformed_reply":
+        raise ConnectionResetError("ChaosSMTP closed the SMTP transport")
+    if decision.error_type == SMTPErrorTag.MALFORMED_REPLY:
         _write_raw_smtp_reply(smtp_server, b"299-Malformed SMTP reply\r\n")
         _close_smtp_transport(smtp_server)
+        raise ConnectionResetError("ChaosSMTP injected a malformed SMTP reply")
 
 
-def _reply_for_decision(decision: SMTPErrorDecision) -> str:
+def _reply_for_decision(decision: SMTPErrorDecision) -> str | bytes:
     if decision.reply_code is not None and decision.message is not None:
         return decision.reply_line
-    if decision.error_type == "malformed_reply":
-        return "451 4.3.0 Malformed reply injected"
-    if decision.error_type in {"connection_reset", "connection_stall"}:
+    if decision.error_type == SMTPErrorTag.MALFORMED_REPLY:
+        return b"299-Malformed SMTP reply"
+    if decision.error_type in {SMTPErrorTag.CONNECTION_RESET, SMTPErrorTag.CONNECTION_STALL}:
         return "421 4.3.0 Connection closed by chaos policy"
     if decision.reply_code is None or decision.message is None:
         return "451 4.3.0 Chaos SMTP failure"

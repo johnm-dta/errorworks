@@ -395,7 +395,7 @@ SMTP listener binding and protocol settings.
 | `hostname` | `str` | `"chaossmtp.local"` | Hostname announced to SMTP clients. |
 | `data_size_limit` | `int` | `10485760` | Maximum SMTP DATA size in bytes. Must be > 0. |
 | `enable_smtputf8` | `bool` | `true` | Enable SMTPUTF8 support. |
-| `require_starttls` | `bool` | `false` | Require STARTTLS before mail commands. |
+| `require_starttls` | `bool` | `false` | Reserved for future TLS context support. `true` is rejected. |
 
 ### SMTPAdminConfig
 
@@ -416,6 +416,7 @@ HTTP admin sidecar configuration.
 |-------|------|---------|-------------|
 | `mode` | `"discard" \| "metadata" \| "full"` | `"metadata"` | Message capture mode. `discard` records metrics only; `metadata` stores envelope and safe headers; `full` stores message bytes. |
 | `max_message_bytes` | `int` | `1048576` | Maximum bytes stored in `full` mode. Must be >= 0. |
+| `max_messages` | `int` | `1000` | Maximum captured messages kept in memory. Oldest messages are dropped first. Must be >= 1. |
 
 ### SMTPErrorInjectionConfig
 
@@ -423,7 +424,7 @@ All percentage fields are floats in the range 0.0-100.0. A value of `5.0` means 
 
 #### SMTP Command and Delivery Errors
 
-Current server handling invokes MAIL, RCPT, DATA, and ACCEPT stage decisions. CONNECT-stage fields such as `banner_reject_pct` are part of the schema and CLI surface, but the listener does not currently call CONNECT-stage injection.
+Current server handling invokes MAIL, RCPT, DATA, and ACCEPT stage decisions. CONNECT/banner-stage injection is not exposed until the listener has a real banner hook.
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
@@ -435,7 +436,6 @@ Current server handling invokes MAIL, RCPT, DATA, and ACCEPT stage decisions. CO
 | `data_tempfail_pct` | `float` | `0.0` | DATA temporary failure percentage. |
 | `data_reject_pct` | `float` | `0.0` | DATA permanent rejection percentage. |
 | `accept_then_drop_pct` | `float` | `0.0` | Accept message with `250` then drop it without capture. |
-| `banner_reject_pct` | `float` | `0.0` | Connection/banner-stage `421` rejection percentage field. Current listener does not invoke CONNECT-stage injection. |
 
 #### Protocol and Connection Failures
 
@@ -443,8 +443,8 @@ Protocol and connection percentage fields are evaluated on MAIL, RCPT, or DATA s
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `malformed_reply_pct` | `float` | `0.0` | Malformed SMTP reply percentage on CONNECT/DATA stages. |
-| `wrong_reply_code_pct` | `float` | `0.0` | Unexpected SMTP reply code percentage on CONNECT/DATA stages. |
+| `malformed_reply_pct` | `float` | `0.0` | Malformed SMTP reply percentage on DATA stages. |
+| `wrong_reply_code_pct` | `float` | `0.0` | Unexpected SMTP reply code percentage on DATA stages. |
 | `connection_reset_pct` | `float` | `0.0` | Close the SMTP transport percentage. |
 | `connection_stall_pct` | `float` | `0.0` | Stall then close percentage. |
 | `slow_response_pct` | `float` | `0.0` | Slow response percentage. Slow response delays but does not otherwise fail the transaction. |

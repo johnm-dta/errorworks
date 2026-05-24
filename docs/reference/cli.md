@@ -365,7 +365,7 @@ chaosengine smtp serve --preset=stress_delivery
 | `--hostname` | | `chaossmtp.local` | SMTP server hostname announced to clients. |
 | `--data-size-limit` | | `10485760` | Maximum SMTP DATA size in bytes. |
 | `--enable-smtputf8` / `--disable-smtputf8` | | `true` | Enable SMTPUTF8 support. |
-| `--require-starttls` / `--no-require-starttls` | | `false` | Require STARTTLS before mail commands. |
+| `--require-starttls` / `--no-require-starttls` | | `false` | Reserved for future TLS context support. Passing `--require-starttls` is rejected. |
 
 #### Admin Sidecar Flags
 
@@ -385,6 +385,7 @@ chaosengine smtp serve --preset=stress_delivery
 | `--timeseries-bucket-sec` | | `1` | Metrics time-series bucket size in seconds. |
 | `--capture-mode` | | `metadata` | Message capture mode: `discard`, `metadata`, or `full`. |
 | `--max-message-bytes` | | `1048576` | Maximum captured bytes in `full` capture mode. |
+| `--max-messages` | | `1000` | Maximum captured messages kept in memory. Oldest messages are dropped first. |
 
 #### Error Injection Flags
 
@@ -398,7 +399,6 @@ chaosengine smtp serve --preset=stress_delivery
 | `--data-tempfail-pct` | `0.0` | DATA temporary failure percentage. |
 | `--data-reject-pct` | `0.0` | DATA permanent rejection percentage. |
 | `--accept-then-drop-pct` | `0.0` | Accept message, return success, and drop without capture. |
-| `--banner-reject-pct` | `0.0` | Banner-stage rejection percentage field. Current listener does not invoke CONNECT-stage injection. |
 | `--malformed-reply-pct` | `0.0` | Malformed SMTP reply percentage. |
 | `--wrong-reply-code-pct` | `0.0` | Unexpected SMTP reply code percentage. |
 | `--connection-reset-pct` | `0.0` | SMTP transport close percentage. |

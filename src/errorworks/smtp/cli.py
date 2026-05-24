@@ -135,10 +135,6 @@ def serve(
         float | None,
         typer.Option("--accept-then-drop-pct", help="Accept message then drop it without capture.", min=0.0, max=100.0),
     ] = None,
-    banner_reject_pct: Annotated[
-        float | None,
-        typer.Option("--banner-reject-pct", help="Banner-stage rejection percentage.", min=0.0, max=100.0),
-    ] = None,
     malformed_reply_pct: Annotated[
         float | None,
         typer.Option("--malformed-reply-pct", help="Malformed SMTP reply percentage.", min=0.0, max=100.0),
@@ -199,6 +195,10 @@ def serve(
         int | None,
         typer.Option("--max-message-bytes", help="Maximum captured message bytes.", min=0),
     ] = None,
+    max_messages: Annotated[
+        int | None,
+        typer.Option("--max-messages", help="Maximum captured messages kept in memory.", min=1),
+    ] = None,
     allow_external_bind: Annotated[
         bool | None,
         typer.Option("--allow-external-bind/--no-allow-external-bind", help="Allow binding ChaosSMTP to non-loopback hosts."),
@@ -230,7 +230,6 @@ def serve(
         data_tempfail_pct=data_tempfail_pct,
         data_reject_pct=data_reject_pct,
         accept_then_drop_pct=accept_then_drop_pct,
-        banner_reject_pct=banner_reject_pct,
         malformed_reply_pct=malformed_reply_pct,
         wrong_reply_code_pct=wrong_reply_code_pct,
         connection_reset_pct=connection_reset_pct,
@@ -246,6 +245,7 @@ def serve(
         jitter_ms=jitter_ms,
         capture_mode=capture_mode,
         max_message_bytes=max_message_bytes,
+        max_messages=max_messages,
         allow_external_bind=allow_external_bind,
     )
 
@@ -330,7 +330,6 @@ def _build_cli_overrides(**values: Any) -> dict[str, Any]:
             "data_tempfail_pct": values["data_tempfail_pct"],
             "data_reject_pct": values["data_reject_pct"],
             "accept_then_drop_pct": values["accept_then_drop_pct"],
-            "banner_reject_pct": values["banner_reject_pct"],
             "malformed_reply_pct": values["malformed_reply_pct"],
             "wrong_reply_code_pct": values["wrong_reply_code_pct"],
             "connection_reset_pct": values["connection_reset_pct"],
@@ -366,6 +365,7 @@ def _build_cli_overrides(**values: Any) -> dict[str, Any]:
         {
             "mode": values["capture_mode"],
             "max_message_bytes": values["max_message_bytes"],
+            "max_messages": values["max_messages"],
         }
     )
     if capture_overrides:

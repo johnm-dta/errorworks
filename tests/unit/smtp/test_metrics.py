@@ -28,6 +28,27 @@ def test_record_success_updates_stats(tmp_path) -> None:
     assert stats["requests_by_outcome"]["success"] == 1
 
 
+def test_command_stage_success_does_not_count_as_accepted_message(tmp_path) -> None:
+    recorder = SMTPMetricsRecorder(MetricsConfig(database=str(tmp_path / "smtp.db")))
+    recorder.record_transaction(
+        transaction_id="tx-1",
+        session_id="session-1",
+        timestamp_utc="2026-05-24T00:00:00+00:00",
+        outcome="success",
+        smtp_stage="mail",
+        reply_code=250,
+        error_type="slow_response",
+        injection_type="slow_response",
+        capture_mode="metadata",
+        latency_ms=1000.0,
+        injected_delay_ms=1000.0,
+    )
+
+    timeseries = recorder.get_timeseries()
+    assert timeseries[0]["requests_total"] == 1
+    assert timeseries[0]["messages_accepted"] == 0
+
+
 def test_record_tempfail_classifies_timeseries(tmp_path) -> None:
     recorder = SMTPMetricsRecorder(MetricsConfig(database=str(tmp_path / "smtp.db")))
     recorder.record_transaction(
@@ -168,6 +189,31 @@ def test_failed_record_transaction_rolls_back_raw_insert(tmp_path) -> None:
 
     transaction_ids = {row["transaction_id"] for row in recorder.export_data()["requests"]}
     assert transaction_ids == {"tx-valid"}
+
+
+def test_failed_record_transaction_rolls_back_after_timeseries_write(tmp_path, monkeypatch) -> None:
+    recorder = SMTPMetricsRecorder(MetricsConfig(database=str(tmp_path / "smtp.db")))
+
+    def fail_after_timeseries(bucket_utc: str, latency_ms: float | None) -> None:
+        raise RuntimeError(f"boom after {bucket_utc} {latency_ms}")
+
+    monkeypatch.setattr(recorder._store, "update_bucket_latency", fail_after_timeseries)
+
+    with pytest.raises(RuntimeError, match="boom after"):
+        recorder.record_transaction(
+            transaction_id="tx-rollback",
+            session_id="session-1",
+            timestamp_utc="2026-05-24T00:00:00+00:00",
+            outcome="success",
+            smtp_stage="data",
+            reply_code=250,
+            capture_mode="metadata",
+            latency_ms=12.0,
+        )
+
+    exported = recorder.export_data()
+    assert exported["requests"] == []
+    assert exported["timeseries"] == []
 
 
 def test_reset_starts_new_run(tmp_path) -> None:

@@ -294,7 +294,7 @@ smtp:
   hostname: "chaossmtp.local"
   data_size_limit: 10485760
   enable_smtputf8: true
-  require_starttls: false
+  require_starttls: false       # true is reserved until TLS context support exists
 
 admin:
   enabled: true
@@ -309,6 +309,7 @@ metrics:
 capture:
   mode: metadata          # discard | metadata | full
   max_message_bytes: 1048576
+  max_messages: 1000
 
 latency:
   base_ms: 120
@@ -326,7 +327,6 @@ error_injection:
   data_tempfail_pct: 3.0
   data_reject_pct: 1.0
   accept_then_drop_pct: 0.0
-  banner_reject_pct: 0.0      # Schema field; current listener does not invoke CONNECT-stage injection
   malformed_reply_pct: 0.0
   wrong_reply_code_pct: 0.0
   connection_reset_pct: 0.0
@@ -373,7 +373,7 @@ ChaosSMTP separates the SMTP listener from the HTTP admin sidecar:
 | `smtp.hostname` | string | `chaossmtp.local` | Hostname announced to SMTP clients |
 | `smtp.data_size_limit` | int | `10485760` | Maximum SMTP DATA size in bytes |
 | `smtp.enable_smtputf8` | bool | `true` | Enable SMTPUTF8 extension support |
-| `smtp.require_starttls` | bool | `false` | Require STARTTLS before mail commands |
+| `smtp.require_starttls` | bool | `false` | Reserved for future TLS context support. `true` is rejected. |
 | `admin.enabled` | bool | `true` | Run the HTTP admin sidecar |
 | `admin.host` | string | `127.0.0.1` | Admin sidecar bind address |
 | `admin.port` | int | `8525` | Admin sidecar port |
@@ -411,8 +411,9 @@ The actual delay per request is `(base_ms + random(-jitter_ms, +jitter_ms)) / 10
 |---|---|---|---|
 | `capture.mode` | `discard \| metadata \| full` | `metadata` | How accepted SMTP messages are stored |
 | `capture.max_message_bytes` | int | `1048576` | Maximum bytes stored in `full` capture mode |
+| `capture.max_messages` | int | `1000` | Maximum captured messages kept in memory |
 
-`discard` records metrics only. `metadata` stores the envelope, subject, and safe headers. `full` stores base64-encoded message bytes up to `max_message_bytes`.
+`discard` records metrics only. `metadata` stores the envelope, subject, and safe headers. `full` stores base64-encoded message bytes up to `max_message_bytes`. Metadata and full capture keep at most `max_messages` records and drop the oldest first.
 
 ## Runtime Config Updates
 

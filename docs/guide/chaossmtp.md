@@ -57,7 +57,7 @@ except smtplib.SMTPDataError as exc:
 | SMTP hostname | `chaossmtp.local` | Hostname announced to clients. |
 | DATA size limit | `10485760` | Maximum DATA payload in bytes. |
 | SMTPUTF8 | `true` | Enables SMTPUTF8 support. |
-| STARTTLS required | `false` | STARTTLS is not required by default. |
+| STARTTLS required | `false` | STARTTLS enforcement is reserved for future TLS context support; `true` is rejected. |
 | Admin host | `127.0.0.1` | Loopback-only HTTP admin sidecar. |
 | Admin port | `8525` | HTTP admin sidecar port. |
 | Metrics database | `file:chaossmtp-metrics?mode=memory&cache=shared` | Shared in-memory SQLite metrics store. |
@@ -69,7 +69,7 @@ Binding the SMTP listener or admin sidecar to all interfaces is blocked by defau
 
 ## Error Injection
 
-ChaosSMTP injects faults at SMTP stages. Percent fields are floats from `0.0` to `100.0`. The current server invokes decisions for MAIL, RCPT, DATA, and ACCEPT handling; CONNECT-stage schema fields are accepted by config and CLI but are not currently called by the listener.
+ChaosSMTP injects faults at SMTP stages. Percent fields are floats from `0.0` to `100.0`. The current server invokes decisions for MAIL, RCPT, DATA, and ACCEPT handling. CONNECT/banner-stage injection is not exposed until the listener has a real banner hook.
 
 | Error Type | Stage | Config Field | Typical Reply or Behavior |
 |---|---|---|---|
@@ -81,7 +81,6 @@ ChaosSMTP injects faults at SMTP stages. Percent fields are floats from `0.0` to
 | DATA temporary failure | DATA | `data_tempfail_pct` | `451 4.3.0 Temporary message failure` |
 | DATA permanent rejection | DATA | `data_reject_pct` | `554 5.6.0 Message rejected` |
 | Accepted then dropped | ACCEPT | `accept_then_drop_pct` | Returns `250`, records `accepted_then_dropped`, and does not capture the message. |
-| Banner rejection | CONNECT | `banner_reject_pct` | Schema/CLI field exists; current listener does not invoke CONNECT-stage injection. |
 | Malformed reply | DATA | `malformed_reply_pct` | Writes a malformed SMTP reply and closes the transport. |
 | Wrong reply code | DATA | `wrong_reply_code_pct` | Returns an unexpected `252` reply and records `malformed_protocol`. |
 | Connection reset | MAIL/RCPT/DATA | `connection_reset_pct` | Closes the SMTP transport. |
@@ -115,7 +114,7 @@ ChaosSMTP records accepted messages according to `capture.mode`:
 | `metadata` | Envelope sender, recipients, size, subject, and safe headers. | Default for most tests. |
 | `full` | Metadata plus base64-encoded message bytes up to `max_message_bytes`. | You need to assert body content or MIME structure. |
 
-`metadata` and `full` captures are returned under `messages` in `/admin/export` and via the fixture's `export_metrics()` helper.
+`metadata` and `full` captures are returned under `messages` in `/admin/export` and via the fixture's `export_metrics()` helper. `capture.max_messages` bounds the in-memory capture list and drops the oldest records first.
 
 ## Admin Sidecar
 

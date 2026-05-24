@@ -52,6 +52,12 @@ class SMTPServerConfig(BaseModel):
     enable_smtputf8: bool = True
     require_starttls: bool = False
 
+    @model_validator(mode="after")
+    def validate_starttls_support(self) -> SMTPServerConfig:
+        if self.require_starttls:
+            raise ValueError("STARTTLS is not supported until ChaosSMTP exposes a TLS context configuration")
+        return self
+
 
 class SMTPAdminConfig(BaseModel):
     """HTTP admin sidecar configuration."""
@@ -71,6 +77,7 @@ class SMTPCaptureConfig(BaseModel):
 
     mode: Literal["discard", "metadata", "full"] = "metadata"
     max_message_bytes: int = Field(default=1_048_576, ge=0)
+    max_messages: int = Field(default=1_000, ge=1)
 
 
 class SMTPBurstConfig(BaseModel):
@@ -106,7 +113,6 @@ class SMTPErrorInjectionConfig(BaseModel):
     data_tempfail_pct: float = Field(default=0.0, ge=0.0, le=100.0)
     data_reject_pct: float = Field(default=0.0, ge=0.0, le=100.0)
     accept_then_drop_pct: float = Field(default=0.0, ge=0.0, le=100.0)
-    banner_reject_pct: float = Field(default=0.0, ge=0.0, le=100.0)
     malformed_reply_pct: float = Field(default=0.0, ge=0.0, le=100.0)
     wrong_reply_code_pct: float = Field(default=0.0, ge=0.0, le=100.0)
     connection_reset_pct: float = Field(default=0.0, ge=0.0, le=100.0)

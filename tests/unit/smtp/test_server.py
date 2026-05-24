@@ -10,7 +10,9 @@ import pytest
 from starlette.testclient import TestClient
 
 from errorworks.engine.types import LatencyConfig, MetricsConfig
+from errorworks.smtp import server as smtp_server_module
 from errorworks.smtp.config import ChaosSMTPConfig, SMTPAdminConfig, SMTPBurstConfig, SMTPErrorInjectionConfig, SMTPServerConfig
+from errorworks.smtp.error_injector import SMTPStage
 from errorworks.smtp.server import ChaosSMTPServer, create_admin_app
 
 TEST_ADMIN_TOKEN = "test-admin-token"
@@ -54,6 +56,19 @@ def _config_with_error_injection(tmp_path, **overrides: object) -> ChaosSMTPConf
             },
         }
     )
+
+
+class _FakeSession:
+    peer = ("127.0.0.1", 12345)
+    ssl = None
+    auth_data = None
+
+
+class _FakeEnvelope:
+    def __init__(self) -> None:
+        self.content = _message().as_bytes()
+        self.mail_from = "sender@example.com"
+        self.rcpt_tos = ["recipient@example.com"]
 
 
 def test_server_starts_on_ephemeral_port(tmp_path) -> None:
@@ -113,6 +128,54 @@ def test_silent_server_accepts_message(tmp_path) -> None:
         stats = server.get_stats()
         assert stats["total_requests"] == 1
         assert server.list_messages()[0].subject == "Delivery test"
+    finally:
+        server.stop()
+
+
+def test_explicit_memory_database_is_shared_with_smtp_thread(tmp_path) -> None:
+    config = ChaosSMTPConfig(
+        smtp=SMTPServerConfig(port=0),
+        admin=SMTPAdminConfig(admin_token=TEST_ADMIN_TOKEN),
+        metrics=MetricsConfig(database=":memory:"),
+        latency=LatencyConfig(base_ms=0, jitter_ms=0),
+    )
+    server = ChaosSMTPServer(config)
+    server.start()
+    try:
+        with smtplib.SMTP(server.smtp_host, server.smtp_port, timeout=5) as client:
+            client.send_message(_message())
+
+        assert server.get_stats()["total_requests"] == 1
+    finally:
+        server.stop()
+
+
+def test_concurrent_smtp_sessions_record_each_message(tmp_path) -> None:
+    server = ChaosSMTPServer(_config(tmp_path))
+    server.start()
+    errors: list[BaseException] = []
+
+    def send_message(index: int) -> None:
+        message = _message()
+        message.replace_header("Subject", f"Delivery test {index}")
+        try:
+            with smtplib.SMTP(server.smtp_host, server.smtp_port, timeout=5) as client:
+                client.send_message(message)
+        except BaseException as exc:
+            errors.append(exc)
+
+    try:
+        threads = [threading.Thread(target=send_message, args=(index,)) for index in range(5)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join(timeout=5)
+
+        assert not any(thread.is_alive() for thread in threads)
+        if errors:
+            raise errors[0]
+        assert server.get_stats()["total_requests"] == 5
+        assert len(server.list_messages()) == 5
     finally:
         server.stop()
 
@@ -209,6 +272,42 @@ def test_health_endpoint_reports_smtp_status(tmp_path) -> None:
     assert data["status"] == "healthy"
     assert "smtp_running" in data
     assert "run_id" in data
+
+
+def test_admin_stats_requires_authorization(tmp_path) -> None:
+    server = ChaosSMTPServer(_config(tmp_path))
+    with TestClient(server.admin_app) as client:
+        missing = client.get("/admin/stats")
+        wrong = client.get("/admin/stats", headers={"Authorization": "Bearer wrong-token"})
+
+    assert missing.status_code == 401
+    assert wrong.status_code == 403
+
+
+def test_admin_config_rejects_unknown_section(tmp_path) -> None:
+    server = ChaosSMTPServer(_config(tmp_path))
+    with TestClient(server.admin_app) as client:
+        response = client.post(
+            "/admin/config",
+            headers={"Authorization": f"Bearer {TEST_ADMIN_TOKEN}"},
+            json={"smtp": {"port": 2526}},
+        )
+
+    assert response.status_code == 400
+    assert "Unknown config section" in response.json()["error"]["message"]
+
+
+def test_admin_config_rejects_non_object_section(tmp_path) -> None:
+    server = ChaosSMTPServer(_config(tmp_path))
+    with TestClient(server.admin_app) as client:
+        response = client.post(
+            "/admin/config",
+            headers={"Authorization": f"Bearer {TEST_ADMIN_TOKEN}"},
+            json={"capture": None},
+        )
+
+    assert response.status_code == 400
+    assert "must be a JSON object" in response.json()["error"]["message"]
 
 
 def test_rcpt_tempfail_returns_smtp_recipients_refused(tmp_path) -> None:
@@ -366,6 +465,17 @@ def test_connection_reset_disconnects_client(tmp_path) -> None:
         server.stop()
 
 
+def test_connection_stall_disconnects_client(tmp_path) -> None:
+    server = ChaosSMTPServer(_config_with_error_injection(tmp_path, connection_stall_pct=100.0, connection_stall_sec=(0, 0)))
+    server.start()
+    try:
+        with smtplib.SMTP(server.smtp_host, server.smtp_port, timeout=5) as client, pytest.raises(smtplib.SMTPServerDisconnected):
+            client.send_message(_message())
+        assert server.get_stats()["total_requests"] >= 1
+    finally:
+        server.stop()
+
+
 def test_wrong_reply_code_is_recorded_as_malformed_protocol(tmp_path) -> None:
     server = ChaosSMTPServer(_config_with_error_injection(tmp_path, wrong_reply_code_pct=100.0))
     server.start()
@@ -391,7 +501,7 @@ def test_malformed_reply_disconnects_client(tmp_path) -> None:
 
 
 def test_slow_response_continues_to_successful_delivery(tmp_path) -> None:
-    server = ChaosSMTPServer(_config_with_error_injection(tmp_path, slow_response_pct=100.0, slow_response_sec=(0, 0)))
+    server = ChaosSMTPServer(_config_with_error_injection(tmp_path, slow_response_pct=100.0, slow_response_sec=(1, 1)))
     server.start()
     try:
         with smtplib.SMTP(server.smtp_host, server.smtp_port, timeout=5) as client:
@@ -399,7 +509,76 @@ def test_slow_response_continues_to_successful_delivery(tmp_path) -> None:
 
         assert result == {}
         assert server.list_messages()[0].subject == "Delivery test"
-        assert server.get_stats()["requests_by_outcome"] == {"success": 1}
-        assert server.export_metrics()["requests"][0]["outcome"] == "success"
+        metrics = server.export_metrics()
+        assert server.get_stats()["requests_by_outcome"] == {"success": 3}
+        assert [request["smtp_stage"] for request in metrics["requests"]] == ["mail", "rcpt", "data"]
+        assert all(request["outcome"] == "success" for request in metrics["requests"])
+        assert all(request["injected_delay_ms"] >= 1000.0 for request in metrics["requests"])
+    finally:
+        server.stop()
+
+
+@pytest.mark.asyncio
+async def test_slow_response_mail_records_successful_stage_with_delay(tmp_path, monkeypatch) -> None:
+    server = ChaosSMTPServer(_config_with_error_injection(tmp_path, slow_response_pct=100.0, slow_response_sec=(1, 1)))
+    sleeps: list[float] = []
+
+    async def fake_sleep(delay: float) -> None:
+        sleeps.append(delay)
+
+    monkeypatch.setattr(smtp_server_module.asyncio, "sleep", fake_sleep)
+
+    try:
+        decision = await server.handle_stage(
+            SMTPStage.MAIL,
+            session=_FakeSession(),
+            smtp_server=object(),
+            mail_from="sender@example.com",
+        )
+
+        assert decision.error_type == "slow_response"
+        assert sleeps == [1.0]
+        request = server.export_metrics()["requests"][0]
+        assert request["smtp_stage"] == "mail"
+        assert request["outcome"] == "success"
+        assert request["reply_code"] == 250
+        assert request["injected_delay_ms"] == 1000.0
+    finally:
+        server.stop()
+
+
+@pytest.mark.asyncio
+async def test_slow_response_data_success_records_injected_delay(tmp_path, monkeypatch) -> None:
+    server = ChaosSMTPServer(_config_with_error_injection(tmp_path, slow_response_pct=100.0, slow_response_sec=(1, 1)))
+
+    async def fake_sleep(delay: float) -> None:
+        return None
+
+    monkeypatch.setattr(smtp_server_module.asyncio, "sleep", fake_sleep)
+
+    try:
+        reply = await server.handle_data(session=_FakeSession(), smtp_server=object(), envelope=_FakeEnvelope())
+
+        assert reply == "250 2.0.0 OK"
+        request = server.export_metrics()["requests"][0]
+        assert request["smtp_stage"] == "data"
+        assert request["outcome"] == "success"
+        assert request["injected_delay_ms"] == 1000.0
+    finally:
+        server.stop()
+
+
+@pytest.mark.asyncio
+async def test_metrics_programming_errors_propagate_from_data_path(tmp_path, monkeypatch) -> None:
+    server = ChaosSMTPServer(_config(tmp_path))
+
+    def raise_type_error(**kwargs: object) -> None:
+        raise TypeError("schema drift")
+
+    monkeypatch.setattr(server._metrics_recorder, "record_transaction", raise_type_error)
+
+    try:
+        with pytest.raises(TypeError, match="schema drift"):
+            await server.handle_data(session=_FakeSession(), smtp_server=object(), envelope=_FakeEnvelope())
     finally:
         server.stop()

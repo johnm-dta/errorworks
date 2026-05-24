@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import sqlite3
-from typing import Any, NamedTuple
+from enum import StrEnum
+from typing import Any
 
 from errorworks.engine.metrics_store import MetricsStore
 from errorworks.engine.types import ColumnDef, MetricsConfig, MetricsSchema, SqlType
@@ -51,92 +52,48 @@ SMTP_METRICS_SCHEMA = MetricsSchema(
 )
 
 
-class SMTPOutcomeClassification(NamedTuple):
-    accepted: bool
-    tempfailed: bool
-    permfailed: bool
-    connection_error: bool
-    malformed_protocol: bool
-    accepted_then_dropped: bool
+class SMTPOutcomeCounter(StrEnum):
+    ACCEPTED = "messages_accepted"
+    TEMPFAILED = "messages_tempfailed"
+    PERMFAILED = "messages_permfailed"
+    CONNECTION_ERROR = "messages_connection_error"
+    MALFORMED_PROTOCOL = "messages_malformed_protocol"
+    ACCEPTED_THEN_DROPPED = "messages_accepted_then_dropped"
 
 
-def _classify_outcome(outcome: str, reply_code: int | None, error_type: str | None) -> SMTPOutcomeClassification:
+def _classify_outcome(
+    outcome: str,
+    reply_code: int | None,
+    error_type: str | None,
+    smtp_stage: str | None,
+) -> SMTPOutcomeCounter | None:
     if outcome == "success":
-        return SMTPOutcomeClassification(
-            accepted=True,
-            tempfailed=False,
-            permfailed=False,
-            connection_error=False,
-            malformed_protocol=False,
-            accepted_then_dropped=False,
-        )
+        return SMTPOutcomeCounter.ACCEPTED if smtp_stage in {None, "data"} else None
     if outcome == "accepted_then_dropped":
-        return SMTPOutcomeClassification(
-            accepted=False,
-            tempfailed=False,
-            permfailed=False,
-            connection_error=False,
-            malformed_protocol=False,
-            accepted_then_dropped=True,
-        )
+        return SMTPOutcomeCounter.ACCEPTED_THEN_DROPPED
     if outcome == "tempfailed":
-        return SMTPOutcomeClassification(
-            accepted=False,
-            tempfailed=True,
-            permfailed=False,
-            connection_error=False,
-            malformed_protocol=False,
-            accepted_then_dropped=False,
-        )
+        return SMTPOutcomeCounter.TEMPFAILED
     if outcome == "permfailed":
-        return SMTPOutcomeClassification(
-            accepted=False,
-            tempfailed=False,
-            permfailed=True,
-            connection_error=False,
-            malformed_protocol=False,
-            accepted_then_dropped=False,
-        )
+        return SMTPOutcomeCounter.PERMFAILED
     if outcome == "connection_error":
-        return SMTPOutcomeClassification(
-            accepted=False,
-            tempfailed=False,
-            permfailed=False,
-            connection_error=True,
-            malformed_protocol=False,
-            accepted_then_dropped=False,
-        )
+        return SMTPOutcomeCounter.CONNECTION_ERROR
     if outcome == "malformed_protocol":
-        return SMTPOutcomeClassification(
-            accepted=False,
-            tempfailed=False,
-            permfailed=False,
-            connection_error=False,
-            malformed_protocol=True,
-            accepted_then_dropped=False,
-        )
+        return SMTPOutcomeCounter.MALFORMED_PROTOCOL
 
-    return SMTPOutcomeClassification(
-        accepted=False,
-        tempfailed=reply_code is not None and 400 <= reply_code < 500 and error_type != "connection_stall",
-        permfailed=reply_code is not None and 500 <= reply_code < 600,
-        connection_error=False,
-        malformed_protocol=False,
-        accepted_then_dropped=False,
-    )
+    if reply_code is not None and 400 <= reply_code < 500 and error_type != "connection_stall":
+        return SMTPOutcomeCounter.TEMPFAILED
+    if reply_code is not None and 500 <= reply_code < 600:
+        return SMTPOutcomeCounter.PERMFAILED
+    return None
 
 
 def _classify_row(row: sqlite3.Row) -> dict[str, int | float | None]:
-    cls = _classify_outcome(row["outcome"], row["reply_code"], row["error_type"])
-    return {
-        "messages_accepted": int(cls.accepted),
-        "messages_tempfailed": int(cls.tempfailed),
-        "messages_permfailed": int(cls.permfailed),
-        "messages_connection_error": int(cls.connection_error),
-        "messages_malformed_protocol": int(cls.malformed_protocol),
-        "messages_accepted_then_dropped": int(cls.accepted_then_dropped),
-        "latency_ms": row["latency_ms"],
-    }
+    counter = _classify_outcome(row["outcome"], row["reply_code"], row["error_type"], row["smtp_stage"])
+    classified: dict[str, int | float | None] = {bucket.value: 0 for bucket in SMTPOutcomeCounter}
+    if counter is not None:
+        classified[counter.value] = 1
+    classified["latency_ms"] = row["latency_ms"]
+    return classified
 
 
 class SMTPMetricsRecorder:
@@ -155,7 +112,7 @@ class SMTPMetricsRecorder:
         return self._store.started_utc
 
     def _rollback_pending_transaction(self) -> None:
-        self._store._get_connection().rollback()
+        self._store.rollback()
 
     def record_transaction(
         self,
@@ -204,16 +161,12 @@ class SMTPMetricsRecorder:
                 tls_used=int(tls_used) if tls_used is not None else None,
                 auth_username=auth_username,
             )
-            cls = _classify_outcome(outcome, reply_code, error_type)
+            counter = _classify_outcome(outcome, reply_code, error_type, smtp_stage)
+            counter_values = {bucket.value: int(bucket == counter) for bucket in SMTPOutcomeCounter}
             bucket = self._store.get_bucket_utc(timestamp_utc)
             self._store.update_timeseries(
                 bucket,
-                messages_accepted=int(cls.accepted),
-                messages_tempfailed=int(cls.tempfailed),
-                messages_permfailed=int(cls.permfailed),
-                messages_connection_error=int(cls.connection_error),
-                messages_malformed_protocol=int(cls.malformed_protocol),
-                messages_accepted_then_dropped=int(cls.accepted_then_dropped),
+                **counter_values,
             )
             self._store.update_bucket_latency(bucket, latency_ms)
             self._store.commit()

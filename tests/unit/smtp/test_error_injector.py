@@ -41,6 +41,10 @@ def test_stage_filters_unrelated_errors() -> None:
     assert decision.error_type is None
 
 
+def test_connect_stage_is_not_exposed_without_listener_hook() -> None:
+    assert "connect" not in {stage.value for stage in SMTPStage}
+
+
 def test_burst_overrides_tempfail_rates() -> None:
     calls = iter([0.0, 1.0])
     injector = SMTPErrorInjector(

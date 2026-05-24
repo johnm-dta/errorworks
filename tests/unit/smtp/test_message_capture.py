@@ -9,7 +9,7 @@ from typing import Any, cast
 import pytest
 
 from errorworks.smtp.config import SMTPCaptureConfig
-from errorworks.smtp.message_capture import MessageCapture
+from errorworks.smtp.message_capture import CapturedMessage, MessageCapture
 
 
 def _message_bytes() -> bytes:
@@ -101,6 +101,37 @@ def test_listed_record_headers_reject_update_operator_mutation() -> None:
         headers |= {"from": "mutated@example.com"}
 
     assert capture.list_messages()[0].headers["from"] == "sender@example.com"
+
+
+def test_direct_captured_message_headers_are_immutable() -> None:
+    record = CapturedMessage(
+        transaction_id="tx-1",
+        mail_from="sender@example.com",
+        rcpt_tos=("recipient@example.com",),
+        message_size_bytes=10,
+        subject="Delivery test",
+        headers={"subject": "Delivery test"},
+        body=None,
+        body_encoding=None,
+        truncated=False,
+    )
+
+    with pytest.raises(TypeError):
+        record.headers["subject"] = "mutated"  # type: ignore[index]
+
+
+def test_capture_drops_oldest_message_when_buffer_is_full() -> None:
+    capture = MessageCapture(SMTPCaptureConfig(mode="metadata", max_messages=2))
+
+    for index in range(3):
+        capture.capture(
+            transaction_id=f"tx-{index}",
+            mail_from="sender@example.com",
+            rcpt_tos=["recipient@example.com"],
+            data=_message_bytes(),
+        )
+
+    assert [message.transaction_id for message in capture.list_messages()] == ["tx-1", "tx-2"]
 
 
 def test_full_mode_truncates_body_bytes() -> None:

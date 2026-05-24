@@ -80,12 +80,28 @@ def test_smtp_port_zero_requests_ephemeral_bind() -> None:
     assert SMTPServerConfig(port=0).port == 0
 
 
+def test_require_starttls_is_rejected_without_tls_context() -> None:
+    with pytest.raises(ValidationError, match="STARTTLS"):
+        SMTPServerConfig(require_starttls=True)
+
+
 def test_capture_mode_values() -> None:
     assert SMTPCaptureConfig(mode="discard").mode == "discard"
     assert SMTPCaptureConfig(mode="metadata").mode == "metadata"
     assert SMTPCaptureConfig(mode="full").mode == "full"
     with pytest.raises(ValidationError):
         SMTPCaptureConfig(mode="raw")
+
+
+def test_capture_config_bounds_stored_messages() -> None:
+    assert SMTPCaptureConfig(max_messages=2).max_messages == 2
+    with pytest.raises(ValidationError):
+        SMTPCaptureConfig(max_messages=0)
+
+
+def test_banner_reject_is_not_configured_without_connect_hook() -> None:
+    with pytest.raises(ValidationError):
+        SMTPErrorInjectionConfig(banner_reject_pct=100.0)
 
 
 def test_range_fields_accept_lists() -> None:

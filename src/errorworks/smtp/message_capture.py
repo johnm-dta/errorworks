@@ -70,6 +70,10 @@ class CapturedMessage:
     body_encoding: str | None
     truncated: bool
 
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "rcpt_tos", tuple(self.rcpt_tos))
+        object.__setattr__(self, "headers", _ImmutableHeaders(dict(self.headers)))
+
 
 class MessageCapture:
     """Capture SMTP messages according to configured storage mode."""
@@ -87,6 +91,7 @@ class MessageCapture:
     def update_config(self, config: SMTPCaptureConfig) -> None:
         with self._lock:
             self._config = config
+            self._trim_locked(config.max_messages)
 
     def capture(
         self,
@@ -119,7 +124,7 @@ class MessageCapture:
             rcpt_tos=tuple(rcpt_tos),
             message_size_bytes=len(data),
             subject=subject if config.mode != "discard" else None,
-            headers=_ImmutableHeaders(safe_headers if config.mode != "discard" else {}),
+            headers=safe_headers if config.mode != "discard" else {},
             body=body,
             body_encoding=body_encoding,
             truncated=truncated,
@@ -128,6 +133,7 @@ class MessageCapture:
         if config.mode != "discard":
             with self._lock:
                 self._messages.append(record)
+                self._trim_locked(config.max_messages)
         return record
 
     def list_messages(self) -> list[CapturedMessage]:
@@ -137,3 +143,8 @@ class MessageCapture:
     def reset(self) -> None:
         with self._lock:
             self._messages.clear()
+
+    def _trim_locked(self, max_messages: int) -> None:
+        overflow = len(self._messages) - max_messages
+        if overflow > 0:
+            del self._messages[:overflow]

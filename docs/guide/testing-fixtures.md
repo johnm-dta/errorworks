@@ -351,7 +351,6 @@ The `chaossmtp` marker accepts these keyword arguments:
 | `data_tempfail_pct` | float | DATA temporary failure percentage |
 | `data_reject_pct` | float | DATA permanent rejection percentage |
 | `accept_then_drop_pct` | float | Accept message and drop without capture percentage |
-| `banner_reject_pct` | float | Banner-stage rejection config field; current listener does not invoke CONNECT-stage injection |
 | `malformed_reply_pct` | float | Malformed SMTP reply percentage |
 | `wrong_reply_code_pct` | float | Unexpected SMTP reply code percentage |
 | `connection_reset_pct` | float | SMTP transport close percentage |
@@ -365,6 +364,7 @@ The `chaossmtp` marker accepts these keyword arguments:
 | `jitter_ms` | int | Latency jitter in milliseconds |
 | `capture_mode` | str | Capture mode (`discard`, `metadata`, `full`) |
 | `max_message_bytes` | int | Maximum bytes stored in `full` capture mode |
+| `max_messages` | int | Maximum captured messages kept in memory |
 
 !!! note
     The fixture sets `smtp.port=0`, `base_ms=0`, `jitter_ms=0`, and a deterministic admin token by default. If you need latency simulation, set latency explicitly in the marker.

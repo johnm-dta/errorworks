@@ -247,7 +247,7 @@ The SMTP listener supports normal SMTP transactions with `MAIL FROM`, `RCPT TO`,
 
 **Success behavior:** successful messages receive normal `250` replies and are captured according to `capture.mode`.
 
-**Injected SMTP outcomes:** current server handling invokes MAIL, RCPT, DATA, and ACCEPT stage decisions. CONNECT-stage config fields are accepted but are not currently called by the listener.
+**Injected SMTP outcomes:** current server handling invokes MAIL, RCPT, DATA, and ACCEPT stage decisions. CONNECT/banner-stage injection is not exposed until the listener has a real banner hook.
 
 | Injection | Stage | Reply or Behavior |
 |-----------|-------|-------------------|
@@ -259,7 +259,6 @@ The SMTP listener supports normal SMTP transactions with `MAIL FROM`, `RCPT TO`,
 | `data_tempfail` | DATA | `451 4.3.0 Temporary message failure` |
 | `data_reject` | DATA | `554 5.6.0 Message rejected` |
 | `accept_then_drop` | ACCEPT | Returns `250` but records `accepted_then_dropped` and skips capture |
-| `banner_reject` | CONNECT | Schema/CLI field exists; current listener does not invoke CONNECT-stage injection |
 | `malformed_reply` | DATA | Writes a malformed SMTP reply and closes the transport |
 | `wrong_reply_code` | DATA | Returns `252 2.5.2 Cannot VRFY user, accepting chaos path` |
 | `connection_reset` | MAIL/RCPT/DATA | Closes the SMTP transport |

@@ -25,6 +25,13 @@ def test_chaossmtp_cli_has_help() -> None:
     assert "presets" in result.stdout
 
 
+def test_serve_help_does_not_expose_unsupported_banner_reject() -> None:
+    result = runner.invoke(app, ["serve", "--help"])
+
+    assert result.exit_code == 0
+    assert "--banner-reject-pct" not in result.stdout
+
+
 def test_chaosengine_mounts_smtp_subcommand() -> None:
     result = runner.invoke(engine_app, ["--help"])
     assert result.exit_code == 0

@@ -27,7 +27,6 @@ _ERROR_INJECTION_KEYS = [
     "data_tempfail_pct",
     "data_reject_pct",
     "accept_then_drop_pct",
-    "banner_reject_pct",
     "malformed_reply_pct",
     "wrong_reply_code_pct",
     "connection_reset_pct",
@@ -84,7 +83,6 @@ class ChaosSMTPFixture:
         data_tempfail_pct: float | None = None,
         data_reject_pct: float | None = None,
         accept_then_drop_pct: float | None = None,
-        banner_reject_pct: float | None = None,
         malformed_reply_pct: float | None = None,
         wrong_reply_code_pct: float | None = None,
         connection_reset_pct: float | None = None,
@@ -98,6 +96,7 @@ class ChaosSMTPFixture:
         jitter_ms: int | None = None,
         capture_mode: str | None = None,
         max_message_bytes: int | None = None,
+        max_messages: int | None = None,
     ) -> None:
         updates: dict[str, Any] = {}
         error_updates: dict[str, Any] = {}
@@ -110,7 +109,6 @@ class ChaosSMTPFixture:
             ("data_tempfail_pct", data_tempfail_pct),
             ("data_reject_pct", data_reject_pct),
             ("accept_then_drop_pct", accept_then_drop_pct),
-            ("banner_reject_pct", banner_reject_pct),
             ("malformed_reply_pct", malformed_reply_pct),
             ("wrong_reply_code_pct", wrong_reply_code_pct),
             ("connection_reset_pct", connection_reset_pct),
@@ -139,6 +137,8 @@ class ChaosSMTPFixture:
             capture_updates["mode"] = capture_mode
         if max_message_bytes is not None:
             capture_updates["max_message_bytes"] = max_message_bytes
+        if max_messages is not None:
+            capture_updates["max_messages"] = max_messages
         if capture_updates:
             updates["capture"] = capture_updates
 
@@ -200,6 +200,8 @@ def _build_config_from_marker(
         capture_overrides["mode"] = marker.kwargs["capture_mode"]
     if "max_message_bytes" in marker.kwargs:
         capture_overrides["max_message_bytes"] = marker.kwargs["max_message_bytes"]
+    if "max_messages" in marker.kwargs:
+        capture_overrides["max_messages"] = marker.kwargs["max_messages"]
     if capture_overrides:
         overrides["capture"] = capture_overrides
 
