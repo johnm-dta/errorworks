@@ -7,10 +7,15 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from threading import Lock
+from types import MappingProxyType
 
 
 class ObjectTooLargeError(ValueError):
     """Raised when an object exceeds the configured in-memory size limit."""
+
+
+class InvalidContinuationTokenError(ValueError):
+    """Raised when an object-list continuation token is malformed."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -20,9 +25,9 @@ class BlobObject:
     bucket: str
     key: str
     body: bytes
-    headers: dict[str, str]
+    headers: Mapping[str, str]
     content_type: str
-    metadata: dict[str, str]
+    metadata: Mapping[str, str]
     etag: str
     last_modified_utc: str
 
@@ -62,9 +67,9 @@ class BlobStore:
             bucket=bucket,
             key=key,
             body=body,
-            headers=normalized_headers,
+            headers=MappingProxyType(dict(normalized_headers)),
             content_type=content_type,
-            metadata=metadata,
+            metadata=MappingProxyType(dict(metadata)),
             etag=hashlib.md5(body, usedforsecurity=False).hexdigest(),
             last_modified_utc=datetime.now(UTC).isoformat(),
         )
@@ -95,8 +100,7 @@ class BlobStore:
         continuation_token: str | None,
     ) -> BlobListPage:
         """List objects in key order, starting at an integer continuation token."""
-        start_index = int(continuation_token) if continuation_token is not None else 0
-        start_index = max(start_index, 0)
+        start_index = self._parse_continuation_token(continuation_token)
         max_keys = max(max_keys, 0)
 
         with self._lock:
@@ -115,3 +119,14 @@ class BlobStore:
         """Clear all stored objects."""
         with self._lock:
             self._objects.clear()
+
+    def _parse_continuation_token(self, continuation_token: str | None) -> int:
+        if continuation_token is None or continuation_token == "":
+            return 0
+        try:
+            start_index = int(continuation_token)
+        except ValueError as exc:
+            raise InvalidContinuationTokenError(f"invalid continuation token: {continuation_token!r}") from exc
+        if start_index < 0:
+            raise InvalidContinuationTokenError(f"invalid continuation token: {continuation_token!r}")
+        return start_index

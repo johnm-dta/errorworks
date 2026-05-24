@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from errorworks.blob.store import BlobStore, ObjectTooLargeError
+from errorworks.blob.store import BlobStore, InvalidContinuationTokenError, ObjectTooLargeError
 
 
 def test_put_get_head_delete_round_trip() -> None:
@@ -25,6 +25,18 @@ def test_put_rejects_large_object() -> None:
     store = BlobStore(max_object_bytes=3, default_content_type="application/octet-stream")
     with pytest.raises(ObjectTooLargeError):
         store.put("bucket", "too-big", b"abcd", {})
+
+
+def test_returned_metadata_is_immutable() -> None:
+    store = BlobStore(max_object_bytes=1024, default_content_type="application/octet-stream")
+    stored = store.put("bucket", "key", b"body", {"x-amz-meta-owner": "test"})
+
+    with pytest.raises(TypeError):
+        stored.metadata["x-amz-meta-owner"] = "mutated"
+
+    reloaded = store.get("bucket", "key")
+    assert reloaded is not None
+    assert reloaded.metadata["x-amz-meta-owner"] == "test"
 
 
 def test_list_filters_prefix_and_sorts_keys() -> None:
@@ -51,3 +63,23 @@ def test_list_paginates_with_continuation_token() -> None:
     assert first.is_truncated is True
     assert first.next_continuation_token == "2"
     assert [obj.key for obj in second.objects] == ["c"]
+
+
+@pytest.mark.parametrize("continuation_token", ["abc", "-1"])
+def test_list_rejects_invalid_continuation_token(continuation_token: str) -> None:
+    store = BlobStore(max_object_bytes=1024, default_content_type="application/octet-stream")
+
+    with pytest.raises(InvalidContinuationTokenError):
+        store.list_objects("bucket", prefix="", max_keys=10, continuation_token=continuation_token)
+
+
+def test_list_treats_empty_continuation_token_as_no_token() -> None:
+    store = BlobStore(max_object_bytes=1024, default_content_type="application/octet-stream")
+    for key in ["a", "b"]:
+        store.put("bucket", key, key.encode(), {})
+
+    page = store.list_objects("bucket", prefix="", max_keys=10, continuation_token="")
+
+    assert [obj.key for obj in page.objects] == ["a", "b"]
+    assert page.is_truncated is False
+    assert page.next_continuation_token is None
