@@ -317,6 +317,10 @@ class MetricsSchema:
         if ts_dupes:
             raise ValueError(f"Duplicate timeseries column names: {sorted(ts_dupes)}")
 
+        for index in self.request_indexes:
+            if len(index) < 2:
+                raise ValueError("MetricsSchema request_indexes entries must include an index name and at least one request column")
+
         # Check for duplicate index names
         idx_names = [index[0] for index in self.request_indexes]
         idx_dupes = {n for n in idx_names if idx_names.count(n) > 1}
@@ -327,8 +331,6 @@ class MetricsSchema:
         req_name_set = set(req_names)
         for index in self.request_indexes:
             index_name, *col_names = index
-            if not col_names:
-                raise ValueError(f"Index '{index_name}' must reference at least one request column")
             for col_name in col_names:
                 if col_name not in req_name_set:
                     raise ValueError(f"Index '{index_name}' references column '{col_name}' which does not exist in request_columns")

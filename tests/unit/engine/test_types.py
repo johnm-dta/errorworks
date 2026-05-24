@@ -335,6 +335,46 @@ class TestMetricsSchemaValidation:
         )
         assert len(schema.request_indexes) == 1
 
+    def test_empty_index_entry_raises_value_error(self) -> None:
+        with pytest.raises(ValueError, match="must include an index name and at least one request column"):
+            MetricsSchema(
+                request_columns=_minimal_request_columns(),
+                timeseries_columns=_minimal_timeseries_columns(),
+                request_indexes=((),),
+            )
+
+    def test_one_element_index_entry_raises_value_error(self) -> None:
+        with pytest.raises(ValueError, match="must include an index name and at least one request column"):
+            MetricsSchema(
+                request_columns=_minimal_request_columns(),
+                timeseries_columns=_minimal_timeseries_columns(),
+                request_indexes=(("idx_timestamp",),),
+            )
+
+    def test_valid_composite_index_referencing_existing_columns(self) -> None:
+        schema = MetricsSchema(
+            request_columns=(
+                ColumnDef(name="timestamp_utc", sql_type=SqlType.TEXT),
+                ColumnDef(name="bucket", sql_type=SqlType.TEXT),
+                ColumnDef(name="object_key", sql_type=SqlType.TEXT),
+            ),
+            timeseries_columns=_minimal_timeseries_columns(),
+            request_indexes=(("idx_bucket_key", "bucket", "object_key"),),
+        )
+
+        assert schema.request_indexes == (("idx_bucket_key", "bucket", "object_key"),)
+
+    def test_composite_index_referencing_nonexistent_column_raises(self) -> None:
+        with pytest.raises(ValueError, match=r"references column 'missing'.*does not exist"):
+            MetricsSchema(
+                request_columns=(
+                    ColumnDef(name="timestamp_utc", sql_type=SqlType.TEXT),
+                    ColumnDef(name="bucket", sql_type=SqlType.TEXT),
+                ),
+                timeseries_columns=_minimal_timeseries_columns(),
+                request_indexes=(("idx_bucket_missing", "bucket", "missing"),),
+            )
+
     def test_invalid_index_name_raises(self) -> None:
         with pytest.raises(ValueError, match="Index name must be a valid SQL identifier"):
             MetricsSchema(
