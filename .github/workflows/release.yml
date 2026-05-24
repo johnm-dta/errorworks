@@ -51,6 +51,12 @@ jobs:
       ref: ${{ inputs.ref || github.event.release.tag_name }}
     permissions:
       contents: read
+      # dependency-review (inside ci.yml) declares pull-requests: write so it
+      # can comment on PRs. The job has `if: pull_request`, so it never runs
+      # for a release trigger - but GitHub validates job permissions at
+      # workflow startup regardless of `if:`. Grant the permission here or the
+      # entire reusable workflow call fails with a startup error.
+      pull-requests: write
 
   # ---------------------------------------------------------------------------
   # Validate that the git tag matches pyproject.toml's version. Catches
