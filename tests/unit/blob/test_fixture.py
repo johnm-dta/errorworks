@@ -2,9 +2,15 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+from pathlib import Path
 from xml.etree import ElementTree
 
 import pytest
+
+from errorworks.blob.config import ChaosBlobConfig
+from errorworks.blob.server import ChaosBlobServer
+from tests.fixtures.chaosblob import _build_config_from_marker
 
 
 def _xml_code(response) -> str | None:
@@ -15,6 +21,11 @@ def _xml_code(response) -> str | None:
 def _list_keys(response) -> list[str]:
     root = ElementTree.fromstring(response.content)
     return [node.text or "" for node in root.findall("Contents/Key")]
+
+
+@dataclass
+class _Marker:
+    kwargs: dict[str, object]
 
 
 class TestChaosBlobFixtureBasics:
@@ -46,6 +57,25 @@ class TestChaosBlobFixtureBasics:
     def test_run_id_property(self, chaosblob) -> None:
         """Run ID property returns server run_id."""
         assert chaosblob.run_id == chaosblob.server.run_id
+
+
+class TestChaosBlobFixtureLifecycle:
+    """Tests for fixture lifecycle support."""
+
+    def test_server_close_closes_metrics_recorder(self, monkeypatch) -> None:
+        """Server exposes a close method for fixture teardown."""
+        server = ChaosBlobServer(ChaosBlobConfig())
+        closed = False
+
+        def close_metrics() -> None:
+            nonlocal closed
+            closed = True
+
+        monkeypatch.setattr(server._metrics_recorder, "close", close_metrics)
+
+        server.close()
+
+        assert closed is True
 
 
 class TestChaosBlobFixtureConvenienceMethods:
@@ -160,6 +190,16 @@ class TestChaosBlobFixtureUpdateConfig:
         assert current["error_injection"]["selection_mode"] == "weighted"
         assert current["storage"]["max_object_bytes"] == 1024
 
+    def test_update_config_accepts_raw_updates_for_unsupported_fields(self, chaosblob) -> None:
+        """update_config raw updates provide an escape hatch for less common fields."""
+        chaosblob.update_config(updates={"storage": {"default_content_type": "text/plain"}})
+
+        chaosblob.put_object("bucket", "key", b"data")
+        response = chaosblob.get_object("bucket", "key")
+
+        assert response.status_code == 200
+        assert response.headers["content-type"].startswith("text/plain")
+
 
 class TestChaosBlobMarkerIntegration:
     """Tests for the @pytest.mark.chaosblob marker."""
@@ -183,6 +223,11 @@ class TestChaosBlobMarkerIntegration:
         response = chaosblob.put_object("bucket", "key", b"data")
         assert response.status_code == 413
         assert _xml_code(response) == "EntityTooLarge"
+
+    def test_marker_rejects_unknown_kwargs(self, tmp_path: Path) -> None:
+        """Marker builder should fail fast on misspelled options."""
+        with pytest.raises(ValueError, match=r"Unknown chaosblob marker kwargs.*slow_dwon_pct.*slow_down_pct"):
+            _build_config_from_marker(_Marker({"slow_dwon_pct": 100.0}), tmp_path)  # type: ignore[arg-type]
 
 
 class TestChaosBlobFixtureIsolation:

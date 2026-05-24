@@ -111,6 +111,10 @@ class ChaosBlobServer:
         }
         return data
 
+    def close(self) -> None:
+        """Close server-owned resources."""
+        self._metrics_recorder.close()
+
     def update_config(self, updates: dict[str, Any]) -> None:
         """Update runtime configuration by rebuilding affected components and swapping atomically."""
         new_error: BlobErrorInjector | None = None

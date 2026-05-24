@@ -81,6 +81,7 @@ class ChaosBlobFixture:
     def update_config(
         self,
         *,
+        updates: dict[str, Any] | None = None,
         slow_down_pct: float | None = None,
         access_denied_pct: float | None = None,
         not_found_pct: float | None = None,
@@ -103,8 +104,12 @@ class ChaosBlobFixture:
         jitter_ms: int | None = None,
         max_object_bytes: int | None = None,
     ) -> None:
-        """Update runtime configuration for the server."""
-        updates: dict[str, Any] = {}
+        """Update runtime configuration for the server.
+
+        Raw ``updates`` are applied first. Typed helper arguments are merged on
+        top, so explicit helper parameters win if both forms set the same field.
+        """
+        config_updates: dict[str, Any] = {key: dict(value) if isinstance(value, dict) else value for key, value in (updates or {}).items()}
         error_updates: dict[str, float | str] = {}
         for key, val in [
             ("slow_down_pct", slow_down_pct),
@@ -129,7 +134,9 @@ class ChaosBlobFixture:
             if val is not None:
                 error_updates[key] = val
         if error_updates:
-            updates["error_injection"] = error_updates
+            section = dict(config_updates.get("error_injection", {}))
+            section.update(error_updates)
+            config_updates["error_injection"] = section
 
         latency_updates: dict[str, int] = {}
         if base_ms is not None:
@@ -137,16 +144,20 @@ class ChaosBlobFixture:
         if jitter_ms is not None:
             latency_updates["jitter_ms"] = jitter_ms
         if latency_updates:
-            updates["latency"] = latency_updates
+            section = dict(config_updates.get("latency", {}))
+            section.update(latency_updates)
+            config_updates["latency"] = section
 
-        storage_updates: dict[str, int] = {}
+        storage_updates: dict[str, int | str] = {}
         if max_object_bytes is not None:
             storage_updates["max_object_bytes"] = max_object_bytes
         if storage_updates:
-            updates["storage"] = storage_updates
+            section = dict(config_updates.get("storage", {}))
+            section.update(storage_updates)
+            config_updates["storage"] = section
 
-        if updates:
-            self.server.update_config(updates)
+        if config_updates:
+            self.server.update_config(config_updates)
 
     def reset(self) -> str:
         return self.server.reset()
@@ -183,6 +194,16 @@ _ERROR_INJECTION_KEYS = [
     "selection_mode",
 ]
 
+_MARKER_KEYS = frozenset({"preset", "base_ms", "jitter_ms", "max_object_bytes", *_ERROR_INJECTION_KEYS})
+
+
+def _validate_marker_kwargs(marker: pytest.Mark) -> None:
+    unknown_keys = sorted(set(marker.kwargs) - _MARKER_KEYS)
+    if unknown_keys:
+        valid_keys = ", ".join(sorted(_MARKER_KEYS))
+        unknown = ", ".join(unknown_keys)
+        raise ValueError(f"Unknown chaosblob marker kwargs: {unknown}. Valid keys: {valid_keys}")
+
 
 def _build_config_from_marker(
     marker: pytest.Mark | None,
@@ -199,6 +220,7 @@ def _build_config_from_marker(
     if marker is None:
         return ChaosBlobConfig(**base_config)
 
+    _validate_marker_kwargs(marker)
     preset = marker.kwargs.get("preset")
     overrides: dict[str, Any] = {}
 
@@ -238,8 +260,10 @@ def chaosblob(request: pytest.FixtureRequest, tmp_path: Path) -> Generator[Chaos
     marker = request.node.get_closest_marker("chaosblob")
     config = _build_config_from_marker(marker, tmp_path)
     server = ChaosBlobServer(config)
-    client = TestClient(server.app)
-    metrics_db_path = Path(config.metrics.database)
-    fixture = ChaosBlobFixture(client=client, server=server, metrics_db_path=metrics_db_path)
-    yield fixture
-    client.close()
+    with TestClient(server.app) as client:
+        metrics_db_path = Path(config.metrics.database)
+        fixture = ChaosBlobFixture(client=client, server=server, metrics_db_path=metrics_db_path)
+        try:
+            yield fixture
+        finally:
+            server.close()
