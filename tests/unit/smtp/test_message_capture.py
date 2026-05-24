@@ -2,6 +2,7 @@
 
 from dataclasses import asdict
 from email.message import EmailMessage
+from typing import Any, cast
 
 import pytest
 
@@ -93,8 +94,9 @@ def test_listed_record_headers_reject_update_operator_mutation() -> None:
     )
 
     listed_record = capture.list_messages()[0]
+    headers = cast(Any, listed_record.headers)
     with pytest.raises(TypeError):
-        listed_record.headers |= {"from": "mutated@example.com"}  # type: ignore[misc]
+        headers |= {"from": "mutated@example.com"}
 
     assert capture.list_messages()[0].headers["from"] == "sender@example.com"
 
