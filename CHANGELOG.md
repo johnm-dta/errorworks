@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **ChaosBlob**: S3-compatible-ish path-style object storage chaos server with
+  PUT/GET/HEAD/DELETE/ListObjectsV2 support, blob-specific fault injection,
+  metrics, CLI, presets, pytest fixture, and documentation.
+
 ### Changed (breaking)
 
 - **`server.workers` default is now 1** (was 4). Multi-worker mode is now
