@@ -749,7 +749,7 @@ def test_blob_metrics_sqlite_error_logged_at_error_level_with_row_payload(
     app = _app_for(tmp_path)
     server = app.state.server
 
-    def raise_sqlite(**_kwargs: Any) -> None:
+    def raise_sqlite(*_args: Any, **_kwargs: Any) -> None:
         raise sqlite3.OperationalError("disk full")
 
     monkeypatch.setattr(server._metrics_recorder, "record_request", raise_sqlite)
@@ -792,7 +792,7 @@ def test_blob_metrics_unexpected_exception_does_not_crash_committed_response(
     app = _app_for(tmp_path)
     server = app.state.server
 
-    def raise_runtime(**_kwargs: Any) -> None:
+    def raise_runtime(*_args: Any, **_kwargs: Any) -> None:
         raise RuntimeError("recorder is wedged")
 
     monkeypatch.setattr(server._metrics_recorder, "record_request", raise_runtime)
@@ -807,7 +807,7 @@ def test_blob_metrics_type_errors_do_not_replace_success_response(tmp_path: Path
     app = _app_for(tmp_path)
     server = app.state.server
 
-    def raise_type_error(**_kwargs: Any) -> None:
+    def raise_type_error(*_args: Any, **_kwargs: Any) -> None:
         raise TypeError("schema mismatch")
 
     monkeypatch.setattr(server._metrics_recorder, "record_request", raise_type_error)
@@ -822,7 +822,7 @@ def test_blob_metrics_type_errors_do_not_replace_error_response(tmp_path: Path, 
     app = _app_for(tmp_path, error_injection=BlobErrorInjectionConfig(access_denied_pct=100.0))
     server = app.state.server
 
-    def raise_type_error(**_kwargs: Any) -> None:
+    def raise_type_error(*_args: Any, **_kwargs: Any) -> None:
         raise TypeError("schema mismatch")
 
     monkeypatch.setattr(server._metrics_recorder, "record_request", raise_type_error)

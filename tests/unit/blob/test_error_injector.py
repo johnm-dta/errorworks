@@ -3,9 +3,23 @@
 from __future__ import annotations
 
 import random
+import typing
 
 from errorworks.blob.config import BlobBurstConfig, BlobErrorInjectionConfig
-from errorworks.blob.error_injector import BlobErrorCategory, BlobErrorInjector, BlobOperation
+from errorworks.blob.error_injector import BlobErrorCategory, BlobErrorDecision, BlobErrorInjector, BlobOperation
+
+
+def test_blob_error_decision_required_fields_are_non_optional() -> None:
+    """BlobErrorDecision should not permit error_type=None or category=None.
+
+    The dataclass previously typed these as Optional even though decide() never
+    produces such a decision — it either returns None (no injection) or a
+    decision with both fields set. The Optional types invited every consumer to
+    add defensive checks that could never fire."""
+    hints = typing.get_type_hints(BlobErrorDecision)
+    # error_type and category are mandatory; status_code / s3_code / retry_after_sec stay optional.
+    assert hints["error_type"] is str, f"error_type should be `str`, got {hints['error_type']!r}"
+    assert hints["category"] is BlobErrorCategory, f"category should be `BlobErrorCategory`, got {hints['category']!r}"
 
 
 class FixedRandom(random.Random):

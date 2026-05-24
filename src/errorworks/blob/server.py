@@ -19,7 +19,7 @@ from starlette.routing import Route
 
 from errorworks.blob.config import BlobErrorInjectionConfig, BlobStorageConfig, ChaosBlobConfig
 from errorworks.blob.error_injector import BlobErrorCategory, BlobErrorDecision, BlobErrorInjector, BlobOperation
-from errorworks.blob.metrics import BlobMetricsRecorder
+from errorworks.blob.metrics import BlobMetricsRecorder, BlobRequestRecord
 from errorworks.blob.store import BlobListPage, BlobObject, BlobStore, InvalidContinuationTokenError, ObjectTooLargeError
 from errorworks.blob.xml import error_xml, list_objects_v2_xml
 from errorworks.engine import admin
@@ -360,7 +360,7 @@ class ChaosBlobServer:
             # rather than a phantom truncated_body / checksum_mismatch / metadata_corruption tag.
             if decision is not None and decision.category in {BlobErrorCategory.BODY_CORRUPTION, BlobErrorCategory.METADATA_CORRUPTION}:
                 decision = None
-            error_type = decision.error_type if decision is not None else "NoSuchKey"
+            error_type: str | None = decision.error_type if decision is not None else "NoSuchKey"
             elapsed_ms = self._elapsed_ms(start_time)
             self._record_request(
                 request_id=request_id,
@@ -831,43 +831,44 @@ class ChaosBlobServer:
         latency_ms: float | None = None,
         injected_delay_ms: float | None = None,
     ) -> None:
+        record = BlobRequestRecord(
+            request_id=request_id,
+            timestamp_utc=timestamp_utc,
+            operation=operation,
+            bucket=bucket,
+            outcome=outcome,
+            object_key=object_key,
+            status_code=status_code,
+            error_type=error_type,
+            injection_type=injection_type,
+            bytes_in=bytes_in,
+            bytes_out=bytes_out,
+            etag=etag,
+            latency_ms=latency_ms,
+            injected_delay_ms=injected_delay_ms,
+        )
         try:
-            self._metrics_recorder.record_request(
-                request_id=request_id,
-                timestamp_utc=timestamp_utc,
-                operation=operation,
-                bucket=bucket,
-                object_key=object_key,
-                outcome=outcome,
-                status_code=status_code,
-                error_type=error_type,
-                injection_type=injection_type,
-                bytes_in=bytes_in,
-                bytes_out=bytes_out,
-                etag=etag,
-                latency_ms=latency_ms,
-                injected_delay_ms=injected_delay_ms,
-            )
+            self._metrics_recorder.record_request(record)
         except sqlite3.Error:
             # A sqlite failure (disk full, lock timeout, schema mismatch) silently
             # desyncs the time-series on disk. Log at ERROR — not WARNING — and
             # include the full row payload so operators can replay the lost metric.
             logger.error(
                 "metrics_recording_failed",
-                request_id=request_id,
-                timestamp_utc=timestamp_utc,
-                operation=operation,
-                bucket=bucket,
-                object_key=object_key,
-                outcome=outcome,
-                status_code=status_code,
-                error_type=error_type,
-                injection_type=injection_type,
-                bytes_in=bytes_in,
-                bytes_out=bytes_out,
-                etag=etag,
-                latency_ms=latency_ms,
-                injected_delay_ms=injected_delay_ms,
+                request_id=record.request_id,
+                timestamp_utc=record.timestamp_utc,
+                operation=record.operation,
+                bucket=record.bucket,
+                object_key=record.object_key,
+                outcome=record.outcome,
+                status_code=record.status_code,
+                error_type=record.error_type,
+                injection_type=record.injection_type,
+                bytes_in=record.bytes_in,
+                bytes_out=record.bytes_out,
+                etag=record.etag,
+                latency_ms=record.latency_ms,
+                injected_delay_ms=record.injected_delay_ms,
                 exc_info=True,
             )
         except Exception:
@@ -878,20 +879,20 @@ class ChaosBlobServer:
             # honestly report "we lost a metric, here's the data".
             logger.error(
                 "metrics_recording_unexpected_error",
-                request_id=request_id,
-                timestamp_utc=timestamp_utc,
-                operation=operation,
-                bucket=bucket,
-                object_key=object_key,
-                outcome=outcome,
-                status_code=status_code,
-                error_type=error_type,
-                injection_type=injection_type,
-                bytes_in=bytes_in,
-                bytes_out=bytes_out,
-                etag=etag,
-                latency_ms=latency_ms,
-                injected_delay_ms=injected_delay_ms,
+                request_id=record.request_id,
+                timestamp_utc=record.timestamp_utc,
+                operation=record.operation,
+                bucket=record.bucket,
+                object_key=record.object_key,
+                outcome=record.outcome,
+                status_code=record.status_code,
+                error_type=record.error_type,
+                injection_type=record.injection_type,
+                bytes_in=record.bytes_in,
+                bytes_out=record.bytes_out,
+                etag=record.etag,
+                latency_ms=record.latency_ms,
+                injected_delay_ms=record.injected_delay_ms,
                 exc_info=True,
             )
 

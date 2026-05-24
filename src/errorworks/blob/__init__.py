@@ -17,7 +17,7 @@ from errorworks.blob.config import (
     load_preset,
 )
 from errorworks.blob.error_injector import BlobErrorCategory, BlobErrorDecision, BlobErrorInjector, BlobOperation
-from errorworks.blob.metrics import BlobMetricsRecorder, BlobOutcomeClassification, BlobOutcomeCounter
+from errorworks.blob.metrics import BlobMetricsRecorder, BlobOutcomeCounter, BlobRequestRecord
 from errorworks.blob.server import ChaosBlobServer, create_app
 from errorworks.blob.store import BlobListPage, BlobObject, BlobStore
 
@@ -32,8 +32,8 @@ __all__ = [
     "BlobMetricsRecorder",
     "BlobObject",
     "BlobOperation",
-    "BlobOutcomeClassification",
     "BlobOutcomeCounter",
+    "BlobRequestRecord",
     "BlobServerConfig",
     "BlobStorageConfig",
     "BlobStore",

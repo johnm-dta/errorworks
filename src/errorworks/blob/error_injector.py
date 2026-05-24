@@ -35,10 +35,18 @@ class BlobErrorCategory(StrEnum):
 
 @dataclass(frozen=True, slots=True)
 class BlobErrorDecision:
-    """Result of a blob error injection decision."""
+    """Result of a blob error injection decision.
 
-    error_type: str | None
-    category: BlobErrorCategory | None
+    A decision exists only when an injection has been chosen — ``decide()``
+    returns ``BlobErrorDecision | None`` and never produces a decision with a
+    missing ``error_type`` or ``category``. The remaining fields are
+    category-specific: HTTP-shaped errors carry ``status_code`` / ``s3_code``
+    (and optionally ``retry_after_sec`` for SlowDown); connection / corruption
+    errors leave them as ``None``.
+    """
+
+    error_type: str
+    category: BlobErrorCategory
     status_code: int | None = None
     s3_code: str | None = None
     retry_after_sec: int | None = None
