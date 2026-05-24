@@ -23,7 +23,7 @@ def _message() -> EmailMessage:
 
 def _config(tmp_path) -> ChaosSMTPConfig:
     return ChaosSMTPConfig(
-        smtp=SMTPServerConfig().model_copy(update={"port": 0}),
+        smtp=SMTPServerConfig(port=0),
         admin=SMTPAdminConfig(admin_token=TEST_ADMIN_TOKEN),
         metrics=MetricsConfig(database=str(tmp_path / "smtp.db")),
         latency=LatencyConfig(base_ms=0, jitter_ms=0),

@@ -76,6 +76,10 @@ def test_workers_are_not_part_of_smtp_config() -> None:
         SMTPServerConfig(workers=2)
 
 
+def test_smtp_port_zero_requests_ephemeral_bind() -> None:
+    assert SMTPServerConfig(port=0).port == 0
+
+
 def test_capture_mode_values() -> None:
     assert SMTPCaptureConfig(mode="discard").mode == "discard"
     assert SMTPCaptureConfig(mode="metadata").mode == "metadata"

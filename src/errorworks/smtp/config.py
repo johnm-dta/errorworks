@@ -46,7 +46,7 @@ class SMTPServerConfig(BaseModel):
     model_config = {"frozen": True, "extra": "forbid"}
 
     host: str = Field(default="127.0.0.1", min_length=1, pattern=r"^[a-zA-Z0-9.:\[\]-]+$")
-    port: int = Field(default=2525, gt=0, le=65535)
+    port: int = Field(default=2525, ge=0, le=65535)
     hostname: str = Field(default="chaossmtp.local", min_length=1)
     data_size_limit: int = Field(default=10_485_760, gt=0)
     enable_smtputf8: bool = True
