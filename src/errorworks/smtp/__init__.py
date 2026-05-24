@@ -15,11 +15,13 @@ from errorworks.smtp.config import (
 from errorworks.smtp.error_injector import SMTPErrorCategory, SMTPErrorDecision, SMTPErrorInjector, SMTPStage
 from errorworks.smtp.message_capture import CapturedMessage, MessageCapture
 from errorworks.smtp.metrics import SMTPMetricsRecorder
+from errorworks.smtp.server import ChaosSMTPServer, create_admin_app
 
 __all__ = [
     "DEFAULT_MEMORY_DB",
     "CapturedMessage",
     "ChaosSMTPConfig",
+    "ChaosSMTPServer",
     "MessageCapture",
     "SMTPAdminConfig",
     "SMTPBurstConfig",
@@ -31,6 +33,7 @@ __all__ = [
     "SMTPMetricsRecorder",
     "SMTPServerConfig",
     "SMTPStage",
+    "create_admin_app",
     "list_presets",
     "load_config",
     "load_preset",
