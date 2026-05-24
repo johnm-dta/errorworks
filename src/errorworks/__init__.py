@@ -8,6 +8,7 @@ __all__ = [
     "engine",
     "llm",
     "llm_mcp",
+    "smtp",
     "testing",
     "web",
 ]

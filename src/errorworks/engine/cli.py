@@ -19,6 +19,7 @@ import typer
 
 from errorworks.blob.cli import app as blob_app
 from errorworks.llm.cli import app as llm_app
+from errorworks.smtp.cli import app as smtp_app
 from errorworks.web.cli import app as web_app
 
 app = typer.Typer(
@@ -28,6 +29,7 @@ app = typer.Typer(
 )
 
 app.add_typer(llm_app, name="llm", help="ChaosLLM: Fake LLM server for load testing and fault injection.")
+app.add_typer(smtp_app, name="smtp", help="ChaosSMTP: Fake SMTP server for outbound email resilience testing.")
 app.add_typer(web_app, name="web", help="ChaosWeb: Fake web server for scraping pipeline resilience testing.")
 app.add_typer(blob_app, name="blob", help="ChaosBlob: Fake object storage server for blob pipeline resilience testing.")
 
