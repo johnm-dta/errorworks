@@ -12,6 +12,7 @@ from typing import Any
 
 import pytest
 
+from errorworks.engine.config_loader import deep_merge
 from errorworks.smtp.config import ChaosSMTPConfig, load_config
 from errorworks.smtp.server import ChaosSMTPServer
 
@@ -147,10 +148,18 @@ class ChaosSMTPFixture:
     def reset(self) -> str:
         return self.server.reset()
 
-    def wait_for_messages(self, count: int, timeout: float = 10.0) -> bool:
+    def wait_for_requests(self, count: int, timeout: float = 10.0) -> bool:
         start = time.monotonic()
         while time.monotonic() - start < timeout:
             if self.get_stats()["total_requests"] >= count:
+                return True
+            time.sleep(0.01)
+        return False
+
+    def wait_for_messages(self, count: int, timeout: float = 10.0) -> bool:
+        start = time.monotonic()
+        while time.monotonic() - start < timeout:
+            if len(self.export_metrics()["messages"]) >= count:
                 return True
             time.sleep(0.01)
         return False
@@ -195,7 +204,7 @@ def _build_config_from_marker(
         overrides["capture"] = capture_overrides
 
     if preset or overrides:
-        return load_config(preset=preset, cli_overrides={**base_config, **overrides} if overrides else base_config)
+        return load_config(preset=preset, cli_overrides=deep_merge(base_config, overrides))
 
     return ChaosSMTPConfig(**base_config)
 
@@ -206,8 +215,8 @@ def chaossmtp_server(request: pytest.FixtureRequest, tmp_path: Path) -> Generato
     marker = request.node.get_closest_marker("chaossmtp")
     config = _build_config_from_marker(marker, tmp_path)
     server = ChaosSMTPServer(config)
-    server.start()
     try:
+        server.start()
         yield ChaosSMTPFixture(server=server, metrics_db_path=Path(config.metrics.database))
     finally:
         server.stop()

@@ -30,8 +30,10 @@ def test_fixture_update_config_can_force_recipient_reject(chaossmtp_server) -> N
     with pytest.raises(smtplib.SMTPRecipientsRefused):
         chaossmtp_server.send_message(_message())
 
-    assert chaossmtp_server.wait_for_messages(1, timeout=1.0)
+    assert chaossmtp_server.wait_for_requests(1, timeout=1.0)
+    assert not chaossmtp_server.wait_for_messages(1, timeout=0.05)
     assert chaossmtp_server.get_stats()["total_requests"] == 1
+    assert chaossmtp_server.export_metrics()["messages"] == []
 
 
 @pytest.mark.chaossmtp(rcpt_to_reject_pct=100.0)
@@ -39,5 +41,14 @@ def test_fixture_marker_can_force_recipient_reject(chaossmtp_server) -> None:
     with pytest.raises(smtplib.SMTPRecipientsRefused):
         chaossmtp_server.send_message(_message())
 
-    assert chaossmtp_server.wait_for_messages(1, timeout=1.0)
+    assert chaossmtp_server.wait_for_requests(1, timeout=1.0)
+    assert not chaossmtp_server.wait_for_messages(1, timeout=0.05)
     assert chaossmtp_server.get_stats()["requests_by_outcome"] == {"permfailed": 1}
+
+
+@pytest.mark.chaossmtp(preset="silent", base_ms=7)
+def test_fixture_marker_deep_merges_partial_latency_override(chaossmtp_server) -> None:
+    latency = chaossmtp_server.server.get_current_config()["latency"]
+
+    assert latency["base_ms"] == 7
+    assert latency["jitter_ms"] == 0
