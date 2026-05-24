@@ -12,10 +12,13 @@ from errorworks.smtp.config import (
     load_config,
     load_preset,
 )
+from errorworks.smtp.message_capture import CapturedMessage, MessageCapture
 
 __all__ = [
     "DEFAULT_MEMORY_DB",
+    "CapturedMessage",
     "ChaosSMTPConfig",
+    "MessageCapture",
     "SMTPAdminConfig",
     "SMTPBurstConfig",
     "SMTPCaptureConfig",
