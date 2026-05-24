@@ -189,14 +189,22 @@ class ChaosBlobServer:
         return await admin.handle_admin_export(request, self)
 
     async def _bucket_endpoint(self, request: Request) -> Response:
+        request_id, timestamp_utc, start_time = self._request_context()
         bucket = request.path_params["bucket"]
         if request.query_params.get("list-type") != "2":
-            return self._s3_error(
-                code="InvalidRequest",
+            error_body = self._s3_error_body(code="InvalidRequest", resource=f"/{bucket}", request_id=request_id)
+            self._record_request(
+                request_id=request_id,
+                timestamp_utc=timestamp_utc,
+                operation=BlobOperation.LIST.value,
+                bucket=bucket,
+                outcome="error_injected",
                 status_code=400,
-                resource=f"/{bucket}",
-                request_id=str(uuid.uuid4()),
+                error_type="InvalidRequest",
+                bytes_out=len(error_body),
+                latency_ms=self._elapsed_ms(start_time),
             )
+            return self._s3_error_response(body=error_body, status_code=400)
         return await self._handle_list(request, bucket=bucket)
 
     async def _object_endpoint(self, request: Request) -> Response:
@@ -318,6 +326,18 @@ class ChaosBlobServer:
         delay = latency_simulator.simulate()
         if delay > 0:
             await asyncio.sleep(delay)
+
+        if decision is not None and decision.error_type == "wrong_content_length":
+            return self._handle_wrong_content_length(
+                stored=stored,
+                request_id=request_id,
+                timestamp_utc=timestamp_utc,
+                operation=operation,
+                bucket=bucket,
+                key=key,
+                start_time=start_time,
+                injected_delay_sec=delay,
+            )
 
         body, headers, outcome, error_type = self._build_object_response(stored, decision=decision, include_body=operation is BlobOperation.GET)
         elapsed_ms = self._elapsed_ms(start_time)
@@ -557,6 +577,42 @@ class ChaosBlobServer:
             )
             return self._s3_error_response(body=error_body, status_code=503)
 
+        if error_type in {"connection_reset", "connection_stall"}:
+            start_delay = 0.0
+            stall_delay = 0.0
+            if error_type == "connection_stall":
+                min_start, max_start = error_injector.config.connection_stall_start_sec
+                min_stall, max_stall = error_injector.config.connection_stall_sec
+                start_delay = float(min_start if min_start == max_start else max_start)
+                stall_delay = float(min_stall if min_stall == max_stall else max_stall)
+                if start_delay > 0:
+                    await asyncio.sleep(start_delay)
+                if stall_delay > 0:
+                    await asyncio.sleep(stall_delay)
+
+            elapsed_ms = self._elapsed_ms(start_time)
+            injected_delay_ms = self._delay_ms(start_delay + stall_delay)
+            self._record_request(
+                request_id=request_id,
+                timestamp_utc=timestamp_utc,
+                operation=operation.value,
+                bucket=bucket,
+                object_key=key,
+                outcome="error_injected",
+                status_code=200,
+                error_type=error_type,
+                injection_type=error_type,
+                bytes_out=0,
+                latency_ms=elapsed_ms,
+                injected_delay_ms=injected_delay_ms,
+            )
+
+            async def _disconnect_body() -> Any:
+                yield b""
+                raise ConnectionResetError(f"{error_type} injected by ChaosBlob")
+
+            return _StreamingDisconnect(content=_disconnect_body(), status_code=200, media_type=_XML_MEDIA_TYPE)
+
         elapsed_ms = self._elapsed_ms(start_time)
         self._record_request(
             request_id=request_id,
@@ -570,6 +626,47 @@ class ChaosBlobServer:
             latency_ms=elapsed_ms,
         )
         raise ConnectionResetError(f"{error_type} injected by ChaosBlob")
+
+    def _handle_wrong_content_length(
+        self,
+        *,
+        stored: BlobObject,
+        request_id: str,
+        timestamp_utc: str,
+        operation: BlobOperation,
+        bucket: str,
+        key: str,
+        start_time: float,
+        injected_delay_sec: float,
+    ) -> Response:
+        partial = stored.body[: max(0, len(stored.body) // 2)] if operation is BlobOperation.GET else b""
+        headers = {
+            "Content-Type": stored.content_type,
+            "Content-Length": str(stored.size),
+            "ETag": self._quoted_etag(stored.etag),
+        }
+        headers.update(dict(stored.metadata))
+        self._record_request(
+            request_id=request_id,
+            timestamp_utc=timestamp_utc,
+            operation=operation.value,
+            bucket=bucket,
+            object_key=key,
+            outcome="error_corrupted",
+            status_code=200,
+            error_type="wrong_content_length",
+            injection_type="wrong_content_length",
+            bytes_out=len(partial),
+            etag=headers["ETag"],
+            latency_ms=self._elapsed_ms(start_time),
+            injected_delay_ms=self._delay_ms(injected_delay_sec),
+        )
+
+        async def _partial_body() -> Any:
+            yield partial
+            raise ConnectionResetError("wrong_content_length injected by ChaosBlob")
+
+        return _StreamingDisconnect(content=_partial_body(), status_code=200, headers=headers)
 
     def _build_object_response(
         self,
@@ -598,8 +695,6 @@ class ChaosBlobServer:
         if decision.error_type == "truncated_body":
             body = body[: max(0, len(body) // 2)]
             headers["Content-Length"] = str(len(body))
-        elif decision.error_type == "wrong_content_length":
-            headers["Content-Length"] = str(len(body) + 7)
         elif decision.error_type == "checksum_mismatch":
             headers["ETag"] = '"00000000000000000000000000000000"'
         elif decision.error_type == "metadata_corruption":
@@ -734,6 +829,39 @@ class ChaosBlobServer:
             return max(0, int(value))
         except ValueError:
             return 1000
+
+
+class _StreamingDisconnect(Response):
+    """A streaming response that disconnects before a normal end-of-message."""
+
+    body_iterator: Any
+
+    def __init__(
+        self,
+        content: Any,
+        status_code: int = 200,
+        media_type: str | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> None:
+        self.body_iterator = content
+        self.status_code = status_code
+        self.media_type = media_type
+        self._extra_headers = headers or {}
+        self.background = None
+
+    async def __call__(self, scope: Any, receive: Any, send: Any) -> None:
+        raw_headers = [(name.lower().encode(), value.encode()) for name, value in self._extra_headers.items()]
+        if self.media_type is not None and not any(name == b"content-type" for name, _value in raw_headers):
+            raw_headers.append((b"content-type", self.media_type.encode()))
+        await send(
+            {
+                "type": "http.response.start",
+                "status": self.status_code,
+                "headers": raw_headers,
+            }
+        )
+        async for chunk in self.body_iterator:
+            await send({"type": "http.response.body", "body": chunk, "more_body": True})
 
 
 def create_app(config: ChaosBlobConfig | None = None) -> Starlette:

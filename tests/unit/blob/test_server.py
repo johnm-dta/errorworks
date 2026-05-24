@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 from xml.etree import ElementTree
 
+import anyio
+from starlette.applications import Starlette
 from starlette.testclient import TestClient
 
 from errorworks.blob.config import BlobErrorInjectionConfig, BlobStorageConfig, ChaosBlobConfig
@@ -23,6 +26,21 @@ def _client_for(
         storage=storage or BlobStorageConfig(),
     )
     return TestClient(create_app(config))
+
+
+def _app_for(
+    tmp_path: Path,
+    *,
+    error_injection: BlobErrorInjectionConfig | None = None,
+    storage: BlobStorageConfig | None = None,
+) -> Starlette:
+    config = ChaosBlobConfig(
+        metrics=MetricsConfig(database=str(tmp_path / "blob-metrics.db")),
+        latency=LatencyConfig(base_ms=0, jitter_ms=0),
+        error_injection=error_injection or BlobErrorInjectionConfig(),
+        storage=storage or BlobStorageConfig(),
+    )
+    return create_app(config)
 
 
 def _admin_headers(client: TestClient) -> dict[str, str]:
@@ -46,6 +64,50 @@ def _exported_request(client: TestClient) -> dict:
     requests = export.json()["requests"]
     assert len(requests) == 1
     return requests[0]
+
+
+def _capture_get_send_events(app: Starlette, path: str) -> tuple[list[dict[str, Any]], BaseException | None]:
+    messages: list[dict[str, Any]] = []
+
+    async def receive() -> dict[str, Any]:
+        return {"type": "http.request", "body": b"", "more_body": False}
+
+    async def send(message: dict[str, Any]) -> None:
+        messages.append(message)
+
+    async def run() -> BaseException | None:
+        try:
+            await app(
+                {
+                    "type": "http",
+                    "asgi": {"version": "3.0"},
+                    "http_version": "1.1",
+                    "method": "GET",
+                    "scheme": "http",
+                    "path": path,
+                    "raw_path": path.encode(),
+                    "query_string": b"",
+                    "headers": [],
+                    "client": ("testclient", 50000),
+                    "server": ("testserver", 80),
+                    "root_path": "",
+                },
+                receive,
+                send,
+            )
+        except BaseException as exc:
+            return exc
+        return None
+
+    error = anyio.run(run)
+    return messages, error
+
+
+def _header_from_start(start_message: dict[str, Any], name: bytes) -> bytes | None:
+    for header_name, value in start_message["headers"]:
+        if header_name.lower() == name:
+            return value
+    return None
 
 
 def test_health_returns_run_information(tmp_path: Path) -> None:
@@ -109,6 +171,21 @@ def test_list_without_list_type_v2_returns_invalid_request(tmp_path: Path) -> No
 
     assert response.status_code == 400
     assert _xml_code(response) == "InvalidRequest"
+
+
+def test_list_without_list_type_v2_records_invalid_request_metrics(tmp_path: Path) -> None:
+    client = _client_for(tmp_path)
+
+    response = client.get("/bucket")
+
+    request = _exported_request(client)
+    assert request["operation"] == "list"
+    assert request["bucket"] == "bucket"
+    assert request["object_key"] is None
+    assert request["status_code"] == 400
+    assert request["error_type"] == "InvalidRequest"
+    assert request["bytes_out"] == len(response.content)
+    assert request["bytes_out"] > 0
 
 
 def test_admin_stats_config_update_and_reset_clear_metrics_and_store(tmp_path: Path) -> None:
@@ -195,14 +272,59 @@ def test_checksum_mismatch_injection_returns_incorrect_etag(tmp_path: Path) -> N
     assert response.headers["etag"] != put.headers["etag"]
 
 
-def test_wrong_content_length_injection_exposes_mismatched_header(tmp_path: Path) -> None:
-    client = _client_for(tmp_path, error_injection=BlobErrorInjectionConfig(wrong_content_length_pct=100.0))
+def test_wrong_content_length_injection_disconnects_after_partial_body(tmp_path: Path) -> None:
+    app = _app_for(tmp_path, error_injection=BlobErrorInjectionConfig(wrong_content_length_pct=100.0))
+    client = TestClient(app)
     client.put("/bucket/key.txt", content=b"hello")
+
+    messages, error = _capture_get_send_events(app, "/bucket/key.txt")
+
+    assert isinstance(error, ConnectionResetError)
+    start = messages[0]
+    body_event = messages[1]
+    assert start["type"] == "http.response.start"
+    assert start["status"] == 200
+    assert int(_header_from_start(start, b"content-length") or b"0") == len(b"hello")
+    assert body_event == {"type": "http.response.body", "body": b"he", "more_body": True}
+    request = client.get("/admin/export", headers=_admin_headers(client)).json()["requests"][-1]
+    assert request["outcome"] == "error_corrupted"
+    assert request["error_type"] == "wrong_content_length"
+    assert request["bytes_out"] == len(body_event["body"])
+
+
+def test_connection_reset_streams_disconnect_instead_of_http_500(tmp_path: Path) -> None:
+    app = _app_for(tmp_path, error_injection=BlobErrorInjectionConfig(connection_reset_pct=100.0))
+    client = TestClient(app, raise_server_exceptions=False)
 
     response = client.get("/bucket/key.txt")
 
     assert response.status_code == 200
-    assert response.headers["content-length"] != str(len(response.content))
+    request = _exported_request(client)
+    assert request["error_type"] == "connection_reset"
+    assert request["status_code"] == 200
+    assert request["bytes_out"] == 0
+    assert client.get("/admin/stats", headers=_admin_headers(client)).json()["timeseries"][0]["requests_connection_error"] == 1
+
+
+def test_connection_stall_streams_disconnect_instead_of_http_500(tmp_path: Path) -> None:
+    app = _app_for(
+        tmp_path,
+        error_injection=BlobErrorInjectionConfig(
+            connection_stall_pct=100.0,
+            connection_stall_start_sec=(0, 0),
+            connection_stall_sec=(0, 0),
+        ),
+    )
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.get("/bucket/key.txt")
+
+    assert response.status_code == 200
+    request = _exported_request(client)
+    assert request["error_type"] == "connection_stall"
+    assert request["status_code"] == 200
+    assert request["bytes_out"] == 0
+    assert client.get("/admin/stats", headers=_admin_headers(client)).json()["timeseries"][0]["requests_connection_error"] == 1
 
 
 def test_metadata_corruption_drops_amz_metadata_header(tmp_path: Path) -> None:
