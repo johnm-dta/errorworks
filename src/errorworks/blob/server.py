@@ -345,9 +345,21 @@ class ChaosBlobServer:
                 error_injector=error_injector,
             )
 
+        # Simulate latency before the store interaction so both miss (404) and hit
+        # paths record the same injected_delay_ms — otherwise time-series for the
+        # NoSuchKey outcome silently understate operator-induced latency.
+        delay = latency_simulator.simulate()
+        if delay > 0:
+            await asyncio.sleep(delay)
+
         stored = store.get(bucket, key)
         if stored is None:
             error_body = self._s3_error_body(code="NoSuchKey", resource=f"/{bucket}/{key}", request_id=request_id)
+            # A corruption-category decision is meaningless when the object is missing.
+            # Drop the decision so the metric records the actual outcome (NoSuchKey)
+            # rather than a phantom truncated_body / checksum_mismatch / metadata_corruption tag.
+            if decision is not None and decision.category in {BlobErrorCategory.BODY_CORRUPTION, BlobErrorCategory.METADATA_CORRUPTION}:
+                decision = None
             error_type = decision.error_type if decision is not None else "NoSuchKey"
             elapsed_ms = self._elapsed_ms(start_time)
             self._record_request(
@@ -362,12 +374,9 @@ class ChaosBlobServer:
                 injection_type=decision.error_type if decision is not None else None,
                 bytes_out=self._response_bytes_out(operation, error_body),
                 latency_ms=elapsed_ms,
+                injected_delay_ms=self._delay_ms(delay),
             )
             return self._s3_error_response(body=error_body, status_code=404)
-
-        delay = latency_simulator.simulate()
-        if delay > 0:
-            await asyncio.sleep(delay)
 
         if decision is not None and decision.error_type == "wrong_content_length":
             return self._handle_wrong_content_length(
@@ -669,19 +678,10 @@ class ChaosBlobServer:
 
             return _StreamingDisconnect(content=_disconnect_body(), status_code=200, media_type=_XML_MEDIA_TYPE)
 
-        elapsed_ms = self._elapsed_ms(start_time)
-        self._record_request(
-            request_id=request_id,
-            timestamp_utc=timestamp_utc,
-            operation=operation.value,
-            bucket=bucket,
-            object_key=key,
-            outcome="error_injected",
-            error_type=error_type,
-            injection_type=error_type,
-            latency_ms=elapsed_ms,
-        )
-        raise ConnectionResetError(f"{error_type} injected by ChaosBlob")
+        # Every tag in BLOB_CONNECTION_ERRORS is handled above. If a future tag
+        # is added to that set without a matching branch here, fail loudly in
+        # tests instead of leaking a noisy ASGI traceback in production.
+        raise AssertionError(f"unhandled connection error tag {error_type!r}")
 
     def _handle_wrong_content_length(
         self,
@@ -849,9 +849,51 @@ class ChaosBlobServer:
                 injected_delay_ms=injected_delay_ms,
             )
         except sqlite3.Error:
-            logger.warning("metrics_recording_failed", request_id=request_id, bucket=bucket, outcome=outcome, exc_info=True)
-        except (ValueError, TypeError):
-            logger.error("metrics_recording_unexpected_error", request_id=request_id, bucket=bucket, outcome=outcome, exc_info=True)
+            # A sqlite failure (disk full, lock timeout, schema mismatch) silently
+            # desyncs the time-series on disk. Log at ERROR — not WARNING — and
+            # include the full row payload so operators can replay the lost metric.
+            logger.error(
+                "metrics_recording_failed",
+                request_id=request_id,
+                timestamp_utc=timestamp_utc,
+                operation=operation,
+                bucket=bucket,
+                object_key=object_key,
+                outcome=outcome,
+                status_code=status_code,
+                error_type=error_type,
+                injection_type=injection_type,
+                bytes_in=bytes_in,
+                bytes_out=bytes_out,
+                etag=etag,
+                latency_ms=latency_ms,
+                injected_delay_ms=injected_delay_ms,
+                exc_info=True,
+            )
+        except Exception:
+            # The response is already committed; raising here would surface as an
+            # unhandled ASGI exception and mask the actual outcome. Widen the catch
+            # so OSError / MemoryError / RuntimeError lose the metric instead of the
+            # request. The full row payload accompanies the log line so we can
+            # honestly report "we lost a metric, here's the data".
+            logger.error(
+                "metrics_recording_unexpected_error",
+                request_id=request_id,
+                timestamp_utc=timestamp_utc,
+                operation=operation,
+                bucket=bucket,
+                object_key=object_key,
+                outcome=outcome,
+                status_code=status_code,
+                error_type=error_type,
+                injection_type=injection_type,
+                bytes_in=bytes_in,
+                bytes_out=bytes_out,
+                etag=etag,
+                latency_ms=latency_ms,
+                injected_delay_ms=injected_delay_ms,
+                exc_info=True,
+            )
 
     @staticmethod
     def _request_context() -> tuple[str, str, float]:
@@ -891,7 +933,17 @@ class ChaosBlobServer:
 
 
 class _StreamingDisconnect(Response):
-    """A streaming response that disconnects before a normal end-of-message."""
+    """A streaming response that disconnects mid-transfer.
+
+    Used for connection_reset, connection_stall, and wrong_content_length
+    error injection — sends partial or empty body then raises
+    ConnectionResetError inside the body iterator to simulate a dropped
+    connection. The exception is swallowed in ``__call__`` so the truncation
+    is silent on the wire (correct ASGI behavior) and quiet in uvicorn logs.
+
+    Calls ``super().__init__()`` so middleware that touches ``response.body``
+    or ``response.headers`` does not AttributeError.
+    """
 
     body_iterator: Any
 
@@ -902,25 +954,26 @@ class _StreamingDisconnect(Response):
         media_type: str | None = None,
         headers: dict[str, str] | None = None,
     ) -> None:
+        super().__init__(content=b"", status_code=status_code, media_type=media_type, headers=headers)
         self.body_iterator = content
-        self.status_code = status_code
-        self.media_type = media_type
-        self._extra_headers = headers or {}
-        self.background = None
 
     async def __call__(self, scope: Any, receive: Any, send: Any) -> None:
-        raw_headers = [(name.lower().encode(), value.encode()) for name, value in self._extra_headers.items()]
-        if self.media_type is not None and not any(name == b"content-type" for name, _value in raw_headers):
-            raw_headers.append((b"content-type", self.media_type.encode()))
         await send(
             {
                 "type": "http.response.start",
                 "status": self.status_code,
-                "headers": raw_headers,
+                "headers": self.raw_headers,
             }
         )
-        async for chunk in self.body_iterator:
-            await send({"type": "http.response.body", "body": chunk, "more_body": True})
+        try:
+            async for chunk in self.body_iterator:
+                await send({"type": "http.response.body", "body": chunk, "more_body": True})
+        except ConnectionResetError:
+            # Deliberate disconnect injected by ChaosBlob — silent on the wire,
+            # quiet in uvicorn logs. Skip the terminal more_body:False to model
+            # an actual dropped TCP connection.
+            return
+        await send({"type": "http.response.body", "body": b"", "more_body": False})
 
 
 def create_app(config: ChaosBlobConfig | None = None) -> Starlette:

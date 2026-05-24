@@ -401,6 +401,24 @@ def test_checksum_mismatch_injection_returns_incorrect_etag(tmp_path: Path) -> N
     assert response.headers["etag"] != put.headers["etag"]
 
 
+def test_streaming_disconnect_exposes_response_body_and_headers_attributes(tmp_path: Path) -> None:
+    """_StreamingDisconnect must call super().__init__() so middleware that touches
+    response.body / response.headers does not AttributeError."""
+    from errorworks.blob.server import _StreamingDisconnect
+
+    async def _gen() -> Any:
+        yield b""
+
+    response = _StreamingDisconnect(content=_gen(), status_code=200, media_type="application/xml")
+
+    # Concrete Response attributes that middleware commonly inspects.
+    assert response.body == b""
+    # raw_headers is what Starlette uses internally; headers is the user-facing API.
+    assert response.raw_headers is not None
+    # The MutableHeaders accessor should not raise.
+    _ = response.headers
+
+
 def test_wrong_content_length_injection_disconnects_after_partial_body(tmp_path: Path) -> None:
     app = _app_for(tmp_path, error_injection=BlobErrorInjectionConfig(wrong_content_length_pct=100.0))
     client = TestClient(app)
@@ -408,17 +426,34 @@ def test_wrong_content_length_injection_disconnects_after_partial_body(tmp_path:
 
     messages, error = _capture_get_send_events(app, "/bucket/key.txt")
 
-    assert isinstance(error, ConnectionResetError)
+    # The injected ConnectionResetError must be swallowed inside the ASGI app
+    # so uvicorn does not log "Exception in ASGI application" for a deliberate
+    # disconnection. The wire effect is the same — no terminal more_body:False.
+    assert error is None
     start = messages[0]
     body_event = messages[1]
     assert start["type"] == "http.response.start"
     assert start["status"] == 200
     assert int(_header_from_start(start, b"content-length") or b"0") == len(b"hello")
     assert body_event == {"type": "http.response.body", "body": b"he", "more_body": True}
+    # No terminal http.response.body with more_body:False — modeling a dropped TCP connection.
+    assert all(msg.get("more_body") is not False for msg in messages if msg["type"] == "http.response.body")
     request = client.get("/admin/export", headers=_admin_headers(client)).json()["requests"][-1]
     assert request["outcome"] == "error_corrupted"
     assert request["error_type"] == "wrong_content_length"
     assert request["bytes_out"] == len(body_event["body"])
+
+
+def test_connection_reset_does_not_leak_exception_out_of_asgi_app(tmp_path: Path) -> None:
+    """The injected ConnectionResetError must be swallowed inside _StreamingDisconnect.__call__
+    so uvicorn does not log "Exception in ASGI application" for a deliberate disconnection."""
+    app = _app_for(tmp_path, error_injection=BlobErrorInjectionConfig(connection_reset_pct=100.0))
+
+    messages, error = _capture_get_send_events(app, "/bucket/key.txt")
+
+    assert error is None
+    assert messages[0]["type"] == "http.response.start"
+    assert messages[0]["status"] == 200
 
 
 def test_connection_reset_streams_disconnect_instead_of_http_500(tmp_path: Path) -> None:
@@ -515,15 +550,63 @@ def test_metadata_corruption_drops_amz_metadata_header(tmp_path: Path) -> None:
     assert "x-amz-meta-owner" not in response.headers
 
 
-def test_corruption_decision_on_missing_object_records_injection_type(tmp_path: Path) -> None:
+def test_get_missing_key_records_injected_latency_consistently_with_hit_path(tmp_path: Path) -> None:
+    """Latency simulation runs before store.get() so 404 misses record the same
+    injected_delay_ms field as a successful hit, instead of recording None."""
+    config = ChaosBlobConfig(
+        metrics=MetricsConfig(database=str(tmp_path / "blob-metrics.db")),
+        latency=LatencyConfig(base_ms=50, jitter_ms=0),
+        error_injection=BlobErrorInjectionConfig(),
+        storage=BlobStorageConfig(),
+    )
+    app = create_app(config)
+    sleeps: list[float] = []
+
+    async def fake_sleep(delay: float) -> None:
+        sleeps.append(delay)
+
+    import errorworks.blob.server as blob_server
+
+    original = blob_server.asyncio.sleep
+    blob_server.asyncio.sleep = fake_sleep  # type: ignore[assignment]
+    try:
+        client = TestClient(app)
+        response = client.get("/bucket/missing.txt")
+    finally:
+        blob_server.asyncio.sleep = original  # type: ignore[assignment]
+
+    assert response.status_code == 404
+    assert sleeps == [0.050]
+    request = _exported_request(client)
+    assert request["injected_delay_ms"] == 50.0
+
+
+def test_corruption_decision_on_missing_object_records_actual_not_found_outcome(tmp_path: Path) -> None:
+    """A body/metadata corruption decision cannot apply to a non-existent object.
+    The metrics row must reflect the real outcome (NoSuchKey) instead of being
+    mislabelled with a phantom corruption tag — the injection was wasted, that
+    is fine, but we must not lie about what happened."""
     client = _client_for(tmp_path, error_injection=BlobErrorInjectionConfig(metadata_corruption_pct=100.0))
 
     response = client.get("/bucket/missing.txt")
 
     assert response.status_code == 404
     request = _exported_request(client)
-    assert request["error_type"] == "metadata_corruption"
-    assert request["injection_type"] == "metadata_corruption"
+    assert request["error_type"] == "NoSuchKey"
+    assert request["injection_type"] is None
+
+
+def test_truncated_body_decision_on_missing_object_records_actual_not_found_outcome(tmp_path: Path) -> None:
+    """Same as above but for the truncated_body category — must not record a
+    phantom body-corruption tag against a real 404."""
+    client = _client_for(tmp_path, error_injection=BlobErrorInjectionConfig(truncated_body_pct=100.0))
+
+    response = client.get("/bucket/missing.txt")
+
+    assert response.status_code == 404
+    request = _exported_request(client)
+    assert request["error_type"] == "NoSuchKey"
+    assert request["injection_type"] is None
 
 
 def test_stale_list_omits_newest_object(tmp_path: Path) -> None:
@@ -621,6 +704,103 @@ def test_put_stops_streaming_when_body_exceeds_limit(tmp_path: Path) -> None:
 
     assert error is None
     assert messages[0]["status"] == 413
+
+
+def test_unhandled_connection_error_tag_raises_assertion_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """If BLOB_CONNECTION_ERRORS gains a tag without a handler branch, fail loudly
+    in tests with an AssertionError instead of leaking a generic ConnectionResetError
+    that surfaces as a noisy ASGI traceback in production."""
+    import errorworks.blob.error_injector as injector_module
+    from errorworks.blob.error_injector import BlobErrorCategory, BlobErrorDecision, BlobOperation
+
+    app = _app_for(tmp_path, error_injection=BlobErrorInjectionConfig(connection_reset_pct=100.0))
+    server = app.state.server
+
+    # Force the injector to return an unknown connection tag (simulating a future
+    # tag added to BLOB_CONNECTION_ERRORS without a matching handler branch).
+    monkeypatch.setattr(injector_module, "BLOB_CONNECTION_ERRORS", {"timeout", "connection_reset", "connection_stall", "slow_response", "future_tag"})
+
+    def fake_decide(_op: BlobOperation) -> BlobErrorDecision:
+        return BlobErrorDecision(
+            category=BlobErrorCategory.CONNECTION,
+            error_type="future_tag",
+            status_code=None,
+            s3_code=None,
+            retry_after_sec=None,
+        )
+
+    monkeypatch.setattr(server._error_injector, "decide", fake_decide)
+    client = TestClient(app, raise_server_exceptions=True)
+
+    with pytest.raises(AssertionError, match="unhandled connection error tag 'future_tag'"):
+        client.get("/bucket/key.txt")
+
+
+def test_blob_metrics_sqlite_error_logged_at_error_level_with_row_payload(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A sqlite3.Error during metrics recording silently desyncs the time-series.
+    Surface it at error level (not warning) and include the row payload so the
+    metric can be replayed manually."""
+    import sqlite3
+
+    import errorworks.blob.server as blob_server
+
+    app = _app_for(tmp_path)
+    server = app.state.server
+
+    def raise_sqlite(**_kwargs: Any) -> None:
+        raise sqlite3.OperationalError("disk full")
+
+    monkeypatch.setattr(server._metrics_recorder, "record_request", raise_sqlite)
+
+    log_calls: list[tuple[str, str, dict[str, Any]]] = []
+
+    class _StubLogger:
+        def warning(self, event: str, **kwargs: Any) -> None:
+            log_calls.append(("warning", event, kwargs))
+
+        def error(self, event: str, **kwargs: Any) -> None:
+            log_calls.append(("error", event, kwargs))
+
+    monkeypatch.setattr(blob_server, "logger", _StubLogger())
+    client = TestClient(app)
+
+    response = client.put("/bucket/key.txt", content=b"hello")
+
+    assert response.status_code == 200
+    error_calls = [call for call in log_calls if call[0] == "error" and call[1] == "metrics_recording_failed"]
+    assert error_calls, f"sqlite3.Error must be logged at ERROR level (got {log_calls!r})"
+    # The full row payload must be in the log so operators can replay the lost metric.
+    payload = error_calls[0][2]
+    assert payload["bucket"] == "bucket"
+    assert payload["object_key"] == "key.txt"
+    assert payload["operation"] == "put"
+    assert payload["bytes_in"] == 5
+    assert payload["outcome"] == "success"
+    # Must NOT be logged at warning level.
+    assert not [call for call in log_calls if call[0] == "warning"], "sqlite3.Error must not be logged at WARNING"
+
+
+def test_blob_metrics_unexpected_exception_does_not_crash_committed_response(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """OSError / MemoryError / RuntimeError from the recorder must not propagate
+    out of the handler — the response is already committed and an unhandled ASGI
+    exception would mask the actual outcome. Widening the catch to Exception
+    keeps the recorder honest about lost metrics without breaking the wire."""
+    app = _app_for(tmp_path)
+    server = app.state.server
+
+    def raise_runtime(**_kwargs: Any) -> None:
+        raise RuntimeError("recorder is wedged")
+
+    monkeypatch.setattr(server._metrics_recorder, "record_request", raise_runtime)
+    client = TestClient(app)
+
+    response = client.put("/bucket/key.txt", content=b"hello")
+
+    assert response.status_code == 200
 
 
 def test_blob_metrics_type_errors_do_not_replace_success_response(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
