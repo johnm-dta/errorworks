@@ -111,12 +111,12 @@ class ChaosSMTPServer:
 
     @property
     def smtp_running(self) -> bool:
-        return self._controller is not None
+        return self._controller is not None and self._controller.server is not None and bool(_server_sockets(self._controller.server))
 
     def start(self) -> None:
-        if self._controller is not None:
+        if self.smtp_running:
             return
-        self._controller = _EphemeralPortController(
+        controller = _EphemeralPortController(
             _ChaosSMTPHandler(self),
             hostname=self._config.smtp.host,
             port=self._config.smtp.port,
@@ -126,7 +126,15 @@ class ChaosSMTPServer:
             enable_SMTPUTF8=self._config.smtp.enable_smtputf8,
             require_starttls=self._config.smtp.require_starttls,
         )
-        self._controller.start()
+        try:
+            controller.start()
+        except Exception:
+            try:
+                controller.stop(no_assert=True)
+            except Exception:
+                logger.warning("smtp_controller_cleanup_failed", exc_info=True)
+            raise
+        self._controller = controller
 
     def stop(self) -> None:
         if self._controller is not None:
@@ -161,7 +169,7 @@ class ChaosSMTPServer:
 
     def update_config(self, updates: dict[str, Any]) -> None:
         new_error: SMTPErrorInjector | None = None
-        new_capture: MessageCapture | None = None
+        new_capture_config: SMTPCaptureConfig | None = None
         new_latency: LatencySimulator | None = None
 
         if "error_injection" in updates:
@@ -172,7 +180,7 @@ class ChaosSMTPServer:
         if "capture" in updates:
             current = self._capture.config.model_dump()
             merged = deep_merge(current, updates["capture"])
-            new_capture = MessageCapture(SMTPCaptureConfig(**merged))
+            new_capture_config = SMTPCaptureConfig(**merged)
 
         if "latency" in updates:
             current = self._latency_simulator.config.model_dump()
@@ -182,8 +190,8 @@ class ChaosSMTPServer:
         with self._config_lock:
             if new_error is not None:
                 self._error_injector = new_error
-            if new_capture is not None:
-                self._capture = new_capture
+            if new_capture_config is not None:
+                self._capture.update_config(new_capture_config)
             if new_latency is not None:
                 self._latency_simulator = new_latency
 
@@ -229,6 +237,7 @@ class ChaosSMTPServer:
         with self._config_lock:
             error_injector = self._error_injector
             latency_simulator = self._latency_simulator
+            capture_mode = self._capture.config.mode
         decision = error_injector.decide(stage)
         delay = latency_simulator.simulate()
         if decision.delay_sec is not None:
@@ -244,6 +253,7 @@ class ChaosSMTPServer:
                 mail_from=mail_from,
                 rcpt_count=1 if rcpt_to else None,
                 rcpt_tos=[rcpt_to] if rcpt_to else None,
+                capture_mode=capture_mode,
                 latency_ms=delay * 1000,
                 injected_delay_ms=decision.delay_sec * 1000 if decision.delay_sec else None,
             )
@@ -255,6 +265,7 @@ class ChaosSMTPServer:
             error_injector = self._error_injector
             capture = self._capture
             latency_simulator = self._latency_simulator
+            capture_mode = capture.config.mode
         decision = error_injector.decide(SMTPStage.DATA)
         delay = latency_simulator.simulate()
         if decision.delay_sec is not None:
@@ -273,10 +284,27 @@ class ChaosSMTPServer:
                 rcpt_count=len(envelope.rcpt_tos),
                 rcpt_tos=list(envelope.rcpt_tos),
                 message_size_bytes=len(content),
+                capture_mode=capture_mode,
                 latency_ms=elapsed_ms,
                 injected_delay_ms=decision.delay_sec * 1000 if decision.delay_sec else None,
             )
             return _reply_for_decision(decision)
+        accept_decision = error_injector.decide(SMTPStage.ACCEPT)
+        if accept_decision.should_inject:
+            self._record_transaction(
+                session=session,
+                outcome=_outcome_for_decision(accept_decision),
+                stage=SMTPStage.ACCEPT,
+                decision=accept_decision,
+                mail_from=envelope.mail_from,
+                rcpt_count=len(envelope.rcpt_tos),
+                rcpt_tos=list(envelope.rcpt_tos),
+                message_size_bytes=len(content),
+                reply_code=250,
+                capture_mode=capture_mode,
+                latency_ms=elapsed_ms,
+            )
+            return "250 2.0.0 OK"
         transaction_id = str(uuid.uuid4())
         captured = capture.capture(
             transaction_id=transaction_id,
@@ -295,6 +323,7 @@ class ChaosSMTPServer:
             message_size_bytes=captured.message_size_bytes,
             subject=captured.subject,
             reply_code=250,
+            capture_mode=capture_mode,
             latency_ms=elapsed_ms,
         )
         return "250 2.0.0 OK"
@@ -330,6 +359,7 @@ class ChaosSMTPServer:
         message_size_bytes: int | None = None,
         subject: str | None = None,
         reply_code: int | None = None,
+        capture_mode: str | None = None,
         latency_ms: float | None = None,
         injected_delay_ms: float | None = None,
     ) -> None:
@@ -356,7 +386,7 @@ class ChaosSMTPServer:
                 injection_type=decision.error_type if decision is not None else None,
                 latency_ms=latency_ms,
                 injected_delay_ms=injected_delay_ms,
-                capture_mode=self._capture.config.mode,
+                capture_mode=capture_mode,
                 tls_used=bool(getattr(session, "ssl", None)),
                 auth_username=_auth_username(session),
             )
@@ -429,9 +459,6 @@ def _enhanced_status_code(message: str | None) -> str | None:
 
 
 def _auth_username(session: Session) -> str | None:
-    login_data = getattr(session, "login_data", None)
-    if login_data is not None:
-        return str(login_data)
     auth_data = getattr(session, "auth_data", None)
     login = getattr(auth_data, "login", None)
     if login is not None:

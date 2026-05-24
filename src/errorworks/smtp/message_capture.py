@@ -81,7 +81,12 @@ class MessageCapture:
 
     @property
     def config(self) -> SMTPCaptureConfig:
-        return self._config
+        with self._lock:
+            return self._config
+
+    def update_config(self, config: SMTPCaptureConfig) -> None:
+        with self._lock:
+            self._config = config
 
     def capture(
         self,
@@ -91,14 +96,17 @@ class MessageCapture:
         rcpt_tos: list[str],
         data: bytes,
     ) -> CapturedMessage:
+        with self._lock:
+            config = self._config
+
         parsed = BytesParser(policy=policy.default).parsebytes(data)
         safe_headers = {name: str(parsed[name]) for name in _SAFE_HEADERS if parsed[name] is not None}
         subject = safe_headers.get("subject")
         body: str | None = None
         body_encoding: str | None = None
         truncated = False
-        if self._config.mode == "full":
-            limit = self._config.max_message_bytes
+        if config.mode == "full":
+            limit = config.max_message_bytes
             body = base64.b64encode(data[:limit]).decode("ascii")
             body_encoding = "base64"
             truncated = len(data) > limit
@@ -108,14 +116,14 @@ class MessageCapture:
             mail_from=mail_from,
             rcpt_tos=tuple(rcpt_tos),
             message_size_bytes=len(data),
-            subject=subject if self._config.mode != "discard" else None,
-            headers=_ImmutableHeaders(safe_headers if self._config.mode != "discard" else {}),
+            subject=subject if config.mode != "discard" else None,
+            headers=_ImmutableHeaders(safe_headers if config.mode != "discard" else {}),
             body=body,
             body_encoding=body_encoding,
             truncated=truncated,
         )
 
-        if self._config.mode != "discard":
+        if config.mode != "discard":
             with self._lock:
                 self._messages.append(record)
         return record
