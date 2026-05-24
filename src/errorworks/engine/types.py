@@ -12,6 +12,7 @@ import re
 import secrets
 from dataclasses import dataclass
 from enum import StrEnum
+from urllib.parse import parse_qsl
 
 from pydantic import BaseModel, Field
 
@@ -94,8 +95,8 @@ class MetricsConfig(BaseModel):
             return True
         if db.startswith("file:"):
             _, _, query = db.partition("?")
-            for part in query.split("&"):
-                if part == "mode=memory":
+            for key, value in parse_qsl(query, keep_blank_values=True):
+                if key.casefold() == "mode" and value.casefold() == "memory":
                     return True
             # `file::memory:` (with optional ?...) also indicates in-memory
             if db.startswith("file::memory:"):
@@ -203,6 +204,35 @@ class SqlType(StrEnum):
 
 _VALID_SQL_TYPES = frozenset(SqlType)
 _VALID_COLUMN_NAME = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
+_RESERVED_SQL_KEYWORDS = frozenset(
+    {
+        "select",
+        "from",
+        "table",
+        "where",
+        "index",
+        "insert",
+        "update",
+        "delete",
+        "create",
+        "drop",
+        "alter",
+        "join",
+        "group",
+        "order",
+        "by",
+        "limit",
+        "primary",
+        "key",
+        "not",
+        "null",
+        "default",
+        "constraint",
+        "references",
+        "unique",
+        "values",
+    }
+)
 
 # Safe DEFAULT expressions: NULL, numeric literals, quoted strings.
 # Prevents SQL injection in DDL generation where defaults are interpolated via f-string.
@@ -239,6 +269,8 @@ class ColumnDef:
             raise ValueError("ColumnDef name must not be empty")
         if not _VALID_COLUMN_NAME.match(self.name):
             raise ValueError(f"ColumnDef name must be a valid SQL identifier (letters, digits, underscores), got {self.name!r}")
+        if self.name.casefold() in _RESERVED_SQL_KEYWORDS:
+            raise ValueError(f"ColumnDef name {self.name!r} is a reserved SQL keyword")
         if self.sql_type not in _VALID_SQL_TYPES:
             raise ValueError(f"ColumnDef sql_type must be one of {sorted(_VALID_SQL_TYPES)}, got {self.sql_type!r}")
         if self.primary_key and self.nullable:
@@ -309,6 +341,9 @@ class MetricsSchema:
             raise ValueError(f"MetricsSchema timeseries_columns must include {sorted(missing_ts)} (required by update_timeseries)")
         if "timestamp_utc" not in req_name_set:
             raise ValueError("MetricsSchema request_columns must include 'timestamp_utc' (required by rebuild_timeseries)")
+        timestamp_utc_col = next(c for c in self.request_columns if c.name == "timestamp_utc")
+        if timestamp_utc_col.nullable:
+            raise ValueError("MetricsSchema request column 'timestamp_utc' must have nullable=False")
 
         # Verify bucket_utc is a primary key (required by ON CONFLICT(bucket_utc) in update_timeseries)
         bucket_utc_col = next(c for c in self.timeseries_columns if c.name == "bucket_utc")

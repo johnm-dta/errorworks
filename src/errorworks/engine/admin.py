@@ -11,10 +11,13 @@ import json
 import sqlite3
 from typing import Any, Protocol, runtime_checkable
 
+import jinja2
 import pydantic
 import structlog
 from starlette.requests import Request
 from starlette.responses import JSONResponse
+
+from errorworks.engine.request_body import RequestBodyTooLarge, read_limited_json
 
 logger = structlog.get_logger(__name__)
 
@@ -45,7 +48,11 @@ def check_admin_auth(request: Request, token: str) -> JSONResponse | None:
             {"error": {"type": "authentication_error", "message": "Missing Authorization: Bearer <token> header"}},
             status_code=401,
         )
-    if not hmac.compare_digest(auth_header[7:], token):
+    try:
+        valid_token = hmac.compare_digest(auth_header[7:], token)
+    except TypeError:
+        valid_token = False
+    if not valid_token:
         return JSONResponse(
             {"error": {"type": "authorization_error", "message": "Invalid admin token"}},
             status_code=403,
@@ -60,7 +67,12 @@ async def handle_admin_config(request: Request, server: ChaosServer) -> JSONResp
     if request.method == "GET":
         return JSONResponse(server.get_current_config())
     try:
-        body = await request.json()
+        body = await read_limited_json(request)
+    except RequestBodyTooLarge:
+        return JSONResponse(
+            {"error": {"type": "request_too_large", "message": "Request body exceeds maximum size"}},
+            status_code=413,
+        )
     except (json.JSONDecodeError, ValueError, UnicodeDecodeError):
         return JSONResponse(
             {"error": {"type": "invalid_request_error", "message": "Request body must be valid JSON"}},
@@ -100,7 +112,7 @@ async def handle_admin_config(request: Request, server: ChaosServer) -> JSONResp
             )
     try:
         server.update_config(body)
-    except (ValueError, TypeError, pydantic.ValidationError) as e:
+    except (FileNotFoundError, ValueError, TypeError, jinja2.TemplateError, pydantic.ValidationError) as e:
         return JSONResponse(
             {"error": {"type": "validation_error", "message": str(e)}},
             status_code=422,

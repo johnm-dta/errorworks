@@ -121,7 +121,7 @@ class ErrorDecision:
     @property
     def is_connection_level(self) -> bool:
         """Return True if error is a connection-level error (used by server request handler to route to connection-level error handling)."""
-        return self.category == ErrorCategory.CONNECTION
+        return self.category == ErrorCategory.CONNECTION and self.error_type != "slow_response"
 
     @property
     def is_malformed(self) -> bool:

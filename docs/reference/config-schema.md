@@ -14,7 +14,7 @@ Server binding and worker configuration.
 |-------|------|---------|-------------|
 | `host` | `str` | `"127.0.0.1"` | Host address to bind to. Must match pattern `^[a-zA-Z0-9.:\[\]-]+$`. |
 | `port` | `int` | `8000` (LLM) / `8200` (Web) | Port to listen on. Range: 1-65535. |
-| `workers` | `int` | `4` | Number of uvicorn workers. Must be > 0. |
+| `workers` | `int` | `1` | Number of uvicorn workers. Must be > 0. Workers > 1 require a file-backed metrics database. |
 | `admin_token` | `str` | Auto-generated | Bearer token for `/admin/*` endpoints. Auto-generated via `secrets.token_urlsafe(32)` if not set. |
 
 **Safety constraint:** Binding to `0.0.0.0`, `::`, or `0:0:0:0:0:0:0:0` is blocked by default. Set `allow_external_bind: true` in the top-level config to override.
@@ -290,7 +290,7 @@ All `tuple[int, int]` range fields must satisfy `min <= max`. They accept both t
 server:
   host: 127.0.0.1
   port: 8000
-  workers: 4
+  workers: 1
   admin_token: my-secret-token
 
 metrics:

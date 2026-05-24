@@ -277,7 +277,7 @@ class ChaosLLMAnalyzer:
         # Track whether the last burst is unfinished
         unfinished_burst = in_burst
         if in_burst:
-            burst_ends.append(len(buckets) - 1)
+            burst_ends.append(len(buckets))
 
         # Calculate recovery times — exclude unfinished trailing burst
         recovery_times = []
@@ -440,8 +440,14 @@ class ChaosLLMAnalyzer:
         """
         conn = self._get_connection()
 
-        # Get all latencies
-        cursor = conn.execute("SELECT latency_ms FROM requests WHERE latency_ms IS NOT NULL ORDER BY latency_ms")
+        cursor = conn.execute("SELECT COUNT(*) FROM requests WHERE latency_ms IS NOT NULL")
+        latency_count = cursor.fetchone()[0]
+
+        # Bound rows materialized for percentile reporting.
+        cursor = conn.execute(
+            "SELECT latency_ms FROM requests WHERE latency_ms IS NOT NULL ORDER BY latency_ms LIMIT ?",
+            (self._MAX_QUERY_ROWS,),
+        )
         latencies = [row["latency_ms"] for row in cursor.fetchall()]
 
         if not latencies:
@@ -486,7 +492,9 @@ class ChaosLLMAnalyzer:
             avg_error_lat = sum(latency_during_errors) / len(latency_during_errors) if latency_during_errors else 0
             avg_clean_lat = sum(latency_during_clean) / len(latency_during_clean) if latency_during_clean else 0
 
-            if avg_error_lat > avg_clean_lat * 1.5:
+            if not latency_during_errors or not latency_during_clean:
+                correlation = "INSUFFICIENT_DATA"
+            elif avg_error_lat > avg_clean_lat * 1.5:
                 correlation = "HIGH: Latency increases during error periods"
             elif avg_error_lat > avg_clean_lat * 1.2:
                 correlation = "MODERATE: Some latency increase during errors"
@@ -511,6 +519,8 @@ class ChaosLLMAnalyzer:
             "slow_threshold_ms": round(slow_threshold, 2),
             "slow_count": slow_count,
             "error_correlation": correlation,
+            "latency_sample_count": len(latencies),
+            "latency_total_count": latency_count,
         }
 
     def find_anomalies(self) -> dict[str, Any]:
@@ -750,6 +760,9 @@ class ChaosLLMAnalyzer:
             error_type: Error type to filter by (e.g., 'rate_limit', 'timeout')
             limit: Maximum number of samples (default 5)
         """
+        if limit < 1 or limit > self._MAX_QUERY_ROWS:
+            raise ValueError(f"limit must be between 1 and {self._MAX_QUERY_ROWS}")
+
         conn = self._get_connection()
 
         cursor = conn.execute(
@@ -1011,6 +1024,8 @@ def create_server(database_path: str) -> tuple[Server, ChaosLLMAnalyzer]:
                             "type": "integer",
                             "description": "Max samples to return (default 5)",
                             "default": 5,
+                            "minimum": 1,
+                            "maximum": ChaosLLMAnalyzer._MAX_QUERY_ROWS,
                         },
                     },
                     "required": ["error_type"],
@@ -1213,11 +1228,37 @@ def _find_metrics_databases(search_dir: str, max_depth: int = 3) -> list[str]:
         except OSError:
             logger.debug("Skipping unreadable database file: %s", db_file)
             continue
+        if not _is_chaosllm_metrics_database(db_file):
+            continue
 
         found.append((priority, -mtime, str(db_file)))
 
     found.sort(key=lambda x: (x[0], x[1]))
     return [path for _, _, path in found]
+
+
+def _is_chaosllm_metrics_database(path: Path) -> bool:
+    """Return True when a SQLite file has the expected ChaosLLM metrics tables."""
+    try:
+        conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+    except sqlite3.Error:
+        return False
+    try:
+        rows = conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+        tables = {row[0] for row in rows}
+        required = {"requests", "timeseries", "run_info"}
+        if not required <= tables:
+            return False
+        request_cols = {row[1] for row in conn.execute("PRAGMA table_info(requests)").fetchall()}
+        timeseries_cols = {row[1] for row in conn.execute("PRAGMA table_info(timeseries)").fetchall()}
+        return {"request_id", "timestamp_utc", "endpoint", "outcome"} <= request_cols and {
+            "bucket_utc",
+            "requests_total",
+        } <= timeseries_cols
+    except sqlite3.Error:
+        return False
+    finally:
+        conn.close()
 
 
 def main() -> None:

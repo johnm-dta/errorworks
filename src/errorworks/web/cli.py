@@ -81,6 +81,10 @@ def serve(
         int | None,
         typer.Option("--workers", "-w", help="Number of uvicorn workers (default: from preset or 1).", min=1),
     ] = None,
+    allow_external_bind: Annotated[
+        bool,
+        typer.Option("--allow-external-bind", help="Allow binding to all interfaces such as 0.0.0.0."),
+    ] = False,
     # Metrics
     database: Annotated[
         str | None,
@@ -189,6 +193,8 @@ def serve(
         server_overrides["workers"] = workers
     if server_overrides:
         cli_overrides["server"] = server_overrides
+    if allow_external_bind:
+        cli_overrides["allow_external_bind"] = True
 
     if database is not None:
         cli_overrides["metrics"] = {"database": database}
@@ -295,11 +301,19 @@ def serve(
 
     if config.server.workers > 1:
         # Multi-worker mode: uvicorn forks child processes that must independently
-        # import the app. Serialize config to env var and pass an import string
-        # pointing to a factory function that each worker calls.
+        # import the app. Store config in a restrictive temp file and pass only
+        # the path through env so secret-bearing config is not exposed in
+        # /proc/<pid>/environ.
         import os
+        import tempfile
+        from contextlib import suppress
+        from pathlib import Path
 
-        os.environ["_ERRORWORKS_WEB_CONFIG"] = config.model_dump_json()
+        fd, config_path = tempfile.mkstemp(prefix="errorworks-web-", suffix=".json")
+        os.close(fd)
+        os.chmod(config_path, 0o600)
+        Path(config_path).write_text(config.model_dump_json())
+        os.environ["_ERRORWORKS_WEB_CONFIG_FILE"] = config_path
         try:
             uvicorn.run(
                 "errorworks.web.server:_create_app_from_env",
@@ -311,6 +325,9 @@ def serve(
             )
         finally:
             os.environ.pop("_ERRORWORKS_WEB_CONFIG", None)
+            os.environ.pop("_ERRORWORKS_WEB_CONFIG_FILE", None)
+            with suppress(FileNotFoundError):
+                Path(config_path).unlink()
     else:
         from errorworks.web.server import create_app
 

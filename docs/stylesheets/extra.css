@@ -40,7 +40,7 @@
   --md-default-bg-color--lighter: #F4F5F5;
   --md-default-bg-color--lightest: #ffffff;
 
-  --md-typeset-a-color: #29B480;
+  --md-typeset-a-color: #1F7A5A;
 
   --md-code-bg-color: #F4F5F5;
   --md-code-fg-color: #27292B;
@@ -106,7 +106,7 @@
 }
 
 .md-typeset a:hover {
-  color: #288264;
+  color: #15543E;
   text-decoration: underline;
 }
 

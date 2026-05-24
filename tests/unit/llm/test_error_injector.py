@@ -89,6 +89,10 @@ class TestErrorDecision:
         decision = ErrorDecision.connection_error("timeout", delay_sec=5.0)
         assert decision.is_connection_level is True
 
+        # Slow response is a delayed success, not a transport failure.
+        decision = ErrorDecision.connection_error("slow_response", delay_sec=5.0)
+        assert decision.is_connection_level is False
+
         # HTTP error
         decision = ErrorDecision.http_error("rate_limit", 429)
         assert decision.is_connection_level is False
@@ -128,10 +132,13 @@ class TestErrorDecision:
             assert decision.is_malformed is False
 
         # Connection errors
-        for error_type in ["timeout", "connection_failed", "connection_stall", "connection_reset", "slow_response"]:
+        for error_type in ["timeout", "connection_failed", "connection_stall", "connection_reset"]:
             decision = ErrorDecision.connection_error(error_type)
             assert decision.is_connection_level is True
             assert decision.is_malformed is False
+        decision = ErrorDecision.connection_error("slow_response")
+        assert decision.is_connection_level is False
+        assert decision.is_malformed is False
 
         # Malformed types
         for malformed_type in ["invalid_json", "truncated", "empty_body"]:

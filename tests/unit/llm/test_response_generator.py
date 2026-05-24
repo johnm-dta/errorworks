@@ -627,6 +627,21 @@ class TestTemplateMode:
         # 100M-word request and finite.
         assert 0 < len(response.content) < 200_000
 
+    def test_template_override_rendered_output_is_capped(self) -> None:
+        """Short header templates cannot expand into unbounded rendered output."""
+        config = ResponseConfig(
+            mode="template",
+            template=TemplateResponseConfig(body="Normal response"),
+            max_template_length=100,
+        )
+        generator = ResponseGenerator(config)
+
+        request = {"model": "gpt-4", "messages": []}
+        response = generator.generate(request, template_override="{% for _ in range(10000) %}x{% endfor %}")
+
+        assert isinstance(response, OpenAIResponse)
+        assert len(response.content) <= 200
+
     def test_unknown_mode_override_returns_error_content(self) -> None:
         """Unknown mode override returns error in content, not crash."""
         config = ResponseConfig(mode="random")
@@ -772,7 +787,7 @@ class TestPresetMode:
         assert len(results) >= 2
 
     def test_preset_file_not_found(self, tmp_path: Path) -> None:
-        """Preset with missing file raises error on first generate."""
+        """Preset with missing file raises during generator construction."""
         config = ResponseConfig(
             mode="preset",
             preset=PresetResponseConfig(
@@ -780,12 +795,8 @@ class TestPresetMode:
                 selection="random",
             ),
         )
-        generator = ResponseGenerator(config)
-
-        request = {"model": "gpt-4", "messages": []}
-
         with pytest.raises(FileNotFoundError):
-            generator.generate(request)
+            ResponseGenerator(config)
 
     def test_preset_reset(self, tmp_path: Path) -> None:
         """Reset restarts preset sequential selection."""

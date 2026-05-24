@@ -72,7 +72,7 @@ Pass a YAML file with `--config=path/to/config.yaml`. The file structure mirrors
 server:
   host: "127.0.0.1"
   port: 8000
-  workers: 4
+  workers: 1
   admin_token: "my-secret-token"  # Auto-generated if omitted
 
 metrics:
@@ -148,7 +148,7 @@ error_injection:
 server:
   host: "127.0.0.1"
   port: 8200
-  workers: 4
+  workers: 1
   admin_token: "my-secret-token"
 
 metrics:
@@ -232,7 +232,7 @@ error_injection:
 |---|---|---|---|
 | `host` | string | `127.0.0.1` | Bind address |
 | `port` | int | `8000` / `8200` | Listen port |
-| `workers` | int | `4` | Uvicorn worker count |
+| `workers` | int | `1` | Uvicorn worker count. Values > 1 require a file-backed metrics database. |
 | `admin_token` | string | auto-generated | Bearer token for `/admin/*` endpoints |
 
 !!! warning

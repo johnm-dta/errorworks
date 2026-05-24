@@ -182,15 +182,24 @@ def test_serve_single_worker_uses_app_object(mock_run):
 
 @_patch_uvicorn_run
 def test_serve_multi_worker_sets_config_env_var(mock_run, tmp_path):
-    """When workers > 1, config is serialized to _ERRORWORKS_LLM_CONFIG env var."""
+    """When workers > 1, config is passed through a private file, not env JSON."""
     import os
+    from pathlib import Path
 
     db = str(tmp_path / "m.db")
-    result = runner.invoke(app, ["serve", "--workers=2", f"--database={db}"])
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text("server:\n  admin_token: secret-token\n")
+
+    def inspect_env(*args, **kwargs):
+        assert "_ERRORWORKS_LLM_CONFIG" not in os.environ
+        config_path = os.environ["_ERRORWORKS_LLM_CONFIG_FILE"]
+        assert "secret-token" not in "\n".join(f"{k}={v}" for k, v in os.environ.items())
+        assert "secret-token" in Path(config_path).read_text()
+
+    mock_run.side_effect = inspect_env
+    result = runner.invoke(app, ["serve", "--workers=2", f"--database={db}", f"--config={config_file}"])
     assert result.exit_code == 0, result.output
-    # The env var should have been set before uvicorn.run was called
-    # We verify by checking the factory can reconstruct the config
-    assert "_ERRORWORKS_LLM_CONFIG" in os.environ or mock_run.called
+    assert mock_run.called
 
 
 @_patch_uvicorn_run
@@ -201,6 +210,14 @@ def test_serve_custom_host_port(mock_run):
     mock_run.assert_called_once()
     assert mock_run.call_args.kwargs["host"] == "10.0.0.1"
     assert mock_run.call_args.kwargs["port"] == 9999
+
+
+@_patch_uvicorn_run
+def test_serve_allow_external_bind_flag(mock_run):
+    """--allow-external-bind permits an all-interface bind."""
+    result = runner.invoke(app, ["serve", "--host=0.0.0.0", "--allow-external-bind"])
+    assert result.exit_code == 0, result.output
+    assert mock_run.call_args.kwargs["host"] == "0.0.0.0"
 
 
 @_patch_uvicorn_run
@@ -371,6 +388,7 @@ def test_serve_multi_worker_cleans_up_env_var(mock_run, tmp_path):
     result = runner.invoke(app, ["serve", "--workers=2", f"--database={db}"])
     assert result.exit_code == 0, result.output
     assert "_ERRORWORKS_LLM_CONFIG" not in os.environ
+    assert "_ERRORWORKS_LLM_CONFIG_FILE" not in os.environ
 
 
 # ---------------------------------------------------------------------------
@@ -430,15 +448,17 @@ def test_mcp_database_not_exists():
 # ---------------------------------------------------------------------------
 
 
-def test_create_app_from_env_builds_valid_app(monkeypatch):
-    """_create_app_from_env reads config from env var and returns a Starlette app."""
+def test_create_app_from_env_builds_valid_app(monkeypatch, tmp_path):
+    """_create_app_from_env reads config from a private config file env var."""
     from starlette.applications import Starlette
 
     from errorworks.llm.config import ChaosLLMConfig
     from errorworks.llm.server import _create_app_from_env
 
     config = ChaosLLMConfig()
-    monkeypatch.setenv("_ERRORWORKS_LLM_CONFIG", config.model_dump_json())
+    config_file = tmp_path / "llm-config.json"
+    config_file.write_text(config.model_dump_json())
+    monkeypatch.setenv("_ERRORWORKS_LLM_CONFIG_FILE", str(config_file))
 
     result_app = _create_app_from_env()
     assert isinstance(result_app, Starlette)

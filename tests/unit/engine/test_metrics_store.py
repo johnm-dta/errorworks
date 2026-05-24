@@ -936,3 +936,23 @@ class TestThreadSafety:
         # All worker threads are dead; close should clean up their connections
         store.close()
         assert len(store._connections) == 0
+
+
+def test_private_memory_database_is_shared_across_thread_connections() -> None:
+    """Thread-local connections still see schema/data for :memory: metrics DBs."""
+    store = MetricsStore(MetricsConfig(database=":memory:"), _TEST_SCHEMA)
+
+    def write_from_thread() -> None:
+        store.record(
+            request_id="threaded",
+            timestamp_utc="2024-01-01T00:00:00+00:00",
+            outcome="success",
+        )
+        store.commit()
+
+    thread = threading.Thread(target=write_from_thread)
+    thread.start()
+    thread.join()
+
+    assert store.get_requests()[0]["request_id"] == "threaded"
+    store.close()

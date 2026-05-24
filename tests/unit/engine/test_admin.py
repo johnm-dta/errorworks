@@ -143,6 +143,13 @@ class TestCheckAdminAuth:
         resp = client.get("/admin/stats", headers={"Authorization": "Bearer "})
         assert resp.status_code == 403
 
+    def test_non_ascii_bearer_returns_403_not_500(self) -> None:
+        """Non-ASCII token bytes are invalid auth, not an uncaught hmac TypeError."""
+        client = _make_app(_make_mock_server(token="secret"))
+        resp = client.get("/admin/stats", headers={"Authorization": b"Bearer \xe9"})
+        assert resp.status_code == 403
+        assert resp.json()["error"]["type"] == "authorization_error"
+
 
 # =============================================================================
 # handle_admin_config
@@ -189,6 +196,19 @@ class TestHandleAdminConfig:
         )
         assert resp.status_code == 400
         assert resp.json()["error"]["type"] == "invalid_request_error"
+
+    def test_post_oversized_json_body_returns_413(self) -> None:
+        """Admin config rejects oversized bodies before JSON parsing."""
+        server = _make_mock_server(config={"response": {"mode": "random"}})
+        client = _make_app(server)
+        resp = client.post(
+            "/admin/config",
+            content=b" " * (1_048_576 + 1),
+            headers={**self._headers(), "content-type": "application/json"},
+        )
+        assert resp.status_code == 413
+        assert resp.json()["error"]["type"] == "request_too_large"
+        server.update_config.assert_not_called()
 
     def test_post_validation_error_returns_422(self) -> None:
         """POST that triggers a ValidationError returns 422."""

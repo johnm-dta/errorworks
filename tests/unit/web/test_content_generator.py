@@ -5,11 +5,13 @@ from __future__ import annotations
 import json
 import random
 from pathlib import Path
+from typing import Any
 
 import pytest
 
 from errorworks.web.config import WebContentConfig
 from errorworks.web.content_generator import (
+    _BLOCK_ELEMENTS,
     ContentGenerator,
     PresetBank,
     WebResponse,
@@ -20,6 +22,24 @@ from errorworks.web.content_generator import (
     inject_malformed_meta,
     truncate_html,
 )
+
+
+class ParagraphMaxRandom(random.Random):
+    """Random helper that forces long paragraph generation and records sentence caps."""
+
+    def __init__(self) -> None:
+        super().__init__(0)
+        self.sentence_max_values: list[int] = []
+
+    def randint(self, a: int, b: int) -> int:
+        if a == 5:
+            self.sentence_max_values.append(b)
+        return b
+
+    def choice(self, seq: Any) -> Any:
+        if seq == _BLOCK_ELEMENTS:
+            return ("p", "paragraph")
+        return seq[0]
 
 
 class TestContentGeneratorRandomMode:
@@ -48,6 +68,18 @@ class TestContentGeneratorRandomMode:
 
         response = generator.generate()
         assert response.content_type == "text/html; charset=utf-8"
+
+    def test_random_sentence_cap_uses_remaining_words_not_double_subtract(self) -> None:
+        """Long random pages keep normal sentence caps past the midpoint."""
+        rng = ParagraphMaxRandom()
+        config = WebContentConfig(
+            mode="random",
+            random={"min_words": 500, "max_words": 500},
+        )
+        generator = ContentGenerator(config, rng=rng)
+
+        generator.generate()
+        assert any(max_words > 5 for max_words in rng.sentence_max_values[-20:])
 
     def test_deterministic_with_seed(self) -> None:
         """Same seed produces same content."""
@@ -506,6 +538,18 @@ class TestContentGeneratorTemplateModeAdvanced:
         # Output should be capped at 2 * max_template_length = 20000
         assert len(response.content) <= 20_000
 
+    def test_template_random_words_helper_is_capped_before_render_output(self) -> None:
+        """random_words cannot allocate unbounded intermediate word lists."""
+        config = WebContentConfig(
+            mode="template",
+            template={"body": "<html><body>{{ random_words(20000) }}</body></html>"},
+            max_template_length=10_000,
+        )
+        generator = ContentGenerator(config, rng=random.Random(42))
+
+        body = generator._template_random_words(20_000)
+        assert len(body.split()) <= 10_000
+
 
 class TestContentGeneratorPresetMode:
     """Tests for preset mode content generation via ContentGenerator.generate()."""
@@ -624,6 +668,25 @@ class TestContentGeneratorPresetMode:
 
         response = generator.generate(path="/test", mode_override="preset")
         assert "Override Preset" in response.content
+
+    def test_preset_mode_override_without_preset_config_returns_error(self) -> None:
+        """Header override to preset mode does not lazy-open the default missing file."""
+        config = WebContentConfig(mode="random")
+        generator = ContentGenerator(config)
+
+        response = generator.generate(path="/test", mode_override="preset")
+        assert "preset_mode_unavailable" in response.content
+
+    def test_template_helper_exception_returns_error_page_for_runtime_template(self) -> None:
+        """Helper ValueError from runtime template override uses safe fallback."""
+        config = WebContentConfig(
+            mode="random",
+            template={"body": "<html><body>{{ random_int(10, 1) }}</body></html>"},
+        )
+        generator = ContentGenerator(config)
+
+        response = generator.generate(path="/test", mode_override="template")
+        assert "Template Error" in response.content
 
 
 class TestModeOverrideErrors:

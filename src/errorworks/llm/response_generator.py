@@ -247,6 +247,12 @@ class ResponseGenerator:
                     f"Config template body exceeds max_template_length ({len(config.template.body)} > {config.max_template_length})"
                 )
             self._compiled_template = self._jinja_env.from_string(config.template.body)
+        elif config.mode == "preset":
+            self._preset_bank = PresetBank.from_jsonl(
+                config.preset.file,
+                config.preset.selection,
+                rng=self._rng,
+            )
 
     @property
     def config(self) -> ResponseConfig:
@@ -337,6 +343,18 @@ class ResponseGenerator:
             model=request.get("model"),
         )
 
+    def _cap_rendered_template_output(self, content: str) -> str:
+        """Bound rendered template output to twice the configured template limit."""
+        max_output_len = self._config.max_template_length * 2
+        if len(content) > max_output_len:
+            logger.warning(
+                "template_output_too_long",
+                length=len(content),
+                max_length=max_output_len,
+            )
+            return content[:max_output_len]
+        return content
+
     @staticmethod
     def _extract_text_content(content: Any) -> str:
         """Extract text from message content, handling both string and multi-modal list formats."""
@@ -344,7 +362,7 @@ class ResponseGenerator:
             return content
         if isinstance(content, list):
             # Multi-modal: extract text parts
-            text_parts = [part.get("text", "") for part in content if isinstance(part, dict) and part.get("type") == "text"]
+            text_parts = [part.get("text") or "" for part in content if isinstance(part, dict) and part.get("type") == "text"]
             return " ".join(text_parts) if text_parts else ""
         return str(content) if content else ""
 
@@ -450,6 +468,7 @@ class ResponseGenerator:
                             messages=request.get("messages", []),
                             model=request.get("model"),
                         )
+                        content = self._cap_rendered_template_output(content)
                     except Exception as exc:
                         # Header-supplied templates can fail in many ways beyond
                         # jinja2.TemplateError — e.g. random_int(10, 1) raises
@@ -463,7 +482,7 @@ class ResponseGenerator:
                     logger.warning("template_mode_unavailable", detail="server not configured for template mode")
                     content = "[template_mode_unavailable: server not configured for template mode]"
                 else:
-                    content = self._generate_template_response(request)
+                    content = self._cap_rendered_template_output(self._generate_template_response(request))
         elif mode == "echo":
             content = self._generate_echo_response(request)
         elif mode == "preset":

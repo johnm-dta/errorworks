@@ -152,28 +152,26 @@ class ChaosWebServer:
         the remainder of that request. This is intentional — it guarantees each
         request sees a consistent configuration throughout its lifetime.
         """
-        # Build new components outside the lock
-        new_error: WebErrorInjector | None = None
-        new_content: ContentGenerator | None = None
-        new_latency: LatencySimulator | None = None
-
-        if "error_injection" in updates:
-            current = self._error_injector.config.model_dump()
-            merged = deep_merge(current, updates["error_injection"])
-            new_error = WebErrorInjector(WebErrorInjectionConfig(**merged))
-
-        if "content" in updates:
-            current = self._content_generator.config.model_dump()
-            merged = deep_merge(current, updates["content"])
-            new_content = ContentGenerator(WebContentConfig(**merged))
-
-        if "latency" in updates:
-            current = self._latency_simulator.config.model_dump()
-            merged = deep_merge(current, updates["latency"])
-            new_latency = LatencySimulator(LatencyConfig(**merged))
-
-        # Swap atomically under lock
         with self._config_lock:
+            new_error: WebErrorInjector | None = None
+            new_content: ContentGenerator | None = None
+            new_latency: LatencySimulator | None = None
+
+            if "error_injection" in updates:
+                current = self._error_injector.config.model_dump()
+                merged = deep_merge(current, updates["error_injection"])
+                new_error = WebErrorInjector(WebErrorInjectionConfig(**merged))
+
+            if "content" in updates:
+                current = self._content_generator.config.model_dump()
+                merged = deep_merge(current, updates["content"])
+                new_content = ContentGenerator(WebContentConfig(**merged))
+
+            if "latency" in updates:
+                current = self._latency_simulator.config.model_dump()
+                merged = deep_merge(current, updates["latency"])
+                new_latency = LatencySimulator(LatencyConfig(**merged))
+
             if new_error is not None:
                 self._error_injector = new_error
             if new_content is not None:
@@ -256,9 +254,13 @@ class ChaosWebServer:
             error_injector = self._error_injector
             latency_simulator = self._latency_simulator
 
+        if error_injector.config.redirect_loop_pct <= 0:
+            return HTMLResponse("<html><body><p>Redirect loop injection is disabled.</p></body></html>", status_code=404)
+
         # Cap to the configured maximum to prevent resource exhaustion
         config_max = error_injector.config.max_redirect_loop_hops
         max_hops = min(max_hops, config_max)
+        hop = min(hop, max_hops)
         target = request.query_params.get("target", "/")
 
         request_id = str(uuid.uuid4())
@@ -912,23 +914,20 @@ class _StreamingDisconnect(Response):
         status_code: int = 200,
         media_type: str | None = None,
     ) -> None:
+        super().__init__(content=b"", status_code=status_code, media_type=media_type or "text/html")
         self.body_iterator = content
-        self.status_code = status_code
-        self.media_type = media_type
-        self.background = None
 
     async def __call__(self, scope: Any, receive: Any, send: Any) -> None:
         await send(
             {
                 "type": "http.response.start",
                 "status": self.status_code,
-                "headers": [
-                    [b"content-type", (self.media_type or "text/html").encode()],
-                ],
+                "headers": self.raw_headers,
             }
         )
         async for chunk in self.body_iterator:
             await send({"type": "http.response.body", "body": chunk, "more_body": True})
+        await send({"type": "http.response.body", "body": b"", "more_body": False})
 
 
 def create_app(config: ChaosWebConfig) -> Starlette:
@@ -945,11 +944,17 @@ def create_app(config: ChaosWebConfig) -> Starlette:
 def _create_app_from_env() -> Starlette:
     """Factory for uvicorn multi-worker mode.
 
-    Reads serialized config from the _ERRORWORKS_WEB_CONFIG environment
-    variable and returns a fully configured Starlette app. Each forked
-    worker calls this independently to build its own app instance.
+    Reads serialized config from a private config file path in
+    _ERRORWORKS_WEB_CONFIG_FILE. The legacy _ERRORWORKS_WEB_CONFIG variable is
+    still accepted for compatibility.
     """
     import os
 
-    config = ChaosWebConfig.model_validate_json(os.environ["_ERRORWORKS_WEB_CONFIG"])
+    if config_file := os.environ.get("_ERRORWORKS_WEB_CONFIG_FILE"):
+        from pathlib import Path
+
+        config_json = Path(config_file).read_text()
+    else:
+        config_json = os.environ["_ERRORWORKS_WEB_CONFIG"]
+    config = ChaosWebConfig.model_validate_json(config_json)
     return create_app(config)

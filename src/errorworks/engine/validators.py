@@ -19,6 +19,8 @@ def parse_range(v: Any) -> tuple[int, int]:
     """
     if isinstance(v, (list, tuple)) and len(v) == 2:
         for i, val in enumerate(v):
+            if isinstance(val, bool) or not isinstance(val, (int, float)):
+                raise ValueError(f"Range values must be integers, got {val!r} at index {i}")
             if isinstance(val, float) and not val.is_integer():
                 raise ValueError(f"Range values must be integers, got float {val} at index {i}")
         lo, hi = int(v[0]), int(v[1])

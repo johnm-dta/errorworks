@@ -34,6 +34,12 @@ class TestParseRangeFloatRejection:
     def test_accepts_plain_integers(self) -> None:
         assert parse_range([1, 10]) == (1, 10)
 
+    @pytest.mark.parametrize("value", [[True, 5], [1, False], ["1", 5], [1, "5"]])
+    def test_rejects_bool_and_string_values(self, value: list[object]) -> None:
+        """Range values must be numeric integers, not bool/string coercions."""
+        with pytest.raises(ValueError, match="Range values must be integers"):
+            parse_range(value)
+
 
 class TestValidateErrorDecisionUnknownCategory:
     """validate_error_decision must reject unknown error categories."""

@@ -203,45 +203,50 @@ class MetricsRecorder:
             response_tokens: Number of response tokens (optional)
             response_mode: Response generation mode (optional)
         """
-        # Insert into requests table
-        self._store.record(
-            request_id=request_id,
-            timestamp_utc=timestamp_utc,
-            endpoint=endpoint,
-            outcome=outcome,
-            deployment=deployment,
-            model=model,
-            status_code=status_code,
-            error_type=error_type,
-            injection_type=injection_type,
-            latency_ms=latency_ms,
-            injected_delay_ms=injected_delay_ms,
-            message_count=message_count,
-            prompt_tokens_approx=prompt_tokens_approx,
-            response_tokens=response_tokens,
-            response_mode=response_mode,
-        )
+        try:
+            bucket = self._store.get_bucket_utc(timestamp_utc)
 
-        # Classify and update time-series
-        c = _classify_outcome(outcome, status_code, error_type)
+            # Insert into requests table
+            self._store.record(
+                request_id=request_id,
+                timestamp_utc=timestamp_utc,
+                endpoint=endpoint,
+                outcome=outcome,
+                deployment=deployment,
+                model=model,
+                status_code=status_code,
+                error_type=error_type,
+                injection_type=injection_type,
+                latency_ms=latency_ms,
+                injected_delay_ms=injected_delay_ms,
+                message_count=message_count,
+                prompt_tokens_approx=prompt_tokens_approx,
+                response_tokens=response_tokens,
+                response_mode=response_mode,
+            )
 
-        bucket = self._store.get_bucket_utc(timestamp_utc)
-        self._store.update_timeseries(
-            bucket,
-            requests_success=int(c.is_success),
-            requests_rate_limited=int(c.is_rate_limited),
-            requests_capacity_error=int(c.is_capacity_error),
-            requests_server_error=int(c.is_server_error),
-            requests_client_error=int(c.is_client_error),
-            requests_connection_error=int(c.is_connection_error),
-            requests_malformed=int(c.is_malformed),
-        )
+            # Classify and update time-series
+            c = _classify_outcome(outcome, status_code, error_type)
 
-        # Update latency statistics for the bucket
-        self._store.update_bucket_latency(bucket, latency_ms)
+            self._store.update_timeseries(
+                bucket,
+                requests_success=int(c.is_success),
+                requests_rate_limited=int(c.is_rate_limited),
+                requests_capacity_error=int(c.is_capacity_error),
+                requests_server_error=int(c.is_server_error),
+                requests_client_error=int(c.is_client_error),
+                requests_connection_error=int(c.is_connection_error),
+                requests_malformed=int(c.is_malformed),
+            )
 
-        # Commit all three operations atomically
-        self._store.commit()
+            # Update latency statistics for the bucket
+            self._store.update_bucket_latency(bucket, latency_ms)
+
+            # Commit all three operations atomically
+            self._store.commit()
+        except Exception:
+            self._store.rollback()
+            raise
 
     def update_timeseries(self) -> None:
         """Recalculate all time-series buckets from raw request data.

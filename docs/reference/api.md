@@ -10,7 +10,7 @@ All `/admin/*` endpoints require a Bearer token in the `Authorization` header:
 Authorization: Bearer <admin_token>
 ```
 
-The `admin_token` is auto-generated at startup (printed to the console) or set explicitly via config. Requests without a valid token receive:
+The `admin_token` is auto-generated if omitted, but generated tokens are not printed. Set `server.admin_token` explicitly in config when you need to call the admin API. Requests without a valid token receive:
 
 - **401** if the `Authorization: Bearer` header is missing
 - **403** if the token does not match
@@ -382,7 +382,7 @@ Export all raw metrics data for external analysis or archival. Returns the compl
     }
   ],
   "config": {
-    "server": { "host": "127.0.0.1", "port": 8000, "workers": 4 },
+    "server": { "host": "127.0.0.1", "port": 8000, "workers": 1 },
     "metrics": { "database": "file:chaosllm-metrics?mode=memory&cache=shared" },
     "error_injection": { "..." : "..." },
     "response": { "..." : "..." },

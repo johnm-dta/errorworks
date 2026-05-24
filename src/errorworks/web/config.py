@@ -142,6 +142,14 @@ class WebContentConfig(BaseModel):
         description="Settings for preset mode",
     )
 
+    @field_validator("default_content_type")
+    @classmethod
+    def validate_default_content_type(cls, value: str) -> str:
+        """Reject control characters that can corrupt HTTP headers."""
+        if any(ch in value for ch in ("\r", "\n", "\x00")):
+            raise ValueError("default_content_type must not contain CR, LF, or NUL characters")
+        return value
+
 
 # === Error Injection ===
 

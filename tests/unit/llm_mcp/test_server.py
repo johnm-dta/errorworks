@@ -354,6 +354,45 @@ class TestAnalyzeLatency:
         assert "max_ms" in result
         assert result["p50_ms"] > 0
 
+    def test_all_error_buckets_have_insufficient_correlation_baseline(self, temp_db: Path) -> None:
+        """Correlation is not HIGH when no clean latency buckets exist."""
+        conn = sqlite3.connect(str(temp_db))
+        base_time = datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC)
+        for i in range(3):
+            conn.execute(
+                "INSERT INTO timeseries (bucket_utc, requests_total, requests_success, requests_rate_limited, "
+                "requests_capacity_error, requests_server_error, requests_client_error, requests_connection_error, "
+                "requests_malformed, avg_latency_ms, p99_latency_ms) VALUES (?, 10, 5, 5, 0, 0, 0, 0, 0, 100.0, 100.0)",
+                ((base_time + timedelta(minutes=i)).isoformat(),),
+            )
+            conn.execute(
+                "INSERT INTO requests VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    f"req-{i}",
+                    (base_time + timedelta(minutes=i)).isoformat(),
+                    "/chat/completions",
+                    None,
+                    None,
+                    "success",
+                    200,
+                    None,
+                    None,
+                    100.0,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                ),
+            )
+        conn.commit()
+        conn.close()
+
+        analyzer = ChaosLLMAnalyzer(str(temp_db))
+        result = analyzer.analyze_latency()
+        analyzer.close()
+        assert result["error_correlation"] == "INSUFFICIENT_DATA"
+
 
 class TestFindAnomalies:
     """Tests for find_anomalies() tool."""
@@ -407,6 +446,12 @@ class TestGetErrorSamples:
         """Limit parameter is respected."""
         result = populated_analyzer.get_error_samples("rate_limit", limit=1)
         assert result["sample_count"] == 1
+
+    @pytest.mark.parametrize("limit", [0, -1, ChaosLLMAnalyzer._MAX_QUERY_ROWS + 1])
+    def test_invalid_limit_rejected(self, populated_analyzer: ChaosLLMAnalyzer, limit: int) -> None:
+        """Invalid sample limits are rejected instead of becoming unlimited SQLite LIMITs."""
+        with pytest.raises(ValueError, match="limit"):
+            populated_analyzer.get_error_samples("rate_limit", limit=limit)
 
 
 class TestGetTimeWindow:
@@ -830,12 +875,24 @@ class TestCallToolDispatcher:
 class TestFindMetricsDatabases:
     """Tests for _find_metrics_databases helper."""
 
+    def _make_metrics_db(self, path: Path) -> None:
+        conn = sqlite3.connect(str(path))
+        conn.executescript(
+            """
+            CREATE TABLE requests (request_id TEXT, timestamp_utc TEXT, endpoint TEXT, outcome TEXT);
+            CREATE TABLE timeseries (bucket_utc TEXT, requests_total INTEGER);
+            CREATE TABLE run_info (run_id TEXT, started_utc TEXT, config_json TEXT, preset_name TEXT);
+            """
+        )
+        conn.commit()
+        conn.close()
+
     def test_finds_db_files(self, tmp_path: Path) -> None:
         """Finds .db files in a temp directory."""
         db1 = tmp_path / "chaosllm-metrics.db"
         db2 = tmp_path / "other.db"
-        db1.touch()
-        db2.touch()
+        self._make_metrics_db(db1)
+        self._make_metrics_db(db2)
 
         result = _find_metrics_databases(str(tmp_path))
         assert len(result) == 2
@@ -858,7 +915,7 @@ class TestFindMetricsDatabases:
         """Files inside hidden directories are skipped."""
         hidden_dir = tmp_path / ".hidden"
         hidden_dir.mkdir()
-        (hidden_dir / "metrics.db").touch()
+        self._make_metrics_db(hidden_dir / "metrics.db")
 
         result = _find_metrics_databases(str(tmp_path))
         assert result == []
@@ -867,7 +924,7 @@ class TestFindMetricsDatabases:
         """Files deeper than max_depth are excluded."""
         deep = tmp_path / "a" / "b" / "c" / "d"
         deep.mkdir(parents=True)
-        (deep / "metrics.db").touch()
+        self._make_metrics_db(deep / "metrics.db")
 
         # max_depth=3 means path parts relative to search_dir must be <= 3
         result = _find_metrics_databases(str(tmp_path), max_depth=3)
@@ -879,10 +936,10 @@ class TestFindMetricsDatabases:
 
     def test_priority_ordering(self, tmp_path: Path) -> None:
         """Databases are prioritized: chaosllm+metrics > chaosllm > metrics > other."""
-        (tmp_path / "other.db").touch()
-        (tmp_path / "metrics.db").touch()
-        (tmp_path / "chaosllm.db").touch()
-        (tmp_path / "chaosllm-metrics.db").touch()
+        self._make_metrics_db(tmp_path / "other.db")
+        self._make_metrics_db(tmp_path / "metrics.db")
+        self._make_metrics_db(tmp_path / "chaosllm.db")
+        self._make_metrics_db(tmp_path / "chaosllm-metrics.db")
 
         result = _find_metrics_databases(str(tmp_path))
         assert len(result) == 4
@@ -892,6 +949,17 @@ class TestFindMetricsDatabases:
         assert "chaosllm.db" in result[1]
         # Priority 2: metrics
         assert "metrics.db" in result[2]
+
+    def test_skips_invalid_sqlite_files(self, tmp_path: Path) -> None:
+        """Discovery only returns databases with the ChaosLLM metrics schema."""
+        valid = tmp_path / "chaosllm-metrics.db"
+        invalid = tmp_path / "metrics.db"
+        self._make_metrics_db(valid)
+        invalid.write_text("not sqlite")
+
+        found = _find_metrics_databases(str(tmp_path))
+        assert str(valid) in found
+        assert str(invalid) not in found
 
 
 # === CLI main() Tests ===
@@ -1084,6 +1152,11 @@ class TestBurstDetection:
         # If there's only an unfinished burst, avg_recovery should be 0 (no completed recoveries)
         if result.get("burst_count", 0) > 0 and result.get("status") != "NO_DATA":
             assert result.get("avg_recovery_buckets", 0) == 0, "Unfinished burst should not report a recovery time"
+
+    def test_trailing_burst_includes_final_bucket_in_throughput(self, trailing_burst_analyzer: ChaosLLMAnalyzer) -> None:
+        """The final active burst bucket contributes to burst throughput."""
+        result = trailing_burst_analyzer.analyze_aimd_behavior()
+        assert result["burst_throughput_avg"] == 5.0
 
 
 class TestAnomalyDetection:

@@ -77,7 +77,7 @@ curl http://localhost:8000/v1/chat/completions \
 chaosllm serve --preset=realistic --port=8000
 
 # Web server
-chaosweb serve --preset=chaos --port=9000
+chaosweb serve --preset=stress_scraping --port=9000
 
 # Unified CLI
 chaosengine llm serve --preset=gentle
@@ -105,14 +105,16 @@ file or CLI flags. Precedence: CLI flags > config file > preset > defaults.
 
 ```yaml
 # config.yaml
-error_rate_pct: 30.0
-rate_limit_pct: 10.0
+error_injection:
+  rate_limit_pct: 10.0
+  service_unavailable_pct: 2.0
 latency:
   base_ms: 50
   jitter_ms: 20
 response:
   mode: random
-  vocabulary: english
+  random:
+    vocabulary: english
 ```
 
 ```bash

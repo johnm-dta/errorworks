@@ -43,7 +43,8 @@ Start the ChaosLLM fake LLM server with OpenAI and Azure OpenAI compatible endpo
 |------|-------|---------|-------------|
 | `--host` | `-h` | `127.0.0.1` | Host address to bind to. |
 | `--port` | `-P` | `8000` | Port to listen on (1-65535). |
-| `--workers` | `-w` | `4` (or from preset) | Number of uvicorn workers. |
+| `--workers` | `-w` | `1` (or from preset) | Number of uvicorn workers. Workers > 1 require `--database` to point at a file-backed SQLite database. |
+| `--allow-external-bind` | | `false` | Permit binding to all interfaces such as `0.0.0.0`. |
 
 #### Metrics Flags
 
@@ -150,7 +151,8 @@ Start the ChaosWeb fake web server for scraping pipeline resilience testing. Ser
 |------|-------|---------|-------------|
 | `--host` | `-h` | `127.0.0.1` | Host address to bind to. |
 | `--port` | `-P` | `8200` | Port to listen on (1-65535). |
-| `--workers` | `-w` | `4` (or from preset) | Number of uvicorn workers. |
+| `--workers` | `-w` | `1` (or from preset) | Number of uvicorn workers. Workers > 1 require `--database` to point at a file-backed SQLite database. |
+| `--allow-external-bind` | | `false` | Permit binding to all interfaces such as `0.0.0.0`. |
 
 #### Metrics Flags
 
@@ -170,6 +172,8 @@ Start the ChaosWeb fake web server for scraping pipeline resilience testing. Ser
 | `--timeout-pct` | `0.0` | Connection timeout percentage (0-100). |
 | `--ssrf-redirect-pct` | `0.0` | SSRF redirect injection percentage (0-100). |
 | `--selection-mode` | `priority` | Error selection: `priority` or `weighted`. |
+
+The ChaosWeb CLI exposes the most common fault percentages. Configure the full fault surface, including content malformations and advanced redirect/stall ranges, through a YAML config file passed with `--config`.
 
 #### Latency Flags
 
