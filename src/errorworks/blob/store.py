@@ -105,7 +105,11 @@ class BlobStore:
 
         with self._lock:
             objects = sorted(
-                (obj for (stored_bucket, stored_key), obj in self._objects.items() if stored_bucket == bucket and stored_key.startswith(prefix)),
+                (
+                    obj
+                    for (stored_bucket, stored_key), obj in self._objects.items()
+                    if stored_bucket == bucket and stored_key.startswith(prefix)
+                ),
                 key=lambda obj: obj.key,
             )
 

@@ -343,7 +343,9 @@ class ChaosBlobServer:
                 injected_delay_sec=delay,
             )
 
-        body, headers, outcome, error_type = self._build_object_response(stored, decision=decision, include_body=operation is BlobOperation.GET)
+        body, headers, outcome, error_type = self._build_object_response(
+            stored, decision=decision, include_body=operation is BlobOperation.GET
+        )
         elapsed_ms = self._elapsed_ms(start_time)
         self._record_request(
             request_id=request_id,

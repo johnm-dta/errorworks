@@ -304,15 +304,10 @@ def _build_cli_overrides(**values: Any) -> dict[str, Any]:
         "malformed_xml_pct",
         "selection_mode",
     )
-    burst_overrides = {
-        key: values[key]
-        for key in ("burst_enabled", "burst_interval_sec", "burst_duration_sec")
-        if values[key] is not None
-    }
+    burst_overrides = {key: values[key] for key in ("burst_enabled", "burst_interval_sec", "burst_duration_sec") if values[key] is not None}
     if burst_overrides:
         error_overrides["burst"] = {
-            "enabled" if key == "burst_enabled" else key.removeprefix("burst_"): value
-            for key, value in burst_overrides.items()
+            "enabled" if key == "burst_enabled" else key.removeprefix("burst_"): value for key, value in burst_overrides.items()
         }
     if error_overrides:
         cli_overrides["error_injection"] = error_overrides

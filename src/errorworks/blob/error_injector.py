@@ -111,9 +111,7 @@ class BlobErrorInjector:
         """Build operation-scoped error specs in priority order."""
         in_burst = self._engine.is_in_burst()
         slow_down_pct = self._config.burst.slow_down_pct if in_burst else self._config.slow_down_pct
-        service_unavailable_pct = (
-            self._config.burst.service_unavailable_pct if in_burst else self._config.service_unavailable_pct
-        )
+        service_unavailable_pct = self._config.burst.service_unavailable_pct if in_burst else self._config.service_unavailable_pct
 
         specs = [
             ErrorSpec("timeout", self._config.timeout_pct),
