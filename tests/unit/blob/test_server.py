@@ -40,6 +40,14 @@ def _list_keys(response) -> list[str]:
     return [node.text or "" for node in root.findall("Contents/Key")]
 
 
+def _exported_request(client: TestClient) -> dict:
+    export = client.get("/admin/export", headers=_admin_headers(client))
+    assert export.status_code == 200
+    requests = export.json()["requests"]
+    assert len(requests) == 1
+    return requests[0]
+
+
 def test_health_returns_run_information(tmp_path: Path) -> None:
     client = _client_for(tmp_path)
 
@@ -145,6 +153,17 @@ def test_access_denied_injection_returns_s3_error(tmp_path: Path) -> None:
     assert _xml_code(response) == "AccessDenied"
 
 
+def test_access_denied_injection_records_error_response_size(tmp_path: Path) -> None:
+    client = _client_for(tmp_path, error_injection=BlobErrorInjectionConfig(access_denied_pct=100.0))
+
+    response = client.get("/bucket/key.txt")
+
+    request = _exported_request(client)
+    assert isinstance(request["bytes_out"], int)
+    assert request["bytes_out"] == len(response.content)
+    assert request["bytes_out"] > 0
+
+
 def test_not_found_injection_can_force_no_such_key(tmp_path: Path) -> None:
     client = _client_for(tmp_path, error_injection=BlobErrorInjectionConfig(not_found_pct=100.0))
     client.put("/bucket/key.txt", content=b"hello")
@@ -228,6 +247,29 @@ def test_invalid_continuation_token_returns_controlled_s3_client_error(tmp_path:
 
     assert response.status_code == 400
     assert _xml_code(response) == "InvalidArgument"
+
+
+def test_invalid_continuation_token_records_error_response_size(tmp_path: Path) -> None:
+    client = _client_for(tmp_path)
+
+    response = client.get("/bucket?list-type=2&continuation-token=not-a-token")
+
+    request = _exported_request(client)
+    assert isinstance(request["bytes_out"], int)
+    assert request["bytes_out"] == len(response.content)
+    assert request["bytes_out"] > 0
+
+
+def test_timeout_injection_records_error_response_size(tmp_path: Path) -> None:
+    client = _client_for(tmp_path, error_injection=BlobErrorInjectionConfig(timeout_pct=100.0, timeout_sec=(0, 0)))
+
+    response = client.get("/bucket/key.txt")
+
+    request = _exported_request(client)
+    assert response.status_code == 504
+    assert isinstance(request["bytes_out"], int)
+    assert request["bytes_out"] == len(response.content)
+    assert request["bytes_out"] > 0
 
 
 def test_put_object_too_large_returns_entity_too_large(tmp_path: Path) -> None:

@@ -240,6 +240,7 @@ class ChaosBlobServer:
         try:
             stored = store.put(bucket, key, body, request.headers)
         except ObjectTooLargeError:
+            error_body = self._s3_error_body(code="EntityTooLarge", resource=f"/{bucket}/{key}", request_id=request_id)
             elapsed_ms = self._elapsed_ms(start_time)
             self._record_request(
                 request_id=request_id,
@@ -251,10 +252,11 @@ class ChaosBlobServer:
                 status_code=413,
                 error_type="EntityTooLarge",
                 bytes_in=len(body),
+                bytes_out=len(error_body),
                 latency_ms=elapsed_ms,
                 injected_delay_ms=self._delay_ms(delay),
             )
-            return self._s3_error(code="EntityTooLarge", status_code=413, resource=f"/{bucket}/{key}", request_id=request_id)
+            return self._s3_error_response(body=error_body, status_code=413)
 
         etag = self._quoted_etag(stored.etag)
         elapsed_ms = self._elapsed_ms(start_time)
@@ -297,6 +299,7 @@ class ChaosBlobServer:
 
         stored = store.get(bucket, key)
         if stored is None:
+            error_body = self._s3_error_body(code="NoSuchKey", resource=f"/{bucket}/{key}", request_id=request_id)
             elapsed_ms = self._elapsed_ms(start_time)
             self._record_request(
                 request_id=request_id,
@@ -307,9 +310,10 @@ class ChaosBlobServer:
                 outcome="error_injected",
                 status_code=404,
                 error_type="NoSuchKey",
+                bytes_out=self._response_bytes_out(operation, error_body),
                 latency_ms=elapsed_ms,
             )
-            return self._s3_error(code="NoSuchKey", status_code=404, resource=f"/{bucket}/{key}", request_id=request_id)
+            return self._s3_error_response(body=error_body, status_code=404)
 
         delay = latency_simulator.simulate()
         if delay > 0:
@@ -406,6 +410,7 @@ class ChaosBlobServer:
         try:
             page = store.list_objects(bucket, prefix=prefix, max_keys=max_keys, continuation_token=continuation_token)
         except InvalidContinuationTokenError:
+            error_body = self._s3_error_body(code="InvalidArgument", resource=f"/{bucket}", request_id=request_id)
             elapsed_ms = self._elapsed_ms(start_time)
             self._record_request(
                 request_id=request_id,
@@ -415,10 +420,11 @@ class ChaosBlobServer:
                 outcome="error_injected",
                 status_code=400,
                 error_type="InvalidArgument",
+                bytes_out=len(error_body),
                 latency_ms=elapsed_ms,
                 injected_delay_ms=self._delay_ms(delay),
             )
-            return self._s3_error(code="InvalidArgument", status_code=400, resource=f"/{bucket}", request_id=request_id)
+            return self._s3_error_response(body=error_body, status_code=400)
 
         page, content, outcome, error_type = self._build_list_response(
             bucket=bucket,
@@ -473,6 +479,7 @@ class ChaosBlobServer:
         if delay > 0:
             await asyncio.sleep(delay)
         assert decision.status_code is not None and decision.s3_code is not None
+        error_body = self._s3_error_body(code=decision.s3_code, resource=self._resource(bucket, key), request_id=request_id)
         elapsed_ms = self._elapsed_ms(start_time)
         self._record_request(
             request_id=request_id,
@@ -484,17 +491,12 @@ class ChaosBlobServer:
             status_code=decision.status_code,
             error_type=decision.error_type,
             injection_type=decision.error_type,
+            bytes_out=self._response_bytes_out(operation, error_body),
             latency_ms=elapsed_ms,
             injected_delay_ms=self._delay_ms(delay),
         )
         headers = {"Retry-After": str(decision.retry_after_sec)} if decision.retry_after_sec is not None else None
-        return self._s3_error(
-            code=decision.s3_code,
-            status_code=decision.status_code,
-            resource=self._resource(bucket, key),
-            request_id=request_id,
-            headers=headers,
-        )
+        return self._s3_error_response(body=error_body, status_code=decision.status_code, headers=headers)
 
     async def _handle_connection_error(
         self,
@@ -514,6 +516,7 @@ class ChaosBlobServer:
             delay = float(min_sec if min_sec == max_sec else max_sec)
             if delay > 0:
                 await asyncio.sleep(delay)
+            error_body = self._s3_error_body(code="RequestTimeout", resource=self._resource(bucket, key), request_id=request_id)
             elapsed_ms = self._elapsed_ms(start_time)
             self._record_request(
                 request_id=request_id,
@@ -525,21 +528,18 @@ class ChaosBlobServer:
                 status_code=504,
                 error_type="timeout",
                 injection_type="timeout",
+                bytes_out=self._response_bytes_out(operation, error_body),
                 latency_ms=elapsed_ms,
                 injected_delay_ms=self._delay_ms(delay),
             )
-            return self._s3_error(
-                code="RequestTimeout",
-                status_code=504,
-                resource=self._resource(bucket, key),
-                request_id=request_id,
-            )
+            return self._s3_error_response(body=error_body, status_code=504)
 
         if error_type == "slow_response":
             min_sec, max_sec = error_injector.config.slow_response_sec
             delay = float(min_sec if min_sec == max_sec else max_sec)
             if delay > 0:
                 await asyncio.sleep(delay)
+            error_body = self._s3_error_body(code="SlowDown", resource=self._resource(bucket, key), request_id=request_id)
             elapsed_ms = self._elapsed_ms(start_time)
             self._record_request(
                 request_id=request_id,
@@ -551,10 +551,11 @@ class ChaosBlobServer:
                 status_code=503,
                 error_type="slow_response",
                 injection_type="slow_response",
+                bytes_out=self._response_bytes_out(operation, error_body),
                 latency_ms=elapsed_ms,
                 injected_delay_ms=self._delay_ms(delay),
             )
-            return self._s3_error(code="SlowDown", status_code=503, resource=self._resource(bucket, key), request_id=request_id)
+            return self._s3_error_response(body=error_body, status_code=503)
 
         elapsed_ms = self._elapsed_ms(start_time)
         self._record_request(
@@ -646,7 +647,19 @@ class ChaosBlobServer:
         request_id: str,
         headers: dict[str, str] | None = None,
     ) -> Response:
-        body = error_xml(code, _S3_MESSAGES[code], resource=resource, request_id=request_id)
+        body = self._s3_error_body(code=code, resource=resource, request_id=request_id)
+        return self._s3_error_response(body=body, status_code=status_code, headers=headers)
+
+    def _s3_error_body(self, *, code: str, resource: str, request_id: str) -> bytes:
+        return error_xml(code, _S3_MESSAGES[code], resource=resource, request_id=request_id)
+
+    def _s3_error_response(
+        self,
+        *,
+        body: bytes,
+        status_code: int,
+        headers: dict[str, str] | None = None,
+    ) -> Response:
         return Response(content=body, status_code=status_code, media_type=_XML_MEDIA_TYPE, headers=headers)
 
     def _record_request(
@@ -708,6 +721,10 @@ class ChaosBlobServer:
     @staticmethod
     def _resource(bucket: str, key: str | None) -> str:
         return f"/{bucket}/{key}" if key is not None else f"/{bucket}"
+
+    @staticmethod
+    def _response_bytes_out(operation: BlobOperation, body: bytes) -> int:
+        return 0 if operation is BlobOperation.HEAD else len(body)
 
     @staticmethod
     def _parse_max_keys(value: str | None) -> int:
