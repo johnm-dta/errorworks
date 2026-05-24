@@ -145,7 +145,6 @@ During a burst, the burst `slow_down_pct` and `service_unavailable_pct` temporar
 |---|---:|---|
 | `max_object_bytes` | `10485760` | Maximum accepted object body size |
 | `default_content_type` | `application/octet-stream` | Content type used when a PUT has no `Content-Type` header |
-| `expose_s3_xml` | `true` | Reserved setting for S3-shaped XML responses |
 
 Objects are stored in memory. If you update `storage` at runtime, ChaosBlob rebuilds the store with the new limits and clears existing objects.
 

@@ -363,7 +363,6 @@ All percentage fields are floats in the range 0.0-100.0.
 |-------|------|---------|-------------|
 | `max_object_bytes` | `int` | `10485760` | Maximum accepted object body size. Must be > 0. |
 | `default_content_type` | `str` | `"application/octet-stream"` | Content-Type used when a PUT has no content-type header. |
-| `expose_s3_xml` | `bool` | `true` | Reserved setting for S3-shaped XML list/error responses. |
 
 ---
 

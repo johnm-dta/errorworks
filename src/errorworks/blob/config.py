@@ -137,7 +137,6 @@ class BlobStorageConfig(BaseModel):
 
     max_object_bytes: int = Field(default=10 * 1024 * 1024, gt=0, description="Maximum stored object size in bytes")
     default_content_type: str = Field(default="application/octet-stream", min_length=1, description="Default object content type")
-    expose_s3_xml: bool = Field(default=True, description="Return S3-shaped XML error/list responses")
 
     @field_validator("default_content_type")
     @classmethod
