@@ -1,5 +1,6 @@
 """Tests for ChaosSMTP message capture."""
 
+from dataclasses import asdict
 from email.message import EmailMessage
 
 import pytest
@@ -47,6 +48,25 @@ def test_metadata_mode_stores_safe_headers() -> None:
     assert capture.list_messages()[0].transaction_id == "tx-1"
 
 
+def test_captured_record_asdict_exports_plain_headers() -> None:
+    capture = MessageCapture(SMTPCaptureConfig(mode="metadata"))
+    record = capture.capture(
+        transaction_id="tx-1",
+        mail_from="sender@example.com",
+        rcpt_tos=["recipient@example.com"],
+        data=_message_bytes(),
+    )
+
+    exported = asdict(record)
+
+    assert exported["headers"] == {
+        "from": "sender@example.com",
+        "to": "recipient@example.com",
+        "subject": "Delivery test",
+    }
+    assert isinstance(exported["headers"], dict)
+
+
 def test_listed_record_headers_cannot_mutate_stored_capture() -> None:
     capture = MessageCapture(SMTPCaptureConfig(mode="metadata"))
     capture.capture(
@@ -59,6 +79,22 @@ def test_listed_record_headers_cannot_mutate_stored_capture() -> None:
     listed_record = capture.list_messages()[0]
     with pytest.raises(TypeError):
         listed_record.headers["from"] = "mutated@example.com"  # type: ignore[index]
+
+    assert capture.list_messages()[0].headers["from"] == "sender@example.com"
+
+
+def test_listed_record_headers_reject_update_operator_mutation() -> None:
+    capture = MessageCapture(SMTPCaptureConfig(mode="metadata"))
+    capture.capture(
+        transaction_id="tx-1",
+        mail_from="sender@example.com",
+        rcpt_tos=["recipient@example.com"],
+        data=_message_bytes(),
+    )
+
+    listed_record = capture.list_messages()[0]
+    with pytest.raises(TypeError):
+        listed_record.headers |= {"from": "mutated@example.com"}  # type: ignore[misc]
 
     assert capture.list_messages()[0].headers["from"] == "sender@example.com"
 
