@@ -12,6 +12,7 @@ from errorworks.smtp.config import (
     load_config,
     load_preset,
 )
+from errorworks.smtp.error_injector import SMTPErrorCategory, SMTPErrorDecision, SMTPErrorInjector, SMTPStage
 from errorworks.smtp.message_capture import CapturedMessage, MessageCapture
 
 __all__ = [
@@ -22,8 +23,12 @@ __all__ = [
     "SMTPAdminConfig",
     "SMTPBurstConfig",
     "SMTPCaptureConfig",
+    "SMTPErrorCategory",
+    "SMTPErrorDecision",
     "SMTPErrorInjectionConfig",
+    "SMTPErrorInjector",
     "SMTPServerConfig",
+    "SMTPStage",
     "list_presets",
     "load_config",
     "load_preset",
