@@ -67,8 +67,10 @@ jobs:
             --format requirements-txt \
             > /tmp/requirements.txt
       - name: Run pip-audit
+        # --disable-pip would be ideal but it requires either hashes in the
+        # requirements file or --no-deps; we resolve with uv (no hashes) and
+        # let pip-audit shell out to pip for vulnerability lookups.
         run: |
           uvx --from pip-audit pip-audit \
             --requirement /tmp/requirements.txt \
-            --strict \
-            --disable-pip
+            --strict
