@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 from typer.testing import CliRunner
 
-from errorworks.blob.cli import app
+from errorworks.blob.cli import _create_app_from_env, app
 from errorworks.engine.cli import app as engine_app
 
 runner = CliRunner()
@@ -56,23 +56,47 @@ def test_serve_workers_with_in_memory_database_exits_with_error() -> None:
 
 
 @patch(_UVICORN_RUN)
+def test_serve_workers_with_file_database_preserves_blob_default_port(mock_run, tmp_path) -> None:
+    db = tmp_path / "blob-cli-review.db"
+
+    result = runner.invoke(app, ["serve", "--workers=2", f"--database={db}"])
+
+    assert result.exit_code == 0, result.output
+    assert mock_run.call_args.kwargs["port"] == 8300
+
+
+@patch(_UVICORN_RUN)
+def test_serve_host_without_port_preserves_blob_default_port(mock_run) -> None:
+    result = runner.invoke(app, ["serve", "--host=127.0.0.2"])
+
+    assert result.exit_code == 0, result.output
+    assert mock_run.call_args.kwargs["host"] == "127.0.0.2"
+    assert mock_run.call_args.kwargs["port"] == 8300
+
+
+@patch(_UVICORN_RUN)
 def test_serve_blob_specific_flags_reach_server_config(mock_run) -> None:
     result = runner.invoke(
         app,
         [
             "serve",
-            "--slow-down-pct=1",
-            "--access-denied-pct=2",
-            "--not-found-pct=3",
-            "--service-unavailable-pct=4",
-            "--internal-error-pct=5",
-            "--timeout-pct=6",
-            "--truncated-body-pct=7",
-            "--wrong-content-length-pct=8",
-            "--checksum-mismatch-pct=9",
-            "--metadata-corruption-pct=10",
-            "--stale-list-pct=11",
-            "--malformed-xml-pct=12",
+            "--slow-down-pct=0.1",
+            "--access-denied-pct=0.2",
+            "--not-found-pct=0.3",
+            "--service-unavailable-pct=0.4",
+            "--internal-error-pct=0.5",
+            "--bad-gateway-pct=0.6",
+            "--gateway-timeout-pct=0.7",
+            "--timeout-pct=0.8",
+            "--connection-reset-pct=0.9",
+            "--connection-stall-pct=1.0",
+            "--slow-response-pct=1.1",
+            "--truncated-body-pct=1.2",
+            "--wrong-content-length-pct=1.3",
+            "--checksum-mismatch-pct=1.4",
+            "--metadata-corruption-pct=1.5",
+            "--stale-list-pct=1.6",
+            "--malformed-xml-pct=1.7",
             "--selection-mode=weighted",
             "--base-ms=13",
             "--jitter-ms=14",
@@ -86,18 +110,23 @@ def test_serve_blob_specific_flags_reach_server_config(mock_run) -> None:
     assert result.exit_code == 0, result.output
     server = mock_run.call_args.args[0].state.server
     error_config = server._error_injector.config
-    assert error_config.slow_down_pct == 1
-    assert error_config.access_denied_pct == 2
-    assert error_config.not_found_pct == 3
-    assert error_config.service_unavailable_pct == 4
-    assert error_config.internal_error_pct == 5
-    assert error_config.timeout_pct == 6
-    assert error_config.truncated_body_pct == 7
-    assert error_config.wrong_content_length_pct == 8
-    assert error_config.checksum_mismatch_pct == 9
-    assert error_config.metadata_corruption_pct == 10
-    assert error_config.stale_list_pct == 11
-    assert error_config.malformed_xml_pct == 12
+    assert error_config.slow_down_pct == 0.1
+    assert error_config.access_denied_pct == 0.2
+    assert error_config.not_found_pct == 0.3
+    assert error_config.service_unavailable_pct == 0.4
+    assert error_config.internal_error_pct == 0.5
+    assert error_config.bad_gateway_pct == 0.6
+    assert error_config.gateway_timeout_pct == 0.7
+    assert error_config.timeout_pct == 0.8
+    assert error_config.connection_reset_pct == 0.9
+    assert error_config.connection_stall_pct == 1.0
+    assert error_config.slow_response_pct == 1.1
+    assert error_config.truncated_body_pct == 1.2
+    assert error_config.wrong_content_length_pct == 1.3
+    assert error_config.checksum_mismatch_pct == 1.4
+    assert error_config.metadata_corruption_pct == 1.5
+    assert error_config.stale_list_pct == 1.6
+    assert error_config.malformed_xml_pct == 1.7
     assert error_config.selection_mode == "weighted"
     assert error_config.burst.enabled is True
     assert error_config.burst.interval_sec == 30
@@ -114,3 +143,48 @@ def test_unified_cli_blob_presets_works() -> None:
 
     assert result.exit_code == 0, result.output
     assert "stress_storage" in result.output
+
+
+@patch(_UVICORN_RUN)
+def test_serve_multi_worker_uses_import_string(mock_run, tmp_path) -> None:
+    db = tmp_path / "blob-metrics.db"
+
+    result = runner.invoke(app, ["serve", "--workers=2", f"--database={db}"])
+
+    assert result.exit_code == 0, result.output
+    assert isinstance(mock_run.call_args.args[0], str)
+    assert "errorworks.blob.cli" in mock_run.call_args.args[0]
+
+
+@patch(_UVICORN_RUN)
+def test_serve_multi_worker_uses_factory_flag(mock_run, tmp_path) -> None:
+    db = tmp_path / "blob-metrics.db"
+
+    result = runner.invoke(app, ["serve", "--workers=2", f"--database={db}"])
+
+    assert result.exit_code == 0, result.output
+    assert mock_run.call_args.kwargs["factory"] is True
+
+
+@patch(_UVICORN_RUN)
+def test_serve_multi_worker_cleans_up_env_var(mock_run, tmp_path) -> None:
+    import os
+
+    db = tmp_path / "blob-metrics.db"
+
+    result = runner.invoke(app, ["serve", "--workers=2", f"--database={db}"])
+
+    assert result.exit_code == 0, result.output
+    assert "_ERRORWORKS_BLOB_CONFIG" not in os.environ
+
+
+def test_create_app_from_env_builds_valid_app(monkeypatch) -> None:
+    from starlette.applications import Starlette
+
+    from errorworks.blob.config import ChaosBlobConfig
+
+    monkeypatch.setenv("_ERRORWORKS_BLOB_CONFIG", ChaosBlobConfig().model_dump_json())
+
+    result_app = _create_app_from_env()
+
+    assert isinstance(result_app, Starlette)

@@ -19,6 +19,7 @@ __all__ = [
     "DEFAULT_MEMORY_DB",
     "BlobBurstConfig",
     "BlobErrorInjectionConfig",
+    "BlobServerConfig",
     "BlobStorageConfig",
     "ChaosBlobConfig",
     "LatencyConfig",
@@ -30,6 +31,12 @@ __all__ = [
 ]
 
 DEFAULT_MEMORY_DB = "file:chaosblob-metrics?mode=memory&cache=shared"
+
+
+class BlobServerConfig(ServerConfig):
+    """Server binding defaults for ChaosBlob."""
+
+    port: int = Field(default=8300, gt=0, le=65535, description="Port to listen on")
 
 
 class BlobBurstConfig(BaseModel):
@@ -138,7 +145,7 @@ class ChaosBlobConfig(BaseModel):
 
     model_config = {"frozen": True, "extra": "forbid"}
 
-    server: ServerConfig = Field(default_factory=lambda: ServerConfig(port=8300, workers=1), description="Server binding configuration")
+    server: BlobServerConfig = Field(default_factory=BlobServerConfig, description="Server binding configuration")
     metrics: MetricsConfig = Field(default_factory=lambda: MetricsConfig(database=DEFAULT_MEMORY_DB), description="Metrics storage")
     storage: BlobStorageConfig = Field(default_factory=BlobStorageConfig, description="Blob storage settings")
     latency: LatencyConfig = Field(default_factory=LatencyConfig, description="Latency simulation configuration")
